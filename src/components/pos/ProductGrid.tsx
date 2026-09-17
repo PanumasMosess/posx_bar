@@ -6,7 +6,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: "p1",
     title: "เหล้าขาว",
-    image: "https://lh3.googleusercontent.com/...", // ใส่ URL รูปให้ครบตามเดิม
+    image: "https://lh3.googleusercontent.com/aida/AEtjO1VKkf-raXcUrQOkCjOFepuc7XS6YZ-IV_H9Z10Iwh9Af33VAm3fZtSzsUZs33WgfayhbbHbWOIwVNRrCu-OnJ2gC75S9-3kK3p51K_AmbONV-ccgX_-dSSG_Mr1ETvXnfa20infBGRganyyvQeZRGU4KTp378evzMO7MFxAhESv3wITbCWGiS5N0pUXRyvEQPvywzhbs54AfynHuKu9TUl6DUDY_zD91W1ncqS68GqJ_d-sEzc8saIesqZF", // ใส่ URL รูปให้ครบตามเดิม
     price: 100000,
     stockText: "คงเหลือ 18 ขวด",
     optionsText: "2 ขนาด: กลม/แบน",
@@ -14,7 +14,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: "p2",
     title: "pr1 (PR บริการ)",
-    image: "https://lh3.googleusercontent.com/...",
+    image: "https://lh3.googleusercontent.com/aida/AEtjO1VKkf-raXcUrQOkCjOFepuc7XS6YZ-IV_H9Z10Iwh9Af33VAm3fZtSzsUZs33WgfayhbbHbWOIwVNRrCu-OnJ2gC75S9-3kK3p51K_AmbONV-ccgX_-dSSG_Mr1ETvXnfa20infBGRganyyvQeZRGU4KTp378evzMO7MFxAhESv3wITbCWGiS5N0pUXRyvEQPvywzhbs54AfynHuKu9TUl6DUDY_zD91W1ncqS68GqJ_d-sEzc8saIesqZF",
     price: 300000,
     stockText: "บริการพิเศษ",
     badgeStyle: "pink",
@@ -31,7 +31,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: "p4",
     title: "น้ำดื่ม (Aurora Pure)",
-    image: "https://lh3.googleusercontent.com/...",
+    image: "https://lh3.googleusercontent.com/aida/AEtjO1VKkf-raXcUrQOkCjOFepuc7XS6YZ-IV_H9Z10Iwh9Af33VAm3fZtSzsUZs33WgfayhbbHbWOIwVNRrCu-OnJ2gC75S9-3kK3p51K_AmbONV-ccgX_-dSSG_Mr1ETvXnfa20infBGRganyyvQeZRGU4KTp378evzMO7MFxAhESv3wITbCWGiS5N0pUXRyvEQPvywzhbs54AfynHuKu9TUl6DUDY_zD91W1ncqS68GqJ_d-sEzc8saIesqZF",
     price: 5000,
     stockText: "คงเหลือ 50 ขวด",
     optionsText: "เย็น / ไม่เย็น",
