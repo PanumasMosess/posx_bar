@@ -1,26 +1,111 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/container-queries";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-prompt), var(--font-inter), sans-serif;
+  --font-mono: var(--font-inter), monospace;
+
+  --color-brand-400: #38bdf8;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0284c7;
+  --color-brand-700: #0369a1;
+  --color-brand-accent: #0ea5e9;
+
+  --color-ocean-50: #f0f9ff;
+  --color-ocean-100: #e0f2fe;
+  --color-ocean-200: #bae6fd;
+  --color-ocean-500: #0ea5e9;
+  --color-ocean-600: #0284c7;
+  --color-ocean-700: #0369a1;
+  --color-ocean-cyan: #06b6d4;
+  --color-ocean-teal: #0891b2;
+
+  /* --- สี Default (Light Theme) --- */
+  --color-pos-bg: #f8fafc;
+  --color-pos-surface: #ffffff;
+  --color-pos-card: #ffffff;
+  --color-pos-hover: #f1f5f9;
+  /* ปรับเส้นขอบให้อ่อนลงเป็น slate-100 เส้นจะดูบางและเนียนตาสุดๆ */
+  --color-pos-border: #f1f5f9;
+  --color-pos-highlight: #e0f2fe;
+  --color-pos-text: #1e293b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- สีสำหรับ Dark Mode (Midnight Slate) --- */
+.dark {
+  --color-pos-bg: #0f172a;
+  --color-pos-surface: #1e293b;
+  --color-pos-card: #1e293b;
+  --color-pos-hover: #334155;
+  /* ปรับขอบให้มืดลง (slate-800) กลืนไปกับพื้นหลัง ทำให้เส้นดูไม่แข็ง */
+  --color-pos-border: #1e293b;
+  --color-pos-highlight: #0f766e;
+  --color-pos-text: #f1f5f9;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --- สีสำหรับ Ocean Teal Mode (Soft Ocean - มินิมอล คลีนๆ) --- */
+.teal {
+  --color-pos-bg: #f0fdfa;
+  /* teal-50 สีฟ้าอมเขียวอ่อนละมุนสุดๆ ไม่แยงตา */
+  --color-pos-surface: #ffffff;
+  /* ขาวบริสุทธิ์ ให้แถบเมนูและตะกร้าดูสะอาด */
+  --color-pos-card: #ffffff;
+  /* ขาวบริสุทธิ์ ให้รูปสินค้าเด่น */
+  --color-pos-hover: #ccfbf1;
+  /* teal-100 สีตอนเอาเมาส์ชี้ */
+  --color-pos-border: #e0fcf6;
+  /* teal-100 เส้นขอบอ่อนๆ ไม่แข็งกระด้าง */
+  --color-pos-highlight: #99f6e4;
+  /* teal-200 */
+  --color-pos-text: #0f766e;
+  /* teal-700 ตัวหนังสือสีน้ำทะเลลึก อ่านง่าย */
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scroll::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0.6;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-pos-bg text-pos-text font-sans antialiased min-h-screen flex flex-col h-screen overflow-hidden selection:bg-cyan-500 selection:text-white transition-colors duration-300;
 }
