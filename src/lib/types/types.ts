@@ -1,0 +1,1 @@
+export type ModalView = "ADD_PRODUCT" | "ADD_CATEGORY" | "ADD_OPTION";

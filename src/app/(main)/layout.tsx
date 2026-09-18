@@ -57,7 +57,6 @@ export default function MainLayout({
 
             <MobileNav onToggleCart={toggleCart} />
           </main>
-
           <CartDrawer
             isOpen={isCartOpen}
             onClose={closeCart}
