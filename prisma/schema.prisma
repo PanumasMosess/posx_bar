@@ -49,108 +49,164 @@ model organizations {
   password  String
   createdAt DateTime @default(now())
 
-  products products[]
-  qrcodes  qrcodes[]
-  orders   orders[]
-  payments payments[]
+  products   products[]
+  qrcodes    qrcodes[]
+  orders     orders[]
+  payments   payments[]
+  categories categories[]
 }
 
 model products {
-  id             Int           @id @default(autoincrement())
-  name           String
-  price          Float
-  image          String?
-  stock          Int           @default(0)
-  barcode        String?
-  isActive       Boolean       @default(true)
+  id       Int     @id @default(autoincrement())
+  name     String
+  price    Float
+  cost     Float 
+  image    String?
+  stock    Int?    @default(0)
+  isActive Boolean @default(true)
+  detail   String? 
+  barcode  String?
 
+  // ความสัมพันธ์
   organizationId Int
   organization   organizations @relation(fields: [organizationId], references: [id])
-  orderItems     orderitems[]
 
-  createdBy      String?       
+  categoryId Int?
+  category   categories? @relation(fields: [categoryId], references: [id])
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  orderItems   orderitems[]
+  optionGroups optiongroups[] 
+
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model optiongroups {
+  id            Int     @id @default(autoincrement())
+  name          String // ชื่อกลุ่ม เช่น "ระดับความหวาน"
+  isRequired    Boolean @default(false) // บังคับเลือกหรือไม่ (true = บังคับ, false = ไม่บังคับ)
+  allowMultiple Boolean @default(false) // เลือกได้หลายอันหรือไม่ (true = เลือกท็อปปิ้งได้หลายอัน, false = เลือกไซส์ได้แค่อันเดียว)
+  isActive      Boolean @default(true)
+
+  productId Int
+  product   products @relation(fields: [productId], references: [id], onDelete: Cascade) // ถ้าลบสินค้า ให้ลบกลุ่มตัวเลือกตามไปด้วย
+
+  choices optionchoices[] // ตัวเลือกย่อยในกลุ่มนี้
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model optionchoices {
+  id       Int     @id @default(autoincrement())
+  name     String // ชื่อตัวเลือก เช่น "เพิ่มไข่มุก", "หวาน 50%", "แก้วใหญ่"
+  priceAdd Float   @default(0) // ราคาบวกเพิ่ม (ถ้าไม่มีให้เป็น 0)
+  isActive Boolean @default(true)
+
+  optionGroupId Int
+  optionGroup   optiongroups @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model qrcodes {
-  id             Int           @id @default(autoincrement())
-  token          String        @unique
-  tableName      String
-  isActive       Boolean       @default(true)
+  id        Int     @id @default(autoincrement())
+  token     String  @unique
+  tableName String
+  isActive  Boolean @default(true)
 
   organizationId Int
   organization   organizations @relation(fields: [organizationId], references: [id])
 
-  orders         orders[]
+  orders orders[]
 
-  createdBy      String?       
+  createdBy String?
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model orders {
-  id              Int           @id @default(autoincrement())
-  orderNumber     String        @unique 
-  status          OrderStatus   @default(CART)
-  orderType       OrderType     @default(DINE_IN)
-  kitchenStatus   KitchenStatus @default(IDLE)
+  id            Int           @id @default(autoincrement())
+  orderNumber   String        @unique
+  status        OrderStatus   @default(CART)
+  orderType     OrderType     @default(DINE_IN)
+  kitchenStatus KitchenStatus @default(IDLE)
 
-  totalAmount     Float         @default(0)
-  discount        Float         @default(0)
-  netAmount       Float         @default(0)
+  totalAmount Float @default(0)
+  discount    Float @default(0)
+  netAmount   Float @default(0)
 
-  qrCodeId        Int?
-  qrcode          qrcodes?      @relation(fields: [qrCodeId], references: [id])
+  qrCodeId Int?
+  qrcode   qrcodes? @relation(fields: [qrCodeId], references: [id])
 
   customerName    String?
   customerPhone   String?
   deliveryAddress String?
 
-  organizationId  Int
-  organization    organizations @relation(fields: [organizationId], references: [id])
-  items           orderitems[]
-  payments        payments[]
+  organizationId Int
+  organization   organizations @relation(fields: [organizationId], references: [id])
+  items          orderitems[]
+  payments       payments[]
 
-  createdBy       String?       
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model orderitems {
-  id             Int           @id @default(autoincrement())
-  quantity       Int           @default(1)
-  priceAtTime    Float
-  options        String?
-  status         KitchenStatus @default(IDLE)
+  id          Int           @id @default(autoincrement())
+  quantity    Int           @default(1)
+  priceAtTime Float
+  options     String?
+  status      KitchenStatus @default(IDLE)
 
-  orderId        Int
-  order          orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId      Int
-  product        products      @relation(fields: [productId], references: [id])
+  orderId   Int
+  order     orders   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   products @relation(fields: [productId], references: [id])
 
-  createdBy      String?       
+  createdBy String?
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model payments {
-  id             Int           @id @default(autoincrement())
-  amount         Float
-  method         PaymentMethod @default(CASH)
-  referenceNo    String?
-  isCompleted    Boolean       @default(true)
+  id          Int           @id @default(autoincrement())
+  amount      Float
+  method      PaymentMethod @default(CASH)
+  referenceNo String?
+  isCompleted Boolean       @default(true)
 
   orderId        Int
   order          orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   organizationId Int
   organization   organizations @relation(fields: [organizationId], references: [id])
 
-  createdBy      String?      
+  createdBy String?
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model categories {
+  id       Int     @id @default(autoincrement())
+  name     String
+  isActive Boolean @default(true)
+
+  organizationId Int
+  organization   organizations @relation(fields: [organizationId], references: [id])
+
+  products products[]
+
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
