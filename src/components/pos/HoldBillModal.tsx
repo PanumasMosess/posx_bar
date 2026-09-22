@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { getTablesFromDB, createTableInDB } from "@/lib/actions/actionsPos";
@@ -15,14 +16,15 @@ export default function HoldBillModal({
   onClose,
   onSuccess,
 }: HoldBillModalProps) {
-  // 🌟 ดึง activeBillInfo จาก CartContext มาใช้โดยตรง (แทนการค้นหาจาก heldBills)
-  const { holdBill, activeBillId, activeBillInfo } = useCart();
+  const { holdBill, activeBillId, activeBillInfo, cart } = useCart();
 
   const [customerName, setCustomerName] = useState("");
   const [qrCodeId, setQrCodeId] = useState<number | null>(null);
-  const [sendToKitchen, setSendToKitchen] = useState(false);
   const [tables, setTables] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🌟 State เก็บ ID ของเมนูที่ต้องการส่งเข้าครัว
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   const [isAddingTable, setIsAddingTable] = useState(false);
   const [newTableName, setNewTableName] = useState("");
@@ -30,16 +32,15 @@ export default function HoldBillModal({
 
   useEffect(() => {
     if (isOpen) {
-      // ดึงรายชื่อโต๊ะมาแสดง (สมมติ organizationId = 1)
+      // ดึงรายชื่อโต๊ะมาแสดง
       getTablesFromDB(1).then((res) => {
         if (res.success) setTables(res.data);
       });
 
-      // 🌟 ดึงข้อมูลจาก activeBillInfo ซึ่งเป็นบิลที่กำลังเปิดและคืนบิลมาแก้ไขอยู่
+      // ดึงข้อมูลบิลเดิมถ้ากำลังแก้ไขอยู่
       if (activeBillId && activeBillInfo) {
         let cName = activeBillInfo.customerName || "";
 
-        // ถ้าชื่อลูกค้าเป็นชื่อที่ระบบตั้งให้อัตโนมัติ ให้เคลียร์ช่องกรอกเพื่อความสะดวก
         if (
           cName.includes("บิลพักชั่วคราว") ||
           cName.includes("บิล HOLD-") ||
@@ -50,18 +51,41 @@ export default function HoldBillModal({
 
         setCustomerName(cName);
         setQrCodeId(activeBillInfo.qrCodeId || null);
-        setSendToKitchen(activeBillInfo.kitchenStatus === "IN_KITCHEN");
       } else {
-        // หากเป็นบิลใหม่เอี่ยม เคลียร์ค่าทั้งหมดให้เป็นค่าว่าง/เริ่มต้น
         setCustomerName("");
         setQrCodeId(null);
-        setSendToKitchen(false);
       }
+
+      // 🌟 ตั้งค่าสถานะเริ่มต้น:
+      // เลือกเฉพาะรายการที่มีสถานะเดิมเป็น IN_KITCHEN (ถ้ารายการใหม่เอี่ยมจะไม่มีการ Check ใดๆ)
+      const preSelectedIds = cart
+        .filter((item: any) => item.status === "IN_KITCHEN")
+        .map((item) => item.id);
+
+      setSelectedItemIds(preSelectedIds);
 
       setIsAddingTable(false);
       setNewTableName("");
     }
-  }, [isOpen, activeBillId, activeBillInfo]);
+  }, [isOpen, activeBillId, activeBillInfo, cart]);
+
+  // 🌟 ฟังก์ชันเลือก/ยกเลิกเลือกเมนูเดี่ยว
+  const toggleSelectItem = (id: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((itemId) => itemId !== id)
+        : [...prev, id],
+    );
+  };
+
+  // 🌟 ฟังก์ชันเลือกทั้งหมด / ยกเลิกทั้งหมด
+  const toggleSelectAll = () => {
+    if (selectedItemIds.length === cart.length) {
+      setSelectedItemIds([]);
+    } else {
+      setSelectedItemIds(cart.map((item) => item.id));
+    }
+  };
 
   const handleAddTable = async () => {
     if (!newTableName.trim()) return;
@@ -83,15 +107,49 @@ export default function HoldBillModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    const hasKitchenItems = selectedItemIds.length > 0;
+
     const success = await holdBill(1, {
       customerName,
       qrCodeId,
-      sendToKitchen,
+      sendToKitchen: hasKitchenItems,
+      kitchenItemIds: selectedItemIds,
     });
+
     setIsSubmitting(false);
     if (success) {
       onSuccess();
       onClose();
+    }
+  };
+
+  // ถอดรหัส Options มาแสดงสวยๆ
+  const renderOptionsText = (rawOptions: any) => {
+    if (!rawOptions) return "";
+    try {
+      let parsed = rawOptions;
+      if (typeof rawOptions === "string") parsed = JSON.parse(rawOptions);
+      if (!parsed || typeof parsed !== "object") return "";
+
+      const names: string[] = [];
+      const values = Array.isArray(parsed) ? parsed : Object.values(parsed);
+
+      values.forEach((item: any) => {
+        if (Array.isArray(item)) {
+          item.forEach((sub) => {
+            if (typeof sub === "object" && sub?.name) names.push(sub.name);
+            else if (typeof sub === "string") names.push(sub);
+          });
+        } else if (typeof item === "object" && item !== null) {
+          if (item.name) names.push(item.name);
+        } else if (typeof item === "string") {
+          names.push(item);
+        }
+      });
+      return names.join(", ");
+    } catch (e) {
+      return "";
     }
   };
 
@@ -106,11 +164,12 @@ export default function HoldBillModal({
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-sm bg-pos-surface rounded-2xl shadow-2xl border border-pos-border animate-slide-up overflow-hidden"
+          className="w-full max-w-md bg-pos-surface rounded-2xl shadow-2xl border border-pos-border animate-slide-up overflow-hidden flex flex-col max-h-[85vh]"
         >
-          <div className="p-4 border-b border-pos-border flex items-center justify-between bg-amber-50 dark:bg-amber-900/20">
+          {/* Header */}
+          <div className="p-4 border-b border-pos-border flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 shrink-0">
             <h3 className="font-bold text-sm text-amber-800 dark:text-amber-500">
-              พักบิล / บันทึกออเดอร์
+              พักบิล / เลือกรายการส่งเข้าครัว
             </h3>
             <button
               type="button"
@@ -133,7 +192,7 @@ export default function HoldBillModal({
             </button>
           </div>
 
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4 overflow-y-auto custom-scroll flex-1">
             {/* Input ชื่อลูกค้า */}
             <div>
               <label className="block text-xs font-semibold text-pos-text mb-1">
@@ -213,35 +272,94 @@ export default function HoldBillModal({
               )}
             </div>
 
-            {/* Switch ส่งเข้าครัว */}
+            {/* 🌟 รายการเมนูสำหรับเลือกเข้าครัว */}
             <div className="pt-2 border-t border-pos-border">
-              <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-pos-bg transition">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={sendToKitchen}
-                    onChange={(e) => setSendToKitchen(e.target.checked)}
-                  />
-                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-500"></div>
-                </div>
-                <div>
-                  <span className="text-sm font-bold text-pos-text block">
-                    ส่งเข้าครัว
-                  </span>
-                  <span className="text-[10px] text-pos-text/60">
-                    ออเดอร์จะไปแสดงที่หน้าจอครัว
-                  </span>
-                </div>
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-pos-text">
+                  เลือกรายการที่ต้องการส่งเข้าครัว ({selectedItemIds.length}/
+                  {cart.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="text-[11px] font-bold text-sky-600 hover:underline"
+                >
+                  {selectedItemIds.length === cart.length
+                    ? "ยกเลิกทั้งหมด"
+                    : "เลือกทั้งหมด"}
+                </button>
+              </div>
+
+              {/* Scrollable Container */}
+              <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
+                {cart.length === 0 ? (
+                  <p className="text-xs text-pos-text/50 text-center py-4">
+                    ไม่มีรายการสินค้าในตะกร้า
+                  </p>
+                ) : (
+                  cart.map((item) => {
+                    const title =
+                      item.product?.name || item.product?.title || "สินค้า";
+                    const isSelected = selectedItemIds.includes(item.id);
+                    const isAlreadyInKitchen =
+                      (item as any).status === "IN_KITCHEN";
+
+                    const optDisplay = renderOptionsText(
+                      item.selectedOptions || (item as any).options,
+                    );
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleSelectItem(item.id)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                          isSelected
+                            ? "bg-teal-500/10 border-teal-500/40 text-pos-text"
+                            : "bg-pos-bg border-pos-border text-pos-text/60 hover:border-pos-border/80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold truncate">
+                                {title}
+                              </p>
+                              {isAlreadyInKitchen && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-teal-500/10 text-teal-600 font-bold border border-teal-500/20">
+                                  ส่งแล้ว
+                                </span>
+                              )}
+                            </div>
+                            {optDisplay && (
+                              <p className="text-[10px] text-sky-600 dark:text-sky-400 truncate">
+                                {optDisplay}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="font-mono font-bold text-xs shrink-0 ml-2 px-2 py-0.5 rounded bg-pos-surface border border-pos-border">
+                          x{item.quantity}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-pos-bg border-t border-pos-border">
+          {/* Footer Submit Button */}
+          <div className="p-4 bg-pos-bg border-t border-pos-border shrink-0">
             <button
               type="submit"
-              disabled={isSubmitting || isSavingTable}
-              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md transition disabled:opacity-50"
+              disabled={isSubmitting || isSavingTable || cart.length === 0}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-sm shadow-md transition disabled:opacity-50"
             >
               {isSubmitting ? "กำลังบันทึก..." : "ยืนยันการพักบิล"}
             </button>

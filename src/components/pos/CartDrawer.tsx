@@ -8,6 +8,7 @@ import { CartDrawerProps } from "@/lib/types/interface";
 import HoldBillModal from "./HoldBillModal";
 import HeldBillsDrawer from "./HeldBillsDrawer";
 import PaymentModal from "./PaymentModal";
+import SplitBillModal from "./SplitBillModal";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
 
 export default function CartDrawer({
@@ -28,15 +29,14 @@ export default function CartDrawer({
 
   const [showHeldBills, setShowHeldBills] = useState(false);
   const [showHoldModal, setShowHoldModal] = useState(false);
+  const [showSplitModal, setShowSplitModal] = useState(false);
   const [payingBillId, setPayingBillId] = useState<number | string | null>(
     null,
   );
 
-  // 🌟 State ควบคุมการแสดง Confirm Delete Modal และสถานะกำลังลบ
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 🌟 ฟังก์ชันเมื่อกดยืนยันจาก Confirm Modal
   const handleConfirmClear = async () => {
     setIsDeleting(true);
     await clearCart();
@@ -44,9 +44,47 @@ export default function CartDrawer({
     setShowClearConfirm(false);
   };
 
+  const renderOptionsText = (rawOptions: any) => {
+    if (!rawOptions) return "";
+
+    try {
+      let parsed = rawOptions;
+      if (typeof rawOptions === "string") {
+        parsed = JSON.parse(rawOptions);
+      }
+
+      if (!parsed || typeof parsed !== "object") return "";
+
+      const names: string[] = [];
+      const values = Array.isArray(parsed) ? parsed : Object.values(parsed);
+
+      values.forEach((item: any) => {
+        if (Array.isArray(item)) {
+          item.forEach((sub) => {
+            if (typeof sub === "object" && sub?.name) {
+              names.push(sub.name);
+            } else if (typeof sub === "string") {
+              names.push(sub);
+            }
+          });
+        } else if (typeof item === "object" && item !== null) {
+          if (item.name) {
+            names.push(item.name);
+          }
+        } else if (typeof item === "string") {
+          names.push(item);
+        }
+      });
+
+      return names.join(", ");
+    } catch (e) {
+      return "";
+    }
+  };
+
   return (
     <>
-      {/* 1. Mobile Bottom Floating Bar */}
+      {/* Mobile Bottom Floating Bar */}
       <div className="lg:hidden absolute bottom-[calc(56px+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 p-3 bg-pos-surface/95 backdrop-blur-md border-t border-pos-border z-[30] shadow-lg">
         <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
           <div
@@ -83,11 +121,14 @@ export default function CartDrawer({
               </div>
             </div>
           </div>
+
+          {/* ปุ่มบันทึก/พักบิล สำหรับ Mobile */}
           <button
-            onClick={onOpen}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 text-white font-bold text-sm shadow-md"
+            onClick={() => setShowHoldModal(true)}
+            disabled={cart.length === 0}
+            className="px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 text-white font-bold text-sm shadow-md disabled:opacity-50 active:scale-95 transition"
           >
-            ดูตะกร้า
+            บันทึก / พักบิล
           </button>
         </div>
       </div>
@@ -99,7 +140,7 @@ export default function CartDrawer({
         ></div>
       )}
 
-      {/* 2. Side Panel */}
+      {/* Side Panel */}
       <aside
         className={`${
           isOpen ? "flex" : "hidden"
@@ -160,7 +201,7 @@ export default function CartDrawer({
           </div>
         </div>
 
-        {/* 3. รายการสินค้าในตะกร้า */}
+        {/* รายการสินค้าในตะกร้า */}
         <div className="flex-1 overflow-y-auto custom-scroll p-3.5 space-y-3 bg-pos-bg min-h-0">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-pos-text/40 gap-3">
@@ -184,15 +225,9 @@ export default function CartDrawer({
                 item.product?.name || item.product?.title || "สินค้า";
               const image = item.product?.image || item.product?.img || "";
 
-              let optionsDisplay = "";
-              if (
-                item.selectedOptions &&
-                Object.keys(item.selectedOptions).length > 0
-              ) {
-                optionsDisplay = Object.values(item.selectedOptions)
-                  .map((opt: any) => opt.name || opt)
-                  .join(", ");
-              }
+              const optionsDisplay = renderOptionsText(
+                item.selectedOptions || (item as any).options,
+              );
 
               return (
                 <div
@@ -275,7 +310,7 @@ export default function CartDrawer({
           )}
         </div>
 
-        {/* 4. สรุปยอดเงิน และปุ่ม Action */}
+        {/* สรุปยอดเงิน และปุ่ม Action */}
         <div className="p-4 bg-pos-surface border-t border-pos-border space-y-3 shrink-0">
           <div className="flex justify-between items-baseline mb-1">
             <span className="text-base font-bold text-pos-text">ยอดสุทธิ</span>
@@ -289,49 +324,44 @@ export default function CartDrawer({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* ปุ่ม Action 2 ปุ่มรอง: ดูบิลที่พัก และ แยกบิล */}
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowHeldBills(true)}
-              className="py-3 rounded-xl bg-pos-highlight hover:bg-sky-100 dark:hover:bg-sky-900/40 border border-sky-200/50 dark:border-sky-800/50 text-sm font-bold text-sky-700 dark:text-sky-400 flex items-center justify-center gap-1.5 transition-colors active:scale-95 relative"
+              className="py-2.5 rounded-xl bg-pos-highlight hover:bg-sky-100 dark:hover:bg-sky-900/40 border border-sky-200/50 dark:border-sky-800/50 text-xs font-bold text-sky-700 dark:text-sky-400 flex items-center justify-center gap-1 transition-colors active:scale-95 relative"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-              ดูบิลที่พัก
+              ดูบิลที่พักไว้
               {heldBills.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-sky-500 text-white text-[10px] flex items-center justify-center font-black border-2 border-white dark:border-slate-900">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-sky-500 text-white text-[9px] flex items-center justify-center font-black border border-white dark:border-slate-900">
                   {heldBills.length}
                 </span>
               )}
             </button>
+
             <button
-              onClick={() => setShowHoldModal(true)}
+              onClick={() => setShowSplitModal(true)}
               disabled={cart.length === 0}
-              className="py-3 rounded-xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-sm font-bold text-pos-text disabled:opacity-50 transition-colors active:scale-95"
+              className="py-2.5 rounded-xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-xs font-bold text-pos-text disabled:opacity-50 transition-colors active:scale-95"
             >
-              พักบิลปัจจุบัน
+              แยกบิล
             </button>
           </div>
-          <button className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:brightness-105 active:scale-98 text-white font-black text-base tracking-wide shadow-lg shadow-sky-600/25 flex items-center justify-center gap-2 transition">
-            <span>ชำระเงิน</span>
+
+          {/* 🌟 ปุ่มหลักเปลี่ยนเป็น "บันทึก / พักบิล" (นำไปชำระเงินที่ลิ้นชักพักบิล) */}
+          <button
+            onClick={() => setShowHoldModal(true)}
+            disabled={cart.length === 0}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:brightness-105 active:scale-98 text-white font-black text-base tracking-wide shadow-lg shadow-sky-600/25 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span>บันทึก / พักบิล</span>
             <svg
-              className="w-5 h-5 stroke-[3]"
+              className="w-5 h-5 stroke-[2.5]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path
-                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               ></path>
@@ -340,7 +370,6 @@ export default function CartDrawer({
         </div>
       </aside>
 
-      {/* 🌟 เรียกใช้ ConfirmDeleteModal ด้วย Props ดั้งเดิม */}
       <ConfirmDeleteModal
         isOpen={showClearConfirm}
         title="ยืนยันการล้างบิล"
@@ -350,7 +379,6 @@ export default function CartDrawer({
         isPending={isDeleting}
       />
 
-      {/* Modals อื่นๆ */}
       <HoldBillModal
         isOpen={showHoldModal}
         onClose={() => setShowHoldModal(false)}
@@ -364,6 +392,11 @@ export default function CartDrawer({
           setPayingBillId(id);
           setShowHeldBills(false);
         }}
+      />
+
+      <SplitBillModal
+        isOpen={showSplitModal}
+        onClose={() => setShowSplitModal(false)}
       />
 
       <PaymentModal

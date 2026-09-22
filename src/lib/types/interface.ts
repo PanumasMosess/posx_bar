@@ -5,6 +5,33 @@ export interface ToastAlertProps {
   onClose: () => void;
 }
 
+export interface ProductCardProps {
+  product: {
+    id: number | string;
+    code?: string | null;
+    name: string;
+    price: number | string;
+    stock?: number | null;
+    image?: string | null;
+    category?: { name: string } | null;
+    optionGroups?: any[];
+  };
+  isSelected?: boolean;
+  onAdd: () => void;
+  onEdit?: () => void;
+}
+
+export interface FloatingSearchProps {
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
+}
+
+export interface ProductOptionModalProps {
+  product: any;
+  onClose: () => void;
+  onConfirm: (cartItem: any) => void;
+}
+
 export interface PrismaProduct {
   id: number;
   code?: string | null;
@@ -80,7 +107,7 @@ export interface HeldBill {
   id: number;
   orderNumber: string;
   customerName?: string | null;
-  qrCodeId?: number | null; 
+  qrCodeId?: number | null;
   kitchenStatus?: string;
   items: any[];
   totalPrice: number;
@@ -110,6 +137,7 @@ export interface CartContextType {
       customerName?: string;
       qrCodeId?: number | null;
       sendToKitchen?: boolean;
+      kitchenItemIds?: string[];
     },
   ) => Promise<boolean>;
   resumeBill: (billId: number) => void;
@@ -117,4 +145,9 @@ export interface CartContextType {
   checkoutBill: (billId: number | string) => void;
   fetchHeldBills: (organizationId: number) => Promise<void>;
   isHolding: boolean;
+}
+
+export interface PaymentModalProps {
+  billId: number | string | null;
+  onClose: () => void;
 }

@@ -29,7 +29,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     fetchHeldBills(1);
   }, []);
 
-  // 🌟 ฟังก์ชันล้างบิลทั้งหมด (เคลียร์ความจำหน้าจอ + ลบออกจาก DB ถ้ามี activeBillId)
+  // 🌟 ล้างบิลทั้งหมด (เคลียร์ความจำหน้าจอ + ลบออกจาก DB ถ้าเป็นบิลเดิมที่ดึงมาแก้ไข)
   const clearCart = async () => {
     if (activeBillId) {
       await deleteHeldOrderFromDB(activeBillId);
@@ -84,7 +84,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // 🌟 ปรับปรุง: พอกดลบสินค้า ถ้าเมนูหมดตะกร้า (เหลือ 0) สั่งล้างบิล + ลบออกจาก DB ทันที
+  // 🌟 ลบสินค้า: ถ้าเมนูหมดตะกร้า (เหลือ 0) สั่งล้างบิล + ลบออกจาก DB ทันที
   const removeFromCart = (id: string) => {
     const updatedCart = cart.filter((item) => item.id !== id);
 
@@ -95,7 +95,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 🌟 ปรับปรุง: พอกดลดจำนวนสินค้าลงเรื่อยๆ จนเมนูหมดตะกร้า (เหลือ 0) สั่งล้างบิล + ลบออกจาก DB ทันที
+  // 🌟 ลดจำนวนสินค้า: พอลดจนเหลือ 0 สั่งล้างบิล + ลบออกจาก DB ทันที
   const updateQuantity = (id: string, delta: number) => {
     const updatedCart = cart
       .map((item) => {
@@ -137,19 +137,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // 🌟 ปรับปรุง: รองรับ kitchenItemIds เพื่อแยกสถานะเข้าครัวรายเมนู
   const holdBill = async (
     organizationId: number,
     options?: {
       customerName?: string;
       qrCodeId?: number | null;
       sendToKitchen?: boolean;
+      kitchenItemIds?: string[];
     },
   ) => {
     if (cart.length === 0) return false;
     setIsHolding(true);
 
     const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-    const kStatus = options?.sendToKitchen ? "IN_KITCHEN" : "IDLE";
 
     const payload = {
       orderId: activeBillId,
@@ -158,15 +159,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         options?.customerName ||
         (activeBillNumber ? `บิล ${activeBillNumber}` : "บิลพักชั่วคราว"),
       qrCodeId: options?.qrCodeId || null,
-      kitchenStatus: kStatus as any,
+      kitchenStatus: options?.sendToKitchen
+        ? ("IN_KITCHEN" as const)
+        : ("IDLE" as const),
       totalAmount: subtotal,
       netAmount: subtotal,
-      items: cart.map((item) => ({
-        productId: item.product.id || item.product.productId,
-        quantity: item.quantity,
-        priceAtTime: item.totalPrice / item.quantity,
-        options: JSON.stringify(item.selectedOptions || {}),
-      })),
+      items: cart.map((item) => {
+        // เช็คว่าไอเทมนี้ถูกเลือกส่งเข้าครัวหรือไม่
+        const isSelectedForKitchen = options?.kitchenItemIds
+          ? options.kitchenItemIds.includes(item.id)
+          : !!options?.sendToKitchen;
+
+        return {
+          productId: item.product.id || item.product.productId,
+          quantity: item.quantity,
+          priceAtTime: item.totalPrice / item.quantity,
+          options: JSON.stringify(item.selectedOptions || {}),
+          status: isSelectedForKitchen ? "IN_KITCHEN" : "IDLE",
+        };
+      }),
     };
 
     const result = await holdOrderToDB(payload);
@@ -183,6 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  // 🌟 ปรับปรุง: ดึงสถานะสถานะครัวของแต่ละเมนูย่อยคืนมาด้วย
   const resumeBill = (billId: number) => {
     const bill = heldBills.find((b) => b.id === billId);
     if (!bill) return;
@@ -213,7 +225,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: qty,
         selectedOptions: parsedOptions,
         totalPrice: unitPrice * qty,
-      };
+        status: item.status || "IDLE",
+      } as CartItem;
     });
 
     setCart(reloadedCart);

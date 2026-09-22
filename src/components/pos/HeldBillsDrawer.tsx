@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
 
@@ -16,11 +16,18 @@ export default function HeldBillsDrawer({
   onClose,
   onSelectToPay,
 }: HeldBillsDrawerProps) {
-  const { heldBills, resumeBill, deleteBill } = useCart();
+  // 🌟 ดึง fetchHeldBills เข้ามาด้วย
+  const { heldBills, resumeBill, deleteBill, fetchHeldBills } = useCart();
 
-  // State สำหรับการสั่งลบบิลพักผ่าน ConfirmDeleteModal
   const [deletingBillId, setDeletingBillId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 🌟 สั่งดึงข้อมูลบิลที่พักไว้จาก DB ทันทีเมื่อเปิดลิ้นชักนี้ขึ้นมา
+  useEffect(() => {
+    if (isOpen) {
+      fetchHeldBills(1);
+    }
+  }, [isOpen]);
 
   const handleConfirmDeleteBill = async () => {
     if (!deletingBillId) return;
@@ -28,6 +35,63 @@ export default function HeldBillsDrawer({
     await deleteBill(deletingBillId);
     setIsDeleting(false);
     setDeletingBillId(null);
+  };
+
+  // 🌟 ฟังก์ชันถอดรหัส Options ดึงเฉพาะชื่อตัวเลือกมาแสดง (ป้องกัน [object Object])
+  const renderOptionsText = (rawOptions: any) => {
+    if (!rawOptions) return "";
+
+    try {
+      let parsed = rawOptions;
+      if (typeof rawOptions === "string") {
+        parsed = JSON.parse(rawOptions);
+      }
+
+      if (!parsed || typeof parsed !== "object") return "";
+
+      const names: string[] = [];
+      const values = Array.isArray(parsed) ? parsed : Object.values(parsed);
+
+      values.forEach((item: any) => {
+        if (Array.isArray(item)) {
+          item.forEach((sub) => {
+            if (typeof sub === "object" && sub?.name) {
+              names.push(sub.name);
+            } else if (typeof sub === "string") {
+              names.push(sub);
+            }
+          });
+        } else if (typeof item === "object" && item !== null) {
+          if (item.name) {
+            names.push(item.name);
+          }
+        } else if (typeof item === "string") {
+          names.push(item);
+        }
+      });
+
+      return names.join(", ");
+    } catch (e) {
+      return "";
+    }
+  };
+
+  // 🌟 Badge สถานะครัวประจำรายการอาหาร
+  const renderItemKitchenBadge = (status: string) => {
+    if (status === "IN_KITCHEN") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+          ส่งครัวแล้ว
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-pos-surface border border-pos-border text-pos-text/60 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+        ฉบับร่าง
+      </span>
+    );
   };
 
   if (!isOpen) return null;
@@ -110,7 +174,7 @@ export default function HeldBillsDrawer({
             </div>
           ) : (
             heldBills.map((bill) => {
-              // ดึงข้อมูลโต๊ะ
+              // 🌟 ดึงข้อมูลโต๊ะ
               const tableName =
                 (bill as any).table?.tableName ||
                 (bill as any).tableName ||
@@ -129,7 +193,6 @@ export default function HeldBillsDrawer({
                           {bill.orderNumber}
                         </span>
 
-                        {/* 🌟 ปรับปรุงโทนสี Badge โต๊ะให้ใช้ CSS Variable หลักของธีมระบบ */}
                         {tableName && (
                           <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-pos-surface border border-sky-500/30 text-[10px] font-bold text-sky-600 dark:text-sky-400 shadow-2xs">
                             <svg
@@ -151,7 +214,6 @@ export default function HeldBillsDrawer({
                           </span>
                         )}
 
-                        {/* แสดงชื่อลูกค้าถ้ามี */}
                         {bill.customerName && (
                           <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-pos-surface border border-pos-border text-[10px] font-semibold text-pos-text/80 shadow-2xs">
                             <span className="truncate max-w-[100px]">
@@ -186,7 +248,7 @@ export default function HeldBillsDrawer({
                     </div>
                   </div>
 
-                  {/* รายการสินค้า 3 รายการแรก (รูป + Options + จำนวน) */}
+                  {/* รายการสินค้า (แสดง Badge สถานะครัวประจำเมนู) */}
                   <div className="space-y-2 pt-2 border-t border-pos-border/60">
                     {bill.items
                       ?.slice(0, 3)
@@ -194,6 +256,7 @@ export default function HeldBillsDrawer({
                         const subTitle =
                           subItem.product?.name ||
                           subItem.product?.title ||
+                          subItem.name ||
                           subItem.title ||
                           "สินค้า";
                         const subImage =
@@ -202,22 +265,12 @@ export default function HeldBillsDrawer({
                           subItem.image ||
                           "";
 
-                        let subOptionsDisplay = "";
-                        if (subItem.options) {
-                          try {
-                            const parsed =
-                              typeof subItem.options === "string"
-                                ? JSON.parse(subItem.options)
-                                : subItem.options;
-                            if (typeof parsed === "object" && parsed !== null) {
-                              subOptionsDisplay = Object.values(parsed)
-                                .map((o: any) => o.name || o)
-                                .join(", ");
-                            }
-                          } catch (e) {
-                            subOptionsDisplay = "";
-                          }
-                        }
+                        const subOptionsDisplay = renderOptionsText(
+                          subItem.options || subItem.selectedOptions,
+                        );
+
+                        // อ่านสถานะครัวเฉพาะเมนูนี้จาก DB
+                        const itemStatus = subItem.status || "IDLE";
 
                         return (
                           <div
@@ -248,6 +301,10 @@ export default function HeldBillsDrawer({
                                 </p>
                               )}
                             </div>
+
+                            {/* แสดงสถานะครัวของแต่ละเมนู */}
+                            {renderItemKitchenBadge(itemStatus)}
+
                             <span className="font-mono font-bold text-sm shrink-0 bg-pos-bg px-2 py-1 rounded-md border border-pos-border">
                               x{subItem.quantity}
                             </span>
@@ -305,7 +362,6 @@ export default function HeldBillsDrawer({
         </div>
       </div>
 
-      {/* Confirm Delete Modal สำหรับลบบิลที่พักไว้ */}
       <ConfirmDeleteModal
         isOpen={deletingBillId !== null}
         title="ยืนยันการลบบิลที่พักไว้"

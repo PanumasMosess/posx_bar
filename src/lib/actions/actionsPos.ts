@@ -41,7 +41,7 @@ export const addProductToDB = async (data: any) => {
         price: Number(data.price),
         cost: Number(data.cost) || 0,
         stock: Number(data.stock) || 0,
-        image: finalImageUrl, // ใช้ URL จาก S3
+        image: finalImageUrl,
         detail: data.detail || null,
         barcode: data.barcode || null,
 
@@ -49,7 +49,6 @@ export const addProductToDB = async (data: any) => {
         organizationId: 1,
         isActive: true,
 
-        // บันทึกกลุ่มตัวเลือก
         optionGroups: {
           create:
             data.optionGroups?.map((group: any) => ({
@@ -218,6 +217,7 @@ export async function holdOrderToDB(payload: {
     quantity: number;
     priceAtTime: number;
     options?: string;
+    status?: string; // 🌟 รับสถานะเฉพาะรายการอาหารเข้ามา
   }>;
   totalAmount: number;
   netAmount: number;
@@ -230,12 +230,10 @@ export async function holdOrderToDB(payload: {
 
     // 🌟 หากเป็นการอัปเดตบิลเดิมที่ดึงคืนมา
     if (payload.orderId) {
-      // 2. ลบรายการออเดอร์เดิมทั้งหมดใน Database ออกก่อน
       await prisma.orderitems.deleteMany({
         where: { orderId: payload.orderId },
       });
 
-      // บันทึกบิลพร้อมรายการสินค้าชุดใหม่ล่าสุด
       const updatedOrder = await prisma.orders.update({
         where: { id: payload.orderId },
         data: {
@@ -251,7 +249,7 @@ export async function holdOrderToDB(payload: {
               quantity: item.quantity,
               priceAtTime: item.priceAtTime,
               options: item.options || "",
-              status: kStatus,
+              status: (item.status as any) || kStatus,
             })),
           },
         },
@@ -278,7 +276,7 @@ export async function holdOrderToDB(payload: {
             quantity: item.quantity,
             priceAtTime: item.priceAtTime,
             options: item.options || "",
-            status: kStatus,
+            status: (item.status as any) || kStatus,
           })),
         },
       },
@@ -289,6 +287,7 @@ export async function holdOrderToDB(payload: {
     return { success: false, message: "เกิดข้อผิดพลาดในการพักบิล" };
   }
 }
+
 export async function getHeldOrdersFromDB(organizationId: number) {
   try {
     const heldOrders = await prisma.orders.findMany({
@@ -297,6 +296,7 @@ export async function getHeldOrdersFromDB(organizationId: number) {
         status: "HOLD",
       },
       include: {
+        qrcode: true, 
         items: {
           include: {
             product: true,
