@@ -14,12 +14,34 @@ export default function FormCategory({
       </div>
       <form onSubmit={submitCategory} className="p-5 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อหมวดหมู่ *</label>
-          <input required autoFocus type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none" placeholder="เช่น เครื่องดื่มเย็น" />
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            ชื่อหมวดหมู่ *
+          </label>
+          <input
+            required
+            autoFocus
+            type="text"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
+            placeholder="เช่น เครื่องดื่มเย็น"
+          />
         </div>
         <div className="pt-4 flex gap-3">
-          <button type="button" onClick={() => setActiveModal("ADD_PRODUCT")} className="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium">ย้อนกลับ</button>
-          <button type="submit" disabled={isPending} className="flex-1 py-2 bg-sky-600 text-white rounded-xl font-bold">บันทึกหมวดหมู่</button>
+          <button
+            type="button"
+            onClick={() => setActiveModal("ADD_PRODUCT")}
+            className="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium"
+          >
+            ย้อนกลับ
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex-1 py-2 bg-sky-600 text-white rounded-xl font-bold"
+          >
+            บันทึกหมวดหมู่
+          </button>
         </div>
       </form>
     </>

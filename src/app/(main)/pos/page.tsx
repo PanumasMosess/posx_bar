@@ -1,6 +1,4 @@
 import prisma from "@/lib/prisma";
-import CategoryPills from "@/components/pos/CategoryPills";
-import ProductGrid from "@/components/pos/ProductGrid";
 import POSView from "@/components/pos/POSView";
 
 export default async function POSHomePage() {
@@ -14,8 +12,13 @@ export default async function POSHomePage() {
       where: { isActive: true },
       select: {
         id: true,
+        code: true,
         name: true,
         price: true,
+        cost: true,
+        stock: true,
+        barcode: true,
+        detail: true,
         image: true,
         categoryId: true,
         category: {

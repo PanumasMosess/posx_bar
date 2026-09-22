@@ -54,10 +54,10 @@ export default function CategoryPills({
         </div>
 
         {/* ปุ่มเพิ่มสินค้า */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-8 h-8 rounded-xl bg-pos-surface border border-pos-border text-sky-600 flex items-center justify-center font-bold hover:bg-sky-50 shadow-xs transition active:scale-95"
+            className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-sky-600 flex items-center justify-center font-bold hover:bg-sky-50 shadow-xs transition active:scale-95"
             title="เพิ่มสินค้าใหม่"
           >
             +
