@@ -8,7 +8,7 @@ import CategoryPills from '@/components/pos/CategoryPills';
 import ProductGrid from '@/components/pos/ProductGrid';
 import CartDrawer from '@/components/pos/CartDrawer';
 // นำเข้า CartProvider จากไฟล์ Context (แก้ Path ให้ตรงกับโฟลเดอร์ของคุณ)
-import { CartProvider } from '@/components/pos/CartContext';
+import { CartProvider } from '@/components/providers/CartContext';
 
 export default function POSXApp() {
   const [isCartOpen, setIsCartOpen] = useState(false);

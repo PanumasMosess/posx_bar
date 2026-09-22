@@ -1,18 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addProductToDB, addCategoryToDB } from "@/lib/actions/actionsPos";
-import { ProductFormModalProps } from "@/lib/types/interface";
+import {
+  addCategoryToDB,
+  updateProductToDB,
+  deleteProductFromDB,
+} from "@/lib/actions/actionsPos";
 import { ModalView } from "@/lib/types/types";
 import FormOption from "./FormOption";
 import FormCategory from "./FormCategory";
 import FormProduct from "./FormProduct";
-import ToastAlert from "@/components/ToastAlert"; 
+import { EditProductModalProps } from "@/lib/types/interface";
+import ToastAlert from "@/components/ToastAlert";
+import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
-export default function ProductFormModal({
-  onClose,
+export default function EditProductModal({
+  productToEdit,
   initialCategories = [],
-}: ProductFormModalProps) {
+  onClose,
+}: EditProductModalProps) {
   const [activeModal, setActiveModal] = useState<ModalView>("ADD_PRODUCT");
   const [isPending, startTransition] = useTransition();
 
@@ -27,21 +33,25 @@ export default function ProductFormModal({
   });
 
   const [product, setProduct] = useState({
-    code: "", 
-    name: "",
-    price: "",
-    cost: "",
-    stock: "0",
-    image: "",
-    barcode: "",
-    categoryId: "",
-    detail: "",
+    id: productToEdit.id,
+    code: productToEdit.code || "",
+    name: productToEdit.name || "",
+    price: productToEdit.price || "",
+    cost: productToEdit.cost || "",
+    stock: productToEdit.stock || "0",
+    image: productToEdit.image || "",
+    barcode: productToEdit.barcode || "",
+    categoryId: productToEdit.categoryId?.toString() || "",
+    detail: productToEdit.detail || "",
   });
 
-  const [optionGroups, setOptionGroups] = useState<any[]>([]);
+  const [optionGroups, setOptionGroups] = useState<any[]>(
+    productToEdit.optionGroups || [],
+  );
+
+  const [categories, setCategories] = useState(initialCategories);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [categories, setCategories] =
-    useState<{ id: number; name: string }[]>(initialCategories);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [currentOption, setCurrentOption] = useState({
     name: "",
     isRequired: false,
@@ -49,24 +59,51 @@ export default function ProductFormModal({
     choices: [{ name: "", priceAdd: "0" }],
   });
 
-  const submitProduct = (e: React.FormEvent) => {
+  const submitEditProduct = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       const payload = { ...product, optionGroups };
-      const result = await addProductToDB(payload);
 
+      const result = await updateProductToDB(payload);
       if (result.success) {
         setToast({
           isOpen: true,
           type: "success",
-          message: "เพิ่มสินค้าเรียบร้อยแล้ว!",
+          message: "อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว!",
         });
-        setTimeout(() => onClose(), 1500); 
+
+        setTimeout(() => onClose(), 1500);
       } else {
         setToast({
           isOpen: true,
           type: "error",
-          message: "เกิดข้อผิดพลาดในการเพิ่มสินค้า",
+          message: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+        });
+      }
+    });
+  };
+
+  const handleDeleteProduct = () => {
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDeleteAction = () => {
+    startTransition(async () => {
+      const result = await deleteProductFromDB(product.id);
+      if (result.success) {
+        setIsConfirmDeleteOpen(false);
+        setToast({
+          isOpen: true,
+          type: "success",
+          message: "ลบสินค้าออกจากระบบเรียบร้อยแล้ว!",
+        });
+        setTimeout(() => onClose(), 1500);
+      } else {
+        setIsConfirmDeleteOpen(false);
+        setToast({
+          isOpen: true,
+          type: "error",
+          message: "ไม่สามารถลบสินค้าได้ กรุณาลองใหม่",
         });
       }
     });
@@ -84,13 +121,6 @@ export default function ProductFormModal({
         setProduct({ ...product, categoryId: result.id.toString() });
         setNewCategoryName("");
         setActiveModal("ADD_PRODUCT");
-      } else {
-   
-        setToast({
-          isOpen: true,
-          type: "error",
-          message: "สร้างหมวดหมู่ไม่สำเร็จ",
-        });
       }
     });
   };
@@ -107,7 +137,6 @@ export default function ProductFormModal({
   };
 
   return (
-
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
@@ -119,9 +148,10 @@ export default function ProductFormModal({
               optionGroups={optionGroups}
               setOptionGroups={setOptionGroups}
               setActiveModal={setActiveModal}
-              submitProduct={submitProduct}
+              submitProduct={submitEditProduct}
               isPending={isPending}
               onClose={onClose}
+              onDelete={handleDeleteProduct}
             />
           )}
 
@@ -145,7 +175,14 @@ export default function ProductFormModal({
           )}
         </div>
       </div>
-
+      <ConfirmDeleteModal
+        isOpen={isConfirmDeleteOpen}
+        title="ยืนยันการลบสินค้า"
+        message={`คุณแน่ใจหรือไม่ที่จะลบ "${product.name}"? การลบจะไม่สามารถกู้คืนข้อมูลกลับมาได้`}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={confirmDeleteAction}
+        isPending={isPending}
+      />
       <ToastAlert
         isOpen={toast.isOpen}
         type={toast.type}

@@ -35,6 +35,16 @@ export const deleteFileS3 = async (key: string) => {
   }
 };
 
+export const getS3KeyFromUrl = async (url: string) => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    return decodeURIComponent(urlObj.pathname.substring(1));
+  } catch (e) {
+    return null;
+  }
+};
+
 export const sendbase64toS3DataMultifile = async (
   base64Data: string,
   path: string,

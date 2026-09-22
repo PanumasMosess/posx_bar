@@ -2,15 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
+import { useCart } from "../providers/CartContext";
 
 export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // เรียกใช้ theme จาก next-themes
   const { theme, setTheme } = useTheme();
 
-  // ป้องกัน Hydration Mismatch
+  // 🌟 ดึงข้อมูลบิลปัจจุบัน (activeBillInfo) และยอดรวมปัจจุบันจาก CartContext
+  const { totalItems, totalPrice, activeBillNumber, activeBillInfo } =
+    useCart();
+
+  // 🌟 คำนวณยอดเงินบิลปัจจุบันที่ดึงกลับมาจากพักบิล (หรือใช้ยอดรวมปัจจุบันในตะกร้า)
+  const currentActivePrice = activeBillInfo
+    ? activeBillInfo.totalPrice
+    : totalPrice;
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -38,7 +46,6 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
         </div>
         <div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* เปลี่ยนเป็น text-pos-text */}
             <span className="font-extrabold text-sm sm:text-base tracking-wider text-pos-text uppercase font-sans transition-colors">
               POS
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-cyan-400">
@@ -54,6 +61,8 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
             สาขาหลัก • เครื่อง 01
           </p>
         </div>
+
+        {/* ยอดขายวันนี้ (สีและสไตล์เดิม) */}
         <div className="hidden 2xl:flex items-center ml-2 pl-3 border-l border-pos-border">
           <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-sky-50/80 to-cyan-50/80 border border-sky-100 flex items-center gap-2 shadow-xs">
             <span className="text-xs text-slate-500 font-medium">
@@ -68,38 +77,8 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
         </div>
       </div>
 
-      {/* Middle: Responsive Search Bar */}
-      <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md mx-1 sm:mx-2 md:mx-4">
-        <div className="relative w-full">
-          <svg
-            className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            ></path>
-          </svg>
-          {/* อัปเดตคลาสช่องค้นหา ใช้ bg-pos-bg, text-pos-text และ border-pos-border */}
-          <input
-            className="w-full pl-8 sm:pl-9 pr-8 sm:pr-12 py-1.5 bg-pos-bg hover:bg-pos-hover border border-pos-border rounded-xl text-xs text-pos-text placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-pos-surface focus:ring-2 focus:ring-sky-500/10 transition-colors duration-300"
-            placeholder="ค้นหาสินค้า, บาร์โค้ด..."
-            type="text"
-          />
-          {/* อัปเดตปุ่มคีย์ลัด */}
-          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400 bg-pos-surface border border-pos-border rounded transition-colors duration-300">
-            ⌘
-          </kbd>
-        </div>
-      </div>
-
       {/* Right Section: Theme, Cart Button */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Theme Switcher */}
         <div className="relative" id="themeSwitcherWrapper">
           <button
             onClick={toggleThemeMenu}
@@ -140,7 +119,6 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
           </button>
 
           {isThemeMenuOpen && (
-            /* อัปเดต Dropdown Menu ให้ใช้ bg-pos-surface และ border-pos-border */
             <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-pos-surface border border-pos-border shadow-xl p-2 z-50 space-y-1 select-none transition-colors duration-300">
               <div className="px-2.5 py-1.5 border-b border-pos-border flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -208,7 +186,6 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
           )}
         </div>
 
-        {/* Print Receipt Button */}
         <button
           className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-pos-surface border border-pos-border hidden md:flex items-center justify-center text-slate-500 hover:text-pos-text hover:bg-pos-hover shadow-xs transition-colors"
           title="พิมพ์ใบเสร็จ"
@@ -228,12 +205,12 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
           </svg>
         </button>
 
-        {/* Cart Badge Button */}
+        {/* 🌟 ปุ่มตะกร้าออเดอร์ปัจจุบัน (แสดงเลขบิล/ชื่อบิล + ยอดรวมของบิลปัจจุบัน) */}
         <button
           onClick={onToggleCart}
           id="headerCartBtn"
           className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:from-sky-700 hover:to-cyan-600 text-white font-bold flex items-center gap-1.5 sm:gap-2 shadow-sm active:scale-95 transition"
-          title="ดูตะกร้าสินค้า"
+          title="ดูออเดอร์ปัจจุบัน"
         >
           <div className="relative">
             <svg
@@ -249,13 +226,17 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                 strokeLinejoin="round"
               ></path>
             </svg>
-            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-black border border-white">
-              1
-            </span>
+            {totalItems > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-black border border-white">
+                {totalItems}
+              </span>
+            )}
           </div>
-          <span className="text-xs font-bold hidden sm:inline">ตะกร้า</span>
+          <span className="text-xs font-bold hidden sm:inline">
+            {activeBillNumber ? `บิล ${activeBillNumber}` : "ตะกร้า"}
+          </span>
           <span className="text-[11px] sm:text-xs font-mono font-extrabold bg-white/20 px-1.5 py-0.5 rounded text-white">
-            18,000
+            {currentActivePrice.toLocaleString()}
           </span>
         </button>
       </div>

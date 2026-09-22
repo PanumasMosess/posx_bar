@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileNav from "@/components/layout/MobileNav";
 import CartDrawer from "@/components/pos/CartDrawer";
-import { CartProvider } from "@/components/pos/CartContext";
+import { CartProvider } from "@/components/providers/CartContext";
 
 export default function MainLayout({
   children,
@@ -16,20 +16,9 @@ export default function MainLayout({
 
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
-  const toggleCart = () => setIsCartOpen(!isCartOpen);
+  const toggleCart = () => setIsCartOpen((prev) => !prev);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const isDesktop = window.innerWidth >= 1024;
-      if (isDesktop && !isCartOpen) {
-      } else if (!isDesktop && isCartOpen) {
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isCartOpen]);
-
+  // ดักจับการกดปุ่ม Escape เพื่อปิด CartDrawer ในหน้าจอมือถือ/แท็บเล็ต
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -46,17 +35,17 @@ export default function MainLayout({
 
   return (
     <CartProvider>
-      <div className="flex flex-col h-screen w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
+      <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
         <Header onToggleCart={toggleCart} />
 
         <div className="flex-1 flex overflow-hidden relative">
           <Sidebar />
 
           <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
-            {children}
-
+            <div className="flex-1 overflow-y-auto">{children}</div>
             <MobileNav onToggleCart={toggleCart} />
           </main>
+
           <CartDrawer
             isOpen={isCartOpen}
             onClose={closeCart}

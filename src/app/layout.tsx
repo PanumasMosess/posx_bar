@@ -17,6 +17,10 @@ const prompt = Prompt({
 export const metadata: Metadata = {
   title: "POSX - ระบบจัดการการขาย POS",
   description: "POSX Modern Mobile POS system",
+  icons: {
+    icon: "/icon.png", 
+    apple: "/icon.png", 
+  },
 };
 
 export default function RootLayout({

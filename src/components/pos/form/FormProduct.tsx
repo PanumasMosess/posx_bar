@@ -12,16 +12,16 @@ export default function FormProduct({
   submitProduct,
   isPending,
   onClose,
+  onDelete, 
 }: any) {
   const [isExtraOpen, setIsExtraOpen] = useState(false);
 
-  // Ref สำหรับซ่อน input file เอาไว้ แล้วใช้ปุ่มที่สวยกว่ากดแทน
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEditMode = !!onDelete || !!product.id;
 
   const handleChange = (e: any) =>
     setProduct({ ...product, [e.target.name]: e.target.value });
 
-  // ฟังก์ชันจัดการตอนเลือกไฟล์ภาพ (แปลงเป็น Base64 เพื่อให้โชว์ Preview และเซฟลง DB ได้ง่าย)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -33,7 +33,6 @@ export default function FormProduct({
     }
   };
 
-  // ฟังก์ชันลบรูปภาพ
   const removeImage = () => {
     setProduct({ ...product, image: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -42,7 +41,9 @@ export default function FormProduct({
   return (
     <>
       <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-        <h2 className="text-lg font-bold text-slate-800">เพิ่มสินค้าใหม่</h2>
+        <h2 className="text-lg font-bold text-slate-800">
+          {isEditMode ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}
+        </h2>
         <button
           type="button"
           onClick={onClose}
@@ -68,7 +69,6 @@ export default function FormProduct({
         onSubmit={submitProduct}
         className="p-5 overflow-y-auto custom-scroll space-y-4"
       >
-        {/* 🌟 ย้ายการอัปโหลดรูปภาพมาไว้ด้านบนสุด หรือส่วนที่เห็นชัด */}
         <div className="flex flex-col items-center justify-center mb-4">
           <input
             type="file"
@@ -80,7 +80,6 @@ export default function FormProduct({
 
           {product.image ? (
             <div className="relative group w-32 h-32 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm">
-              {/* โชว์รูปตัวอย่าง */}
               <img
                 src={product.image}
                 alt="Preview"
@@ -156,6 +155,20 @@ export default function FormProduct({
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">
+              รหัสสินค้า (SKU)
+            </label>
+            <input
+              type="text"
+              name="code"
+              value={product.code || ""}
+              onChange={handleChange}
+              placeholder="เช่น M-01 (เว้นว่างได้)"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               ชื่อสินค้า *
             </label>
             <input
@@ -164,7 +177,7 @@ export default function FormProduct({
               name="name"
               value={product.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
             />
           </div>
 
@@ -177,11 +190,17 @@ export default function FormProduct({
                 name="categoryId"
                 value={product.categoryId}
                 onChange={handleChange}
-                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none"
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white"
               >
-                <option value="">-- เลือกหมวดหมู่ --</option>
+                <option value="" className="text-slate-500">
+                  -- เลือกหมวดหมู่ --
+                </option>
                 {categories.map((cat: any, index: number) => (
-                  <option key={`${cat.id}-${index}`} value={cat.id}>
+                  <option
+                    key={`${cat.id}-${index}`}
+                    value={cat.id}
+                    className="text-slate-900"
+                  >
                     {cat.name}
                   </option>
                 ))}
@@ -206,7 +225,7 @@ export default function FormProduct({
               name="price"
               value={product.price}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
             />
           </div>
           <div>
@@ -218,11 +237,10 @@ export default function FormProduct({
               name="cost"
               value={product.cost}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
             />
           </div>
 
-          {/* 🌟 ข้อมูลเพิ่มเติม (กาง/หุบ ได้) มีแค่ บาร์โค้ด กับ รายละเอียด */}
           <div className="col-span-2 border-t pt-4 mt-2">
             <button
               type="button"
@@ -257,7 +275,7 @@ export default function FormProduct({
                     value={product.barcode}
                     onChange={handleChange}
                     placeholder="สแกนหรือพิมพ์รหัส"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
                   />
                 </div>
                 <div className="col-span-2">
@@ -270,7 +288,7 @@ export default function FormProduct({
                     onChange={handleChange}
                     rows={3}
                     placeholder="อธิบายเพิ่มเติม..."
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none resize-none"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none resize-none text-slate-900 bg-white placeholder:text-slate-400"
                   ></textarea>
                 </div>
               </div>
@@ -278,7 +296,6 @@ export default function FormProduct({
           </div>
         </div>
 
-        {/* ส่วนจัดการกลุ่มตัวเลือก */}
         <div className="border-t pt-4 mt-4">
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-bold text-slate-700">
@@ -332,7 +349,6 @@ export default function FormProduct({
                     </button>
                   </div>
 
-                  {/* 🌟 แสดงรายการตัวเลือกย่อยทั้งหมด */}
                   <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60">
                     {g.choices?.map((c: any, cIdx: number) => (
                       <span
@@ -354,13 +370,44 @@ export default function FormProduct({
           )}
         </div>
 
+        {/* 🌟 3. โซนปุ่มด้านล่างสุด */}
         <div className="pt-4 flex gap-3 sticky bottom-0 bg-white">
+          {/* ถ้าเป็นโหมดแก้ไข ให้โชว์ปุ่มถังขยะสีแดง */}
+          {isEditMode && onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isPending}
+              className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-bold hover:bg-rose-100 hover:text-rose-700 transition disabled:opacity-50 flex items-center justify-center shrink-0"
+              title="ลบสินค้า"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                ></path>
+              </svg>
+            </button>
+          )}
+
+          {/* ปุ่มบันทึก จะเปลี่ยนข้อความตามโหมด */}
           <button
             type="submit"
             disabled={isPending}
-            className="w-full py-2 bg-gradient-to-r from-sky-600 to-cyan-500 text-white rounded-xl font-bold transition disabled:opacity-50"
+            className="flex-1 w-full py-2 bg-gradient-to-r from-sky-600 to-cyan-500 text-white rounded-xl font-bold transition disabled:opacity-50"
           >
-            {isPending ? "กำลังบันทึก..." : "บันทึกสินค้า"}
+            {isPending
+              ? "กำลังบันทึก..."
+              : isEditMode
+                ? "แก้ไขสินค้า"
+                : "บันทึกสินค้า"}
           </button>
         </div>
       </form>
