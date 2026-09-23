@@ -7,6 +7,7 @@ import {
   getS3KeyFromUrl,
   sendbase64toS3DataMultifile,
 } from "@/lib/actions";
+import { ProcessPaymentPayload } from "../types/interface";
 
 export const addProductToDB = async (data: any) => {
   try {
@@ -243,6 +244,8 @@ export async function holdOrderToDB(payload: {
           customerName: payload.customerName,
           qrCodeId: payload.qrCodeId,
           kitchenStatus: kStatus,
+          createdBy: "0",
+          updatedAt: new Date(),
           items: {
             create: payload.items.map((item) => ({
               productId: item.productId,
@@ -258,7 +261,7 @@ export async function holdOrderToDB(payload: {
     }
 
     // กรณีเป็นบิลใหม่
-    const orderNumber = `HOLD-${Date.now().toString().slice(-6)}`;
+    const orderNumber = `ORDER-${Date.now().toString().slice(-6)}`;
     const newOrder = await prisma.orders.create({
       data: {
         orderNumber,
@@ -269,6 +272,7 @@ export async function holdOrderToDB(payload: {
         netAmount: payload.netAmount,
         customerName: payload.customerName || "บิลพักชั่วคราว",
         organizationId: payload.organizationId,
+        createdBy: "0",
         qrCodeId: payload.qrCodeId,
         items: {
           create: payload.items.map((item) => ({
@@ -296,7 +300,7 @@ export async function getHeldOrdersFromDB(organizationId: number) {
         status: "HOLD",
       },
       include: {
-        qrcode: true, 
+        qrcode: true,
         items: {
           include: {
             product: true,
@@ -348,5 +352,236 @@ export async function createTableInDB(
   } catch (error) {
     console.error("Create Table Error:", error);
     return { success: false, message: "ไม่สามารถสร้างโต๊ะได้" };
+  }
+}
+
+export async function processPaymentDB(payload: ProcessPaymentPayload) {
+  try {
+    let paymentMethodString: "CASH" | "QR" | "CARD" | "MEMBER" = "CASH";
+
+    if (payload.method === "CASH") {
+      paymentMethodString = "CASH";
+    } else if (payload.method === "QR") {
+      paymentMethodString = "QR";
+    } else if (payload.method === "CARD") {
+      paymentMethodString = "CARD";
+    } else if (payload.method === "MEMBER") {
+      paymentMethodString = "MEMBER";
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const payment = await tx.payments.create({
+        data: {
+          amount: payload.amount,
+          receivedAmount: payload.receivedAmount || payload.amount,
+          changeAmount: payload.changeAmount || 0,
+          method: paymentMethodString as any,
+          referenceNo: payload.referenceNo || null,
+          isCompleted: true,
+          orderId: payload.orderId,
+          organizationId: payload.organizationId,
+          shiftId: payload.shiftId || null,
+          createdBy: payload.createdBy || "cashier",
+        },
+      });
+
+      // 2. อัปเดตสถานะบิลหลักเป็น COMPLETED
+      const updatedOrder = await tx.orders.update({
+        where: { id: payload.orderId },
+        data: {
+          status: "COMPLETED" as any,
+        },
+      });
+
+      // 3. อัปเดตสถานะรายการสินค้าย่อยใน orderitems เป็น COMPLETED
+      await tx.orderitems.updateMany({
+        where: { orderId: payload.orderId },
+        data: {
+          status: "COMPLETED" as any,
+        },
+      });
+
+      return { payment, updatedOrder };
+    });
+
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("Payment error:", error);
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการชำระเงิน",
+    };
+  }
+}
+
+export async function getActiveShiftDB(organizationId: number) {
+  try {
+    const activeShift = await prisma.shifts.findFirst({
+      where: {
+        organizationId,
+        status: "OPEN",
+      },
+      include: {
+        payments: true,
+      },
+    });
+
+    if (!activeShift) {
+      return { success: true, shift: null };
+    }
+
+    return { success: true, shift: activeShift };
+  } catch (error: any) {
+    console.error("Get Active Shift Error:", error);
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลกะปัจจุบัน",
+      shift: null,
+    };
+  }
+}
+
+export async function openShiftDB(data: {
+  startingCash: number;
+  openedBy: string;
+  organizationId: number;
+}) {
+  try {
+    // เช็กว่ามีกะที่กำลังเปิดค้างไว้อยู่แล้วหรือไม่
+    const existingOpenShift = await prisma.shifts.findFirst({
+      where: {
+        organizationId: data.organizationId,
+        status: "OPEN",
+      },
+    });
+
+    if (existingOpenShift) {
+      return {
+        success: false,
+        message: `มีกะหมายเลข ${existingOpenShift.shiftNumber} เปิดค้างไว้อยู่แล้ว`,
+        shift: existingOpenShift,
+      };
+    }
+
+    // สร้างรหัสกะอัตโนมัติ สไตล์ SHIFT-YYYYMMDD-001
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const datePrefix = `${year}${month}${day}`;
+
+    // นับจำนวนกะที่เกิดขึ้นในวันนี้เพื่อรันเลขลำดับ
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const countToday = await prisma.shifts.count({
+      where: {
+        organizationId: data.organizationId,
+        createdAt: {
+          gte: startOfDay,
+        },
+      },
+    });
+
+    const shiftNumber = `SHIFT-${datePrefix}-${String(countToday + 1).padStart(3, "0")}`;
+
+    // สร้างข้อมูลกะใหม่ลง DB
+    const newShift = await prisma.shifts.create({
+      data: {
+        shiftNumber,
+        startingCash: data.startingCash,
+        openedBy: data.openedBy,
+        organizationId: data.organizationId,
+        status: "OPEN",
+      },
+    });
+
+    return { success: true, shift: newShift };
+  } catch (error: any) {
+    console.error("Open Shift Error:", error);
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการเปิดกะ",
+    };
+  }
+}
+
+export async function closeShiftDB(data: {
+  shiftId: number;
+  endingCash: number; // เงินสดที่แคชเชียร์นับได้จริงในลิ้นชัก
+  closedBy: string;
+  note?: string;
+}) {
+  try {
+    // 1. ดึงข้อมูลกะเดิมเพื่อตรวจสอบ
+    const currentShift = await prisma.shifts.findUnique({
+      where: { id: data.shiftId },
+    });
+
+    if (!currentShift) {
+      return { success: false, message: "ไม่พบข้อมูลกะการทำงานนี้" };
+    }
+
+    if (currentShift.status === "CLOSED") {
+      return { success: false, message: "กะการทำงานนี้ถูกปิดไปแล้ว" };
+    }
+
+    // 2. ดึงประวัติการชำระเงินที่สมบูรณ์ในกะนี้มาคำนวณสรุปยอดขาย
+    const shiftPayments = await prisma.payments.findMany({
+      where: {
+        shiftId: data.shiftId,
+        isCompleted: true,
+      },
+    });
+
+    let cashSales = 0;
+    let qrSales = 0;
+    let cardSales = 0;
+    let memberSales = 0;
+
+    shiftPayments.forEach((p) => {
+      const amt = Number(p.amount) || 0;
+      if (p.method === "CASH") {
+        cashSales += amt;
+      } else if (p.method === "QR" || (p.method as string) === "TRANSFER") {
+        qrSales += amt;
+      } else if (p.method === "CARD") {
+        cardSales += amt;
+      } else if (p.method === "MEMBER") {
+        memberSales += amt;
+      }
+    });
+
+    const totalSales = cashSales + qrSales + cardSales + memberSales;
+
+    const expectedCash = Number(currentShift.startingCash || 0) + cashSales;
+
+    const cashDifference = data.endingCash - expectedCash;
+
+
+    const closedShift = await prisma.shifts.update({
+      where: { id: data.shiftId },
+      data: {
+        status: "CLOSED",
+        endingCash: data.endingCash,
+        expectedCash,
+        cashDifference,
+        totalSales,
+        cashSales,
+        qrSales,
+        cardSales,
+        memberSales,
+        closedBy: data.closedBy,
+        note: data.note || null,
+        closedAt: new Date(),
+      },
+    });
+
+    return { success: true, shift: closedShift };
+  } catch (error: any) {
+    console.error("Close Shift Error:", error);
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการปิดกะ",
+    };
   }
 }

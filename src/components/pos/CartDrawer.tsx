@@ -7,7 +7,7 @@ import { CartDrawerProps } from "@/lib/types/interface";
 
 import HoldBillModal from "./HoldBillModal";
 import HeldBillsDrawer from "./HeldBillsDrawer";
-import PaymentModal from "./PaymentModal";
+import PaymentModal from "./payment/PaymentModal";
 import SplitBillModal from "./SplitBillModal";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
 

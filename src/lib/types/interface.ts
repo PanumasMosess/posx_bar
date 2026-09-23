@@ -87,6 +87,7 @@ export interface ConfirmDeleteModalProps {
   onConfirm: () => void;
   onClose: () => void;
   isPending?: boolean;
+  confirmText?: string;
 }
 
 export interface CartDrawerProps {
@@ -149,5 +150,90 @@ export interface CartContextType {
 
 export interface PaymentModalProps {
   billId: number | string | null;
+  onClose: () => void;
+}
+
+export interface ProcessPaymentPayload {
+  orderId: number;
+  amount: number;
+  receivedAmount?: number;
+  changeAmount?: number;
+  shiftId?: number;
+  method: "CASH" | "QR" | "CARD" | "MEMBER";
+  referenceNo?: string;
+  organizationId: number;
+  createdBy?: string;
+}
+
+export interface PaymentHeaderProps {
+  orderNumber: string;
+  tableName?: string;
+  shiftNumber?: string;
+  onClose: () => void;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  phone: string;
+  points: number;
+  balance: number;
+  discountPercent: number;
+}
+
+export interface MemberSelectorProps {
+  selectedMember: Member | null;
+  showInput: boolean;
+  searchQuery: string;
+  onSearchChange: (val: string) => void;
+  onSearchSubmit: () => void;
+  onToggleInput: (show: boolean) => void;
+  onClearMember: () => void;
+}
+
+export interface PaymentItemsListProps {
+  items: any[];
+  discountAmount: number;
+  discountPercent?: number;
+  netTotal: number;
+  renderOptionsText: (options: any) => string;
+}
+
+export type PaymentMethodType = "CASH" | "QR" | "CARD" | "MEMBER";
+
+export interface PaymentMethodPickerProps {
+  currentMethod: PaymentMethodType;
+  onChange: (method: PaymentMethodType) => void;
+}
+
+export interface CashNumpadProps {
+  numReceived?: number;
+  changeAmount?: number;
+  onPreset: (amount: number, isExact?: boolean) => void;
+  onNumpadPress: (val: string) => void;
+}
+export interface Member {
+  name: string;
+  balance: number;
+}
+
+export interface MemberWalletViewProps {
+  selectedMember: Member | null;
+  netTotal: number;
+  onOpenSearch: () => void;
+}
+
+export interface HoldBillModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+export interface ShiftCheckViewProps {
+  onOpenShift: (startingCash: number) => Promise<void>;
+  isLoading?: boolean;
+}
+
+export interface ShiftModalProps {
+  isOpen: boolean;
   onClose: () => void;
 }
