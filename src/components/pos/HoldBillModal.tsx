@@ -1,15 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { getTablesFromDB, createTableInDB } from "@/lib/actions/actionsPos";
-
-interface HoldBillModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+import { HoldBillModalProps } from "@/lib/types/interface";
 
 export default function HoldBillModal({
   isOpen,
@@ -23,7 +17,10 @@ export default function HoldBillModal({
   const [tables, setTables] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 State เก็บ ID ของเมนูที่ต้องการส่งเข้าครัว
+  // 🌟 Snapshot ตะกร้าสินค้าไว้ ไม่ให้หายไปวูบวาบตอนกดบันทึก
+  const [displayCart, setDisplayCart] = useState<any[]>([]);
+
+  // State เก็บ ID ของเมนูที่ต้องการส่งเข้าครัว
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   const [isAddingTable, setIsAddingTable] = useState(false);
@@ -32,6 +29,9 @@ export default function HoldBillModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Snapshot ข้อมูล cart ไว้แสดงผล
+      setDisplayCart(cart);
+
       // ดึงรายชื่อโต๊ะมาแสดง
       getTablesFromDB(1).then((res) => {
         if (res.success) setTables(res.data);
@@ -56,8 +56,7 @@ export default function HoldBillModal({
         setQrCodeId(null);
       }
 
-      // 🌟 ตั้งค่าสถานะเริ่มต้น:
-      // เลือกเฉพาะรายการที่มีสถานะเดิมเป็น IN_KITCHEN (ถ้ารายการใหม่เอี่ยมจะไม่มีการ Check ใดๆ)
+      // ตั้งค่าสถานะเริ่มต้น: เลือกรายการที่มีสถานะเดิมเป็น IN_KITCHEN
       const preSelectedIds = cart
         .filter((item: any) => item.status === "IN_KITCHEN")
         .map((item) => item.id);
@@ -67,9 +66,8 @@ export default function HoldBillModal({
       setIsAddingTable(false);
       setNewTableName("");
     }
-  }, [isOpen, activeBillId, activeBillInfo, cart]);
+  }, [isOpen, activeBillId, activeBillInfo]);
 
-  // 🌟 ฟังก์ชันเลือก/ยกเลิกเลือกเมนูเดี่ยว
   const toggleSelectItem = (id: string) => {
     setSelectedItemIds((prev) =>
       prev.includes(id)
@@ -78,12 +76,11 @@ export default function HoldBillModal({
     );
   };
 
-  // 🌟 ฟังก์ชันเลือกทั้งหมด / ยกเลิกทั้งหมด
   const toggleSelectAll = () => {
-    if (selectedItemIds.length === cart.length) {
+    if (selectedItemIds.length === displayCart.length) {
       setSelectedItemIds([]);
     } else {
-      setSelectedItemIds(cart.map((item) => item.id));
+      setSelectedItemIds(displayCart.map((item) => item.id));
     }
   };
 
@@ -117,14 +114,13 @@ export default function HoldBillModal({
       kitchenItemIds: selectedItemIds,
     });
 
-    setIsSubmitting(false);
     if (success) {
       onSuccess();
       onClose();
     }
+    setIsSubmitting(false);
   };
 
-  // ถอดรหัส Options มาแสดงสวยๆ
   const renderOptionsText = (rawOptions: any) => {
     if (!rawOptions) return "";
     try {
@@ -157,10 +153,8 @@ export default function HoldBillModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[100]" />
+
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <form
           onSubmit={handleSubmit}
@@ -248,7 +242,7 @@ export default function HoldBillModal({
                     onChange={(e) => setNewTableName(e.target.value)}
                     placeholder="ใส่ชื่อโต๊ะใหม่..."
                     autoFocus
-                    className="flex-1 px-3 py-2 bg-pos-bg border border-sky-400 rounded-lg text-sm text-pos-text focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-sm"
+                    className="flex-1 px-3 py-2 bg-pos-bg border border-sky-400 rounded-lg text-sm text-pos-text focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-xs"
                   />
                   <button
                     type="button"
@@ -272,19 +266,19 @@ export default function HoldBillModal({
               )}
             </div>
 
-            {/* 🌟 รายการเมนูสำหรับเลือกเข้าครัว */}
+            {/* 🌟 รายการเมนูสำหรับเลือกเข้าครัว (ใช้ displayCart คงสถานะไว้ให้เนียนตา) */}
             <div className="pt-2 border-t border-pos-border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-pos-text">
                   เลือกรายการที่ต้องการส่งเข้าครัว ({selectedItemIds.length}/
-                  {cart.length})
+                  {displayCart.length})
                 </span>
                 <button
                   type="button"
                   onClick={toggleSelectAll}
                   className="text-[11px] font-bold text-sky-600 hover:underline"
                 >
-                  {selectedItemIds.length === cart.length
+                  {selectedItemIds.length === displayCart.length
                     ? "ยกเลิกทั้งหมด"
                     : "เลือกทั้งหมด"}
                 </button>
@@ -292,12 +286,12 @@ export default function HoldBillModal({
 
               {/* Scrollable Container */}
               <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
-                {cart.length === 0 ? (
+                {displayCart.length === 0 ? (
                   <p className="text-xs text-pos-text/50 text-center py-4">
                     ไม่มีรายการสินค้าในตะกร้า
                   </p>
                 ) : (
-                  cart.map((item) => {
+                  displayCart.map((item) => {
                     const title =
                       item.product?.name || item.product?.title || "สินค้า";
                     const isSelected = selectedItemIds.includes(item.id);
@@ -323,7 +317,7 @@ export default function HoldBillModal({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+                            className="w-4 h-4 rounded-xs text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -331,7 +325,7 @@ export default function HoldBillModal({
                                 {title}
                               </p>
                               {isAlreadyInKitchen && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-teal-500/10 text-teal-600 font-bold border border-teal-500/20">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded-xs bg-teal-500/10 text-teal-600 font-bold border border-teal-500/20">
                                   ส่งแล้ว
                                 </span>
                               )}
@@ -343,7 +337,7 @@ export default function HoldBillModal({
                             )}
                           </div>
                         </div>
-                        <span className="font-mono font-bold text-xs shrink-0 ml-2 px-2 py-0.5 rounded bg-pos-surface border border-pos-border">
+                        <span className="font-mono font-bold text-xs shrink-0 ml-2 px-2 py-0.5 rounded-xs bg-pos-surface border border-pos-border">
                           x{item.quantity}
                         </span>
                       </div>
@@ -358,10 +352,12 @@ export default function HoldBillModal({
           <div className="p-4 bg-pos-bg border-t border-pos-border shrink-0">
             <button
               type="submit"
-              disabled={isSubmitting || isSavingTable || cart.length === 0}
-              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-sm shadow-md transition disabled:opacity-50"
+              disabled={
+                isSubmitting || isSavingTable || displayCart.length === 0
+              }
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-sm shadow-md transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? "กำลังบันทึก..." : "ยืนยันการพักบิล"}
+              <span>{isSubmitting ? "กำลังบันทึก..." : "ยืนยันการพักบิล"}</span>
             </button>
           </div>
         </form>

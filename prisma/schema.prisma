@@ -32,12 +32,19 @@ enum KitchenStatus {
   NOT_REQUIRED // ไม่ต้องส่งครัว (เช่น น้ำอัดลม หยิบเองหน้าบาร์ได้เลย)
   IN_KITCHEN // ไปโชว์ที่หน้าจอครัวแล้ว (รอครัวกดเสิร์ฟ)
   SERVED // ครัวกดปุ่ม "ส่งอาหารแล้ว" (จบ)
+  COMPLETED
 }
 
 enum PaymentMethod {
   CASH
-  TRANSFER
+  QR
   CARD
+  MEMBER
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
 }
 
 model organizations {
@@ -54,6 +61,7 @@ model organizations {
   orders     orders[]
   payments   payments[]
   categories categories[]
+  shifts     shifts[]
 }
 
 model products {
@@ -158,6 +166,8 @@ model orders {
   createdBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  shifts    shifts?  @relation(fields: [shiftsId], references: [id])
+  shiftsId  Int?
 }
 
 model orderitems {
@@ -178,24 +188,6 @@ model orderitems {
   updatedAt DateTime @updatedAt
 }
 
-model payments {
-  id          Int           @id @default(autoincrement())
-  amount      Float
-  method      PaymentMethod @default(CASH)
-  referenceNo String?
-  isCompleted Boolean       @default(true)
-
-  orderId        Int
-  order          orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  organizationId Int
-  organization   organizations @relation(fields: [organizationId], references: [id])
-
-  createdBy String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model categories {
   id       Int     @id @default(autoincrement())
   name     String
@@ -207,6 +199,66 @@ model categories {
   products products[]
 
   createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model payments {
+  id             Int           @id @default(autoincrement())
+  amount         Float // ยอดชำระสุทธิ
+  receivedAmount Float? // ยอดเงินที่รับมาจากลูกค้า (กรณีจ่ายเงินสด)
+  changeAmount   Float? // จำนวนเงินทอน
+  method         PaymentMethod @default(CASH)
+  referenceNo    String?
+  isCompleted    Boolean       @default(true)
+
+  orderId        Int
+  order          orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  organizationId Int
+  organization   organizations @relation(fields: [organizationId], references: [id])
+
+  shiftId Int?
+  shift   shifts? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model shifts {
+  id          Int         @id @default(autoincrement())
+  shiftNumber String
+  status      ShiftStatus @default(OPEN)
+
+  // ยอดเงินสดเริ่มต้นและยอดเงินนับจริงเมื่อปิดกะ
+  startingCash   Float  @default(0) // เงินทอนเริ่มต้นกะ
+  expectedCash   Float  @default(0) // ยอดเงินสดที่ควรจะมีในลิ้นชัก (คำนวณจาก System)
+  endingCash     Float? // ยอดเงินสดที่แคชเชียร์นับได้จริงตอนปิดกะ
+  cashDifference Float? // ยอดเงินเกิน/ขาด (endingCash - expectedCash)
+
+  // สรุปยอดขายแยกตามประเภทชำระเงินประจำกะ (Auto Sync ตอนปิดกะ)
+  totalSales  Float @default(0) // ยอดขายรวมสุทธิทั้งหมด
+  cashSales   Float @default(0) // ยอดขายเงินสด
+  qrSales     Float @default(0) // ยอดขายสแกน QR / โอน
+  cardSales   Float @default(0) // ยอดขายบัตรเครดิต
+  memberSales Float @default(0) // ยอดขายตัดกระเป๋าสมาชิก
+
+  note String?
+
+  openedBy String // ชื่อหรือ ID ของพนักงานที่เปิดกะ
+  closedBy String? // ชื่อหรือ ID ของพนักงานที่ปิดกะ
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  // ความสัมพันธ์กับ Organization และ Payments / Orders
+  organizationId Int
+  organization   organizations @relation(fields: [organizationId], references: [id])
+
+  payments payments[] // ประวัติการชำระเงินทั้งหมดในกะนี้
+  orders   orders[] // ออเดอร์ทั้งหมดที่เกิดขึ้นในกะนี้
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

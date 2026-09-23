@@ -2,10 +2,6 @@
 
 import { ConfirmDeleteModalProps } from "@/lib/types/interface";
 
-interface ExtendedConfirmDeleteModalProps extends ConfirmDeleteModalProps {
-  confirmText?: string;
-}
-
 export default function ConfirmDeleteModal({
   isOpen,
   title,
@@ -14,7 +10,7 @@ export default function ConfirmDeleteModal({
   onClose,
   isPending = false,
   confirmText = "ยืนยันลบข้อมูล",
-}: ExtendedConfirmDeleteModalProps) {
+}: ConfirmDeleteModalProps) {
   if (!isOpen) return null;
 
   return (
