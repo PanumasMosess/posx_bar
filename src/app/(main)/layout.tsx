@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileNav from "@/components/layout/MobileNav";
@@ -14,6 +15,10 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const pathname = usePathname();
+
+  // 🌟 เช็กว่าผู้ใช้อยู่หน้า /pos หรือไม่ (รวมถึงหน้าแรก /)
+  const isPosPage = pathname === "/pos" || pathname === "/";
 
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
@@ -34,25 +39,37 @@ export default function MainLayout({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isCartOpen]);
 
+  // ปิด CartDrawer อัตโนมัติเมื่อย้ายไปหน้าอื่นที่ไม่ใช่ /pos
+  useEffect(() => {
+    if (!isPosPage) {
+      closeCart();
+    }
+  }, [isPosPage]);
+
   return (
     <CartProvider>
       <ShiftProvider organizationId={1}>
         <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
-          <Header onToggleCart={toggleCart} />
+          {/* ส่ง toggleCart ให้ Header เฉพาะหน้า /pos */}
+          <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 
           <div className="flex-1 flex overflow-hidden relative">
             <Sidebar />
 
             <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
               <div className="flex-1 overflow-y-auto">{children}</div>
-              <MobileNav onToggleCart={toggleCart} />
+              {/* ส่ง toggleCart ให้ MobileNav เฉพาะหน้า /pos */}
+              <MobileNav onToggleCart={isPosPage ? toggleCart : () => {}} />
             </main>
 
-            <CartDrawer
-              isOpen={isCartOpen}
-              onClose={closeCart}
-              onOpen={openCart}
-            />
+            {/* 🌟 แสดง CartDrawer เฉพาะหน้า /pos เท่านั้น */}
+            {isPosPage && (
+              <CartDrawer
+                isOpen={isCartOpen}
+                onClose={closeCart}
+                onOpen={openCart}
+              />
+            )}
           </div>
         </div>
       </ShiftProvider>
