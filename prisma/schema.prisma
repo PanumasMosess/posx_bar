@@ -145,7 +145,7 @@ model orders {
   orderNumber   String        @unique
   status        OrderStatus   @default(CART)
   orderType     OrderType     @default(DINE_IN)
-  kitchenStatus KitchenStatus @default(IDLE)
+  kitchenStatus KitchenStatus @default(SERVED)
 
   totalAmount Float @default(0)
   discount    Float @default(0)

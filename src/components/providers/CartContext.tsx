@@ -79,6 +79,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: item.quantity,
         selectedOptions: item.selectedOptions || {},
         totalPrice: item.totalPrice,
+        status: "SERVED", // 🌟 เริ่มต้นเป็น SERVED ตาม Schema ใหม่
       };
       return [...prev, newItem];
     });
@@ -137,7 +138,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 🌟 ปรับปรุง: รองรับ kitchenItemIds เพื่อแยกสถานะเข้าครัวรายเมนู
+  // 🌟 บันทึกพักบิล / ส่งเข้าครัว
   const holdBill = async (
     organizationId: number,
     options?: {
@@ -159,23 +160,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
         options?.customerName ||
         (activeBillNumber ? `บิล ${activeBillNumber}` : "บิลพักชั่วคราว"),
       qrCodeId: options?.qrCodeId || null,
+      // 🌟 ถ้าสั่งส่งเข้าครัว ตั้งเป็น IN_KITCHEN / ถ้าไม่ส่ง ตั้งเป็น SERVED ตาม Default ใหม่
       kitchenStatus: options?.sendToKitchen
         ? ("IN_KITCHEN" as const)
-        : ("IDLE" as const),
+        : ("SERVED" as const),
       totalAmount: subtotal,
       netAmount: subtotal,
       items: cart.map((item) => {
-        // เช็คว่าไอเทมนี้ถูกเลือกส่งเข้าครัวหรือไม่
+        // ตรวจสอบว่าไอเทมนี้ถูกเลือกส่งเข้าครัวหรือไม่
         const isSelectedForKitchen = options?.kitchenItemIds
-          ? options.kitchenItemIds.includes(item.id)
+          ? options.kitchenItemIds.includes(item.id) ||
+            options.kitchenItemIds.includes(String((item as any).dbItemId))
           : !!options?.sendToKitchen;
 
+        // ถ้าเลือกส่งเข้าครัวให้เป็น IN_KITCHEN / ถ้าไม่เลือกให้เป็น SERVED (หรือคงสถานะเดิมไว้)
+        let finalStatus = (item as any).status || "SERVED";
+        if (isSelectedForKitchen) {
+          finalStatus = "IN_KITCHEN";
+        }
+
         return {
+          id: (item as any).dbItemId || undefined,
           productId: item.product.id || item.product.productId,
           quantity: item.quantity,
           priceAtTime: item.totalPrice / item.quantity,
           options: JSON.stringify(item.selectedOptions || {}),
-          status: isSelectedForKitchen ? "IN_KITCHEN" : "IDLE",
+          status: finalStatus,
         };
       }),
     };
@@ -194,7 +204,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  // 🌟 ปรับปรุง: ดึงสถานะสถานะครัวของแต่ละเมนูย่อยคืนมาด้วย
+  // 🌟 ดึงบิลเก่ากลับมาแก้ไข
   const resumeBill = (billId: number) => {
     const bill = heldBills.find((b) => b.id === billId);
     if (!bill) return;
@@ -220,13 +230,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const unitPrice = item.priceAtTime || targetProduct.price || 0;
 
       return {
-        id: `${targetProduct.id}-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        id: `${targetProduct.id}-${item.id || Date.now()}`,
+        dbItemId: item.id,
         product: targetProduct,
         quantity: qty,
         selectedOptions: parsedOptions,
         totalPrice: unitPrice * qty,
-        status: item.status || "IDLE",
-      } as CartItem;
+        status: item.status || "SERVED", // 🌟 Default เป็น SERVED
+      } as any;
     });
 
     setCart(reloadedCart);

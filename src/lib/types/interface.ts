@@ -102,6 +102,7 @@ export interface CartItem {
   quantity: number;
   selectedOptions?: Record<string, any>;
   totalPrice: number;
+  status?: string;
 }
 
 export interface HeldBill {
@@ -236,4 +237,13 @@ export interface ShiftCheckViewProps {
 export interface ShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+export interface KitchenViewProps {
+  activeKitchenOrders: any[];
+}
+
+export interface KitchenHeaderProps {
+  orderCount: number;
+  onRefresh: () => void;
 }
