@@ -224,10 +224,10 @@ export async function holdOrderToDB(payload: {
   netAmount: number;
   customerName?: string;
   qrCodeId?: number | null;
-  kitchenStatus?: "IDLE" | "IN_KITCHEN" | "NOT_REQUIRED";
+  kitchenStatus?: "SERVED" | "IN_KITCHEN" | "NOT_REQUIRED";
 }) {
   try {
-    const kStatus = payload.kitchenStatus || "IDLE";
+    const kStatus = payload.kitchenStatus || "SERVED";
 
     // 🌟 หากเป็นการอัปเดตบิลเดิมที่ดึงคืนมา
     if (payload.orderId) {
@@ -370,7 +370,6 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-
       const payment = await tx.payments.create({
         data: {
           amount: payload.amount,
@@ -556,7 +555,6 @@ export async function closeShiftDB(data: {
     const expectedCash = Number(currentShift.startingCash || 0) + cashSales;
 
     const cashDifference = data.endingCash - expectedCash;
-
 
     const closedShift = await prisma.shifts.update({
       where: { id: data.shiftId },
