@@ -1,6 +1,6 @@
 "use client";
 
-import { CashNumpadProps } from "@/lib/types/interface";
+import { CashNumpadProps } from "@/lib/interface";
 
 export default function CashNumpad({
   numReceived = 0,

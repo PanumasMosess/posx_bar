@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfirmDeleteModalProps } from "@/lib/types/interface";
+import { ConfirmDeleteModalProps } from "@/lib/interface";
 
 export default function ConfirmDeleteModal({
   isOpen,

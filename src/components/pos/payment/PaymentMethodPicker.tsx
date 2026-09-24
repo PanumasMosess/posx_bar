@@ -3,7 +3,7 @@
 import {
   PaymentMethodPickerProps,
   PaymentMethodType,
-} from "@/lib/types/interface";
+} from "@/lib/interface";
 
 export default function PaymentMethodPicker({
   currentMethod,

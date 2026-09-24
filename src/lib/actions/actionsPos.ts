@@ -7,7 +7,7 @@ import {
   getS3KeyFromUrl,
   sendbase64toS3DataMultifile,
 } from "@/lib/actions";
-import { ProcessPaymentPayload } from "../types/interface";
+import { ProcessPaymentPayload } from "../interface";
 
 export const addProductToDB = async (data: any) => {
   try {

@@ -56,14 +56,14 @@ model organizations {
   password  String
   createdAt DateTime @default(now())
 
-  products   products[]
-  qrcodes    qrcodes[]
-  orders     orders[]
-  payments   payments[]
-  categories categories[]
-  shifts     shifts[]
-  employees              employees[]
-  organizationSetting    organizations_settings?
+  products            products[]
+  qrcodes             qrcodes[]
+  orders              orders[]
+  payments            payments[]
+  categories          categories[]
+  shifts              shifts[]
+  employees           employees[]
+  organizationSetting organizations_settings?
 }
 
 model products {
@@ -267,41 +267,41 @@ model shifts {
 }
 
 model organizations_settings {
-  id                Int      @id @default(autoincrement())
-  currencyCode      String   @default("THB")       // เช่น THB, USD, LAK
-  currencyLabel     String   @default("บาท · THB") // ข้อความที่ใช้โชว์ใน UI
-  businessHours     String   @default("08:00 - 22:30") // เวลาเปิด-ปิด
-  phone             String?  // เบอร์โทรศัพท์ร้าน
-  address           String?  // ที่อยู่ร้าน
-  receiptFooter     String?  // ข้อความท้ายใบเสร็จ (เช่น "ขอบคุณที่ใช้บริการ WiFi: 1234")
-  organizationId    Int   @unique
-  organization      organizations @relation(fields: [organizationId], references: [id])
+  id             Int           @id @default(autoincrement())
+  currencyCode   String        @default("THB") // เช่น THB, USD, LAK
+  currencyLabel  String        @default("บาท · THB") // ข้อความที่ใช้โชว์ใน UI
+  businessHours  String        @default("08:00 - 22:30") // เวลาเปิด-ปิด
+  phone          String? // เบอร์โทรศัพท์ร้าน
+  address        String? // ที่อยู่ร้าน
+  receiptFooter  String? // ข้อความท้ายใบเสร็จ (เช่น "ขอบคุณที่ใช้บริการ WiFi: 1234")
+  organizationId Int           @unique
+  organization   organizations @relation(fields: [organizationId], references: [id])
 
-  updatedAt         DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model employees {
-  id             Int      @id @default(autoincrement())
-  name           String   // ชื่อพนักงาน
-  role           String   @default("พนักงาน") // ตำแหน่ง/หน้าที่
-  pin            String   // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
-  img            String?  // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
-  isActive       Boolean  @default(true) // สถานะ เปิด/ปิด การใช้งาน
+  id             Int                   @id @default(autoincrement())
+  name           String // ชื่อพนักงาน
+  role           String                @default("พนักงาน") // ตำแหน่ง/หน้าที่
+  pin            String                @unique // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
+  img            String? // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
+  isActive       Boolean               @default(true) // สถานะ เปิด/ปิด การใช้งาน
   organizationId Int
-  organization   organizations @relation(fields: [organizationId], references: [id])
-  permission     employee_permissions? 
+  organization   organizations         @relation(fields: [organizationId], references: [id])
+  permission     employee_permissions?
   createdBy      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 }
 
 model employee_permissions {
-  id                Int      @id @default(autoincrement())
-  accessPos         Boolean  @default(false) // เข้าถึงหน้าขาย (POS)
-  accessSettings    Boolean  @default(false) // เข้าถึงหน้าตั้งค่า (Settings)
-  accessReports     Boolean  @default(false) // เข้าถึงหน้ารายงาน (Reports)
-  accessExpenses    Boolean  @default(false) // เข้าถึงหน้ารายจ่าย (Expenses)
-  cancelRefund      Boolean  @default(false) // สิทธิ์ในการกดยกเลิกบิลหรือคืนเงิน (Cancel / Refund)
-  employeeId        Int      @unique
-  employee          employees @relation(fields: [employeeId], references: [id]) 
+  id             Int       @id @default(autoincrement())
+  accessPos      Boolean   @default(false) // เข้าถึงหน้าขาย (POS)
+  accessSettings Boolean   @default(false) // เข้าถึงหน้าตั้งค่า (Settings)
+  accessReports  Boolean   @default(false) // เข้าถึงหน้ารายงาน (Reports)
+  accessExpenses Boolean   @default(false) // เข้าถึงหน้ารายจ่าย (Expenses)
+  cancelRefund   Boolean   @default(false) // สิทธิ์ในการกดยกเลิกบิลหรือคืนเงิน (Cancel / Refund)
+  employeeId     Int       @unique
+  employee       employees @relation(fields: [employeeId], references: [id])
 }

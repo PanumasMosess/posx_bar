@@ -1,6 +1,6 @@
 "use client";
 
-import { MemberSelectorProps } from "@/lib/types/interface";
+import { MemberSelectorProps } from "@/lib/interface";
 
 export default function MemberSelector({
   selectedMember,

@@ -6,11 +6,11 @@ import {
   updateProductToDB,
   deleteProductFromDB,
 } from "@/lib/actions/actionsPos";
-import { ModalView } from "@/lib/types/types";
+import { ModalView } from "@/lib/types";
 import FormOption from "./FormOption";
 import FormCategory from "./FormCategory";
 import FormProduct from "./FormProduct";
-import { EditProductModalProps } from "@/lib/types/interface";
+import { EditProductModalProps } from "@/lib/interface";
 import ToastAlert from "@/components/ToastAlert";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 

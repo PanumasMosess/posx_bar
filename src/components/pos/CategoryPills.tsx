@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import ProductFormModal from "./form/ProductFormModal";
-import { ExtendedCategoryPillsProps } from "@/lib/types/interface";
+import { ExtendedCategoryPillsProps } from "@/lib/interface";
 
 export default function CategoryPills({
   initialCategories = [],

@@ -14,7 +14,7 @@ import MiscSetting from './MiscSetting';
 import RestaurantModeSetting from './RestaurantModeSetting';
 
 import { getShopProfileSettings, updateShopNameAction } from '@/lib/actions/actionsSettings';
-import { SettingsSection } from '@/lib/types/types';
+import { SettingsSection } from '@/lib/types';
 
 /* ==================== Graphic Components ==================== */
 function UserAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {

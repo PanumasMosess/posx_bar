@@ -1,6 +1,6 @@
 "use client";
 
-import { PaymentItemsListProps } from "@/lib/types/interface";
+import { PaymentItemsListProps } from "@/lib/interface";
 
 export default function PaymentItemsList({
   items,

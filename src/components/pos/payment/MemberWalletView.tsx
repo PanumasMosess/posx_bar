@@ -1,6 +1,6 @@
 "use client";
 
-import { MemberWalletViewProps } from "@/lib/types/interface";
+import { MemberWalletViewProps } from "@/lib/interface";
 
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ToastAlertProps } from "@/lib/types/interface";
+import { ToastAlertProps } from "@/lib/interface";
 import { useEffect } from "react";
 
 export default function ToastAlert({

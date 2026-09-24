@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCart } from "@/components/providers/CartContext";
 import { useShift } from "@/components/providers/ShiftContext";
-import { PaymentModalProps } from "@/lib/types/interface";
+import { PaymentModalProps } from "@/lib/interface";
 import { processPaymentDB } from "@/lib/actions/actionsPos";
 import PaymentHeader from "./PaymentHeader";
 import MemberSelector from "./MemberSelector";

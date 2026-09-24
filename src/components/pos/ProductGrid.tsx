@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ProductGridProps } from "@/lib/types/interface";
+import { ProductGridProps } from "@/lib/interface";
 import ProductOptionModal from "./ProductOptionModal";
 import ProductCard from "./ProductCard";
 

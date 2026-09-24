@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductOptionModalProps } from "@/lib/types/interface";
+import { ProductOptionModalProps } from "@/lib/interface";
 import { useState } from "react";
 import Image from "next/image";
 

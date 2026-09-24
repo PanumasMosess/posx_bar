@@ -3,7 +3,7 @@
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import ToastAlert from "@/components/ToastAlert";
 import { useShift } from "@/components/providers/ShiftContext";
-import { ShiftModalProps } from "@/lib/types/interface";
+import { ShiftModalProps } from "@/lib/interface";
 import { useState, useEffect } from "react";
 
 export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {

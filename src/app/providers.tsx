@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
+import { EmployeeProvider } from "@/components/providers/EmployeeContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -8,9 +9,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       attribute="class"
       defaultTheme="light"
       enableSystem={false}
-      themes={['light', 'dark', 'teal']}
+      themes={["light", "dark", "teal"]}
     >
-      {children}
+      <EmployeeProvider>{children}</EmployeeProvider>
     </ThemeProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FloatingSearchProps } from "@/lib/types/interface";
+import { FloatingSearchProps } from "@/lib/interface";
 import { useState, useRef, useEffect } from "react";
 
 

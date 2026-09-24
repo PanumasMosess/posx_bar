@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import CategoryPills from "./CategoryPills";
 import ProductGrid from "./ProductGrid";
-import { POSViewProps } from "@/lib/types/interface";
+import { POSViewProps } from "@/lib/interface";
 import EditProductModal from "./form/EditProductModal";
 import FloatingSearch from "./FloatingSearch";
 import { deleteProductFromDB } from "@/lib/actions/actionsPos";
