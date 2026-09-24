@@ -12,7 +12,7 @@ import {
   getHeldOrdersFromDB,
   deleteHeldOrderFromDB,
 } from "@/lib/actions/actionsPos";
-import { CartContextType, CartItem, HeldBill } from "@/lib/types/interface";
+import { CartContextType, CartItem, HeldBill } from "@/lib/interface";
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 

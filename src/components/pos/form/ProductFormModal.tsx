@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { addProductToDB, addCategoryToDB } from "@/lib/actions/actionsPos";
-import { ProductFormModalProps } from "@/lib/types/interface";
-import { ModalView } from "@/lib/types/types";
+import { ProductFormModalProps } from "@/lib/interface";
+import { ModalView } from "@/lib/types";
 import FormOption from "./FormOption";
 import FormCategory from "./FormCategory";
 import FormProduct from "./FormProduct";

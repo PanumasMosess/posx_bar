@@ -1,6 +1,6 @@
 "use client";
 
-import { PaymentHeaderProps } from "@/lib/types/interface";
+import { PaymentHeaderProps } from "@/lib/interface";
 
 export default function PaymentHeader({
   orderNumber,

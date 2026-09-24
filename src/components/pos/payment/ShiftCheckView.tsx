@@ -1,6 +1,6 @@
 "use client";
 
-import { ShiftCheckViewProps } from "@/lib/types/interface";
+import { ShiftCheckViewProps } from "@/lib/interface";
 import { useState } from "react";
 
 export default function ShiftCheckView({

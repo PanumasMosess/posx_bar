@@ -8,6 +8,8 @@ import MobileNav from "@/components/layout/MobileNav";
 import CartDrawer from "@/components/pos/CartDrawer";
 import { CartProvider } from "@/components/providers/CartContext";
 import { ShiftProvider } from "@/components/providers/ShiftContext";
+import { getSessionAction } from "@/lib/actions/authActions";
+import { EmployeeProvider } from "@/components/providers/EmployeeContext";
 
 export default function MainLayout({
   children,
@@ -15,16 +17,24 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [organizationId, setOrganizationId] = useState<number>(1);
   const pathname = usePathname();
 
-  // 🌟 เช็กว่าผู้ใช้อยู่หน้า /pos หรือไม่ (รวมถึงหน้าแรก /)
-  const isPosPage = pathname === "/pos" || pathname === "/";
+  useEffect(() => {
+    getSessionAction().then((session) => {
+      if (session?.user?.orgId) {
+        setOrganizationId(session.user.orgId);
+      }
+    });
+  }, []);
+
+  const isAuthPage = pathname === "/" || pathname === "/login";
+  const isPosPage = pathname === "/pos";
 
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
   const toggleCart = () => setIsCartOpen((prev) => !prev);
 
-  // ดักจับการกดปุ่ม Escape เพื่อปิด CartDrawer ในหน้าจอมือถือ/แท็บเล็ต
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -34,12 +44,10 @@ export default function MainLayout({
         }
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isCartOpen]);
 
-  // ปิด CartDrawer อัตโนมัติเมื่อย้ายไปหน้าอื่นที่ไม่ใช่ /pos
   useEffect(() => {
     if (!isPosPage) {
       closeCart();
@@ -47,32 +55,35 @@ export default function MainLayout({
   }, [isPosPage]);
 
   return (
-    <CartProvider>
-      <ShiftProvider organizationId={1}>
-        <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
-          {/* ส่ง toggleCart ให้ Header เฉพาะหน้า /pos */}
-          <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
+    <EmployeeProvider>
+      {isAuthPage ? (
+        <main className="w-full min-h-screen">{children}</main>
+      ) : (
+        <CartProvider>
+          <ShiftProvider organizationId={organizationId}>
+            <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
+              <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 
-          <div className="flex-1 flex overflow-hidden relative">
-            <Sidebar />
+              <div className="flex-1 flex overflow-hidden relative">
+                <Sidebar />
 
-            <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
-              <div className="flex-1 overflow-y-auto">{children}</div>
-              {/* ส่ง toggleCart ให้ MobileNav เฉพาะหน้า /pos */}
-              <MobileNav onToggleCart={isPosPage ? toggleCart : () => {}} />
-            </main>
+                <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
+                  <div className="flex-1 overflow-y-auto">{children}</div>
+                  <MobileNav onToggleCart={isPosPage ? toggleCart : () => {}} />
+                </main>
 
-            {/* 🌟 แสดง CartDrawer เฉพาะหน้า /pos เท่านั้น */}
-            {isPosPage && (
-              <CartDrawer
-                isOpen={isCartOpen}
-                onClose={closeCart}
-                onOpen={openCart}
-              />
-            )}
-          </div>
-        </div>
-      </ShiftProvider>
-    </CartProvider>
+                {isPosPage && (
+                  <CartDrawer
+                    isOpen={isCartOpen}
+                    onClose={closeCart}
+                    onOpen={openCart}
+                  />
+                )}
+              </div>
+            </div>
+          </ShiftProvider>
+        </CartProvider>
+      )}
+    </EmployeeProvider>
   );
 }

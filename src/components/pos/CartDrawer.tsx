@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "../providers/CartContext";
-import { CartDrawerProps } from "@/lib/types/interface";
+import { CartDrawerProps } from "@/lib/interface";
 
 import HoldBillModal from "./HoldBillModal";
 import HeldBillsDrawer from "./HeldBillsDrawer";

@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductCardProps } from "@/lib/types/interface";
+import { ProductCardProps } from "@/lib/interface";
 import Image from "next/image";
 
 export default function ProductCard({

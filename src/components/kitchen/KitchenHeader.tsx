@@ -1,6 +1,6 @@
 "use client";
 
-import { KitchenHeaderProps } from "@/lib/types/interface";
+import { KitchenHeaderProps } from "@/lib/interface";
 
 export default function KitchenHeader({
   orderCount,

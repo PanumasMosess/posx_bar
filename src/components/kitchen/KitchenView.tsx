@@ -6,7 +6,7 @@ import {
   updateKitchenItemStatusDB,
   markAllItemsServedDB,
 } from "@/lib/actions/actionsKitchen";
-import { KitchenViewProps } from "@/lib/types/interface";
+import { KitchenViewProps } from "@/lib/interface";
 
 import KitchenHeader from "./KitchenHeader";
 import KitchenEmptyState from "./KitchenEmptyState";

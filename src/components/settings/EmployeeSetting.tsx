@@ -14,7 +14,7 @@ import {
   Employee, 
   ShopInfo, 
   PERMISSION_CONFIG 
-} from '@/lib/types/types';
+} from '@/lib/types';
 
 /* ==================== Icons & Components ==================== */
 function StoreIcon({ className = 'w-6 h-6' }: { className?: string }) {

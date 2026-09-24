@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { getTablesFromDB, createTableInDB } from "@/lib/actions/actionsPos";
-import { HoldBillModalProps } from "@/lib/types/interface";
+import { HoldBillModalProps } from "@/lib/interface";
 
 export default function HoldBillModal({
   isOpen,
