@@ -13,12 +13,14 @@ import FormProduct from "./FormProduct";
 import { EditProductModalProps } from "@/lib/interface";
 import ToastAlert from "@/components/ToastAlert";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function EditProductModal({
   productToEdit,
   initialCategories = [],
   onClose,
 }: EditProductModalProps) {
+  const { organizationId } = useEmployee();
   const [activeModal, setActiveModal] = useState<ModalView>("ADD_PRODUCT");
   const [isPending, startTransition] = useTransition();
 
@@ -112,7 +114,10 @@ export default function EditProductModal({
   const submitCategory = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await addCategoryToDB({ name: newCategoryName });
+      const result = await addCategoryToDB({
+        name: newCategoryName,
+        organizationId: organizationId,
+      });
       if (result.success && result.id !== undefined) {
         setCategories([
           ...categories,

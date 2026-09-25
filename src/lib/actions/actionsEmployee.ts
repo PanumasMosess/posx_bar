@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import prisma from '@/lib/prisma';
+import prisma from "@/lib/prisma";
 
 // 1. ดึงข้อมูลพนักงานและร้านค้า
 export async function getShopAndEmployees(organizationId: number) {
@@ -13,9 +13,9 @@ export async function getShopAndEmployees(organizationId: number) {
         include: {
           permission: true,
         },
-        orderBy: { createdAt: 'asc' }
-      }
-    }
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
   return shop;
 }
@@ -53,17 +53,20 @@ export async function createEmployeeAction(data: {
           accessReports: false,
           accessExpenses: false,
           cancelRefund: false,
-        }
-      }
+        },
+      },
     },
     include: {
       permission: true,
-    }
+    },
   });
 }
 
 // 3. เปิด/ปิด สถานะการใช้งานพนักงาน
-export async function toggleEmployeeStatusAction(employeeId: number, isActive: boolean) {
+export async function toggleEmployeeStatusAction(
+  employeeId: number,
+  isActive: boolean,
+) {
   return await prisma.employees.update({
     where: { id: employeeId },
     data: { isActive },
@@ -71,7 +74,11 @@ export async function toggleEmployeeStatusAction(employeeId: number, isActive: b
 }
 
 // 4. อัปเดตสิทธิ์การใช้งาน
-export async function updateEmployeePermissionAction(employeeId: number, permKey: string, value: boolean) {
+export async function updateEmployeePermissionAction(
+  employeeId: number,
+  permKey: string,
+  value: boolean,
+) {
   return await prisma.employee_permissions.update({
     where: { employeeId: employeeId },
     data: {
@@ -82,8 +89,8 @@ export async function updateEmployeePermissionAction(employeeId: number, permKey
 
 // 5. แก้ไขข้อมูลพื้นฐานของพนักงาน (ชื่อ, ตำแหน่ง, PIN)
 export async function updateEmployeeInfoAction(
-  employeeId: number, 
-  data: { name: string; role: string; pin: string; organizationId: number }
+  employeeId: number,
+  data: { name: string; role: string; pin: string; organizationId: number },
 ) {
   if (data.pin.length !== 4) throw new Error("PIN_LENGTH_ERROR");
 

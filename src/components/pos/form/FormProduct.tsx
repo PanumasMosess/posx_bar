@@ -12,12 +12,14 @@ export default function FormProduct({
   submitProduct,
   isPending,
   onClose,
-  onDelete, 
+  onDelete,
 }: any) {
   const [isExtraOpen, setIsExtraOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditMode = !!onDelete || !!product.id;
+
+ 
 
   const handleChange = (e: any) =>
     setProduct({ ...product, [e.target.name]: e.target.value });

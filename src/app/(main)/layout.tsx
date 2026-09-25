@@ -9,7 +9,8 @@ import CartDrawer from "@/components/pos/CartDrawer";
 import { CartProvider } from "@/components/providers/CartContext";
 import { ShiftProvider } from "@/components/providers/ShiftContext";
 import { getSessionAction } from "@/lib/actions/authActions";
-import { EmployeeProvider } from "@/components/providers/EmployeeContext";
+import { useEmployee } from "@/components/providers/EmployeeContext";
+import EmployeePinModal from "@/components/auth/EmployeePinModal";
 
 export default function MainLayout({
   children,
@@ -20,13 +21,23 @@ export default function MainLayout({
   const [organizationId, setOrganizationId] = useState<number>(1);
   const pathname = usePathname();
 
+  // 🌟 ดึงข้อมูลพนักงานจาก Context
+  const { currentEmployee, activeOrgId, isPinExpired, setOrgId } =
+    useEmployee();
+
+  // ดึง Session องค์กรแค่วาระแรกที่เริ่มโหลดหน้าจอเท่านั้น
   useEffect(() => {
     getSessionAction().then((session) => {
-      if (session?.user?.orgId) {
-        setOrganizationId(session.user.orgId);
+      const userAny = session?.user as any;
+      if (userAny?.orgId) {
+        const parsedOrgId = Number(userAny.orgId);
+        setOrganizationId(parsedOrgId);
+        if (!activeOrgId) {
+          setOrgId(parsedOrgId);
+        }
       }
     });
-  }, []);
+  }, []); 
 
   const isAuthPage = pathname === "/" || pathname === "/login";
   const isPosPage = pathname === "/pos";
@@ -54,13 +65,15 @@ export default function MainLayout({
     }
   }, [isPosPage]);
 
+  const currentOrgId = activeOrgId || organizationId;
+
   return (
-    <EmployeeProvider>
+    <>
       {isAuthPage ? (
         <main className="w-full min-h-screen">{children}</main>
       ) : (
         <CartProvider>
-          <ShiftProvider organizationId={organizationId}>
+          <ShiftProvider organizationId={currentOrgId}>
             <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
               <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 
@@ -84,6 +97,11 @@ export default function MainLayout({
           </ShiftProvider>
         </CartProvider>
       )}
-    </EmployeeProvider>
+
+      {/* 🌟 แสดง Modal เฉพาะตอนไม่ใช่หน้า Auth และยังไม่มีพนักงานล็อกอิน หรือ PIN หมดอายุ */}
+      {!isAuthPage && (!currentEmployee || isPinExpired) && (
+        <EmployeePinModal orgId={currentOrgId} />
+      )}
+    </>
   );
 }

@@ -13,6 +13,7 @@ import {
   deleteHeldOrderFromDB,
 } from "@/lib/actions/actionsPos";
 import { CartContextType, CartItem, HeldBill } from "@/lib/interface";
+import { useEmployee } from "@/components/providers/EmployeeContext";
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -25,15 +26,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [activeBillNumber, setActiveBillNumber] = useState<string | null>(null);
   const [activeBillInfo, setActiveBillInfo] = useState<HeldBill | null>(null);
 
+  const { organizationId } = useEmployee();
+
   useEffect(() => {
-    fetchHeldBills(1);
-  }, []);
+    if (organizationId) {
+      fetchHeldBills(organizationId);
+    }
+  }, [organizationId]);
 
   // 🌟 ล้างบิลทั้งหมด (เคลียร์ความจำหน้าจอ + ลบออกจาก DB ถ้าเป็นบิลเดิมที่ดึงมาแก้ไข)
   const clearCart = async () => {
     if (activeBillId) {
       await deleteHeldOrderFromDB(activeBillId);
-      await fetchHeldBills(1);
+      await fetchHeldBills(organizationId);
     }
     setCart([]);
     setActiveBillId(null);
@@ -146,6 +151,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       qrCodeId?: number | null;
       sendToKitchen?: boolean;
       kitchenItemIds?: string[];
+      createdBy?: string;
     },
   ) => {
     if (cart.length === 0) return false;
@@ -156,18 +162,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const payload = {
       orderId: activeBillId,
       organizationId,
+      createdBy: options?.createdBy || "0",
       customerName:
         options?.customerName ||
         (activeBillNumber ? `บิล ${activeBillNumber}` : "บิลพักชั่วคราว"),
       qrCodeId: options?.qrCodeId || null,
-      // 🌟 ถ้าสั่งส่งเข้าครัว ตั้งเป็น IN_KITCHEN / ถ้าไม่ส่ง ตั้งเป็น SERVED ตาม Default ใหม่
       kitchenStatus: options?.sendToKitchen
         ? ("IN_KITCHEN" as const)
         : ("SERVED" as const),
       totalAmount: subtotal,
       netAmount: subtotal,
       items: cart.map((item) => {
-        // ตรวจสอบว่าไอเทมนี้ถูกเลือกส่งเข้าครัวหรือไม่
         const isSelectedForKitchen = options?.kitchenItemIds
           ? options.kitchenItemIds.includes(item.id) ||
             options.kitchenItemIds.includes(String((item as any).dbItemId))

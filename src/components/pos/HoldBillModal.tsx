@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { getTablesFromDB, createTableInDB } from "@/lib/actions/actionsPos";
 import { HoldBillModalProps } from "@/lib/interface";
+import { useEmployee } from "../providers/EmployeeContext";
 
 export default function HoldBillModal({
   isOpen,
@@ -11,6 +12,7 @@ export default function HoldBillModal({
   onSuccess,
 }: HoldBillModalProps) {
   const { holdBill, activeBillId, activeBillInfo, cart } = useCart();
+  const { employeeId, organizationId } = useEmployee();
 
   const [customerName, setCustomerName] = useState("");
   const [qrCodeId, setQrCodeId] = useState<number | null>(null);
@@ -33,10 +35,11 @@ export default function HoldBillModal({
       setDisplayCart(cart);
 
       // ดึงรายชื่อโต๊ะมาแสดง
-      getTablesFromDB(1).then((res) => {
-        if (res.success) setTables(res.data);
-      });
-
+      if (organizationId) {
+        getTablesFromDB(organizationId).then((res) => {
+          if (res.success) setTables(res.data);
+        });
+      }
       // ดึงข้อมูลบิลเดิมถ้ากำลังแก้ไขอยู่
       if (activeBillId && activeBillInfo) {
         let cName = activeBillInfo.customerName || "";
@@ -66,7 +69,7 @@ export default function HoldBillModal({
       setIsAddingTable(false);
       setNewTableName("");
     }
-  }, [isOpen, activeBillId, activeBillInfo]);
+  }, [isOpen, activeBillId, activeBillInfo, organizationId]);
 
   const toggleSelectItem = (id: string) => {
     setSelectedItemIds((prev) =>
@@ -88,7 +91,7 @@ export default function HoldBillModal({
     if (!newTableName.trim()) return;
     setIsSavingTable(true);
 
-    const res = await createTableInDB(1, newTableName.trim());
+    const res = await createTableInDB(organizationId, newTableName.trim());
 
     if (res.success && res.data) {
       setTables((prev) => [...prev, res.data]);
@@ -107,11 +110,12 @@ export default function HoldBillModal({
 
     const hasKitchenItems = selectedItemIds.length > 0;
 
-    const success = await holdBill(1, {
+    const success = await holdBill(organizationId, {
       customerName,
       qrCodeId,
       sendToKitchen: hasKitchenItems,
       kitchenItemIds: selectedItemIds,
+      createdBy: String(employeeId),
     });
 
     if (success) {

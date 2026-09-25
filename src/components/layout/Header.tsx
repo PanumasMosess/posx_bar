@@ -5,15 +5,18 @@ import { useTheme } from "next-themes";
 import { useCart } from "../providers/CartContext";
 import { useShift } from "../providers/ShiftContext";
 import ShiftModal from "../pos/payment/ShiftModal";
-import { usePathname } from "next/navigation";
-// 🌟 นำเข้า useEmployee และ logoutAction
+import { usePathname, useRouter } from "next/navigation";
+
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import { logoutAction } from "@/lib/actions/authActions";
+import LogoutLoadingModal from "../auth/LogoutLoadingModal";
 
 export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
+  const router = useRouter();
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); // 🌟 Dropdown สำหรับ Logout / PIN
   const [mounted, setMounted] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Modal State สำหรับเปิด-ปิดกะ
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -53,13 +56,21 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
   // 🌟 สลับพนักงาน (เคลียร์เฉพาะ PIN พนักงาน ให้หน้าจอเด้งกลับมากรอก PIN ใหม่)
   const handleSwitchEmployee = () => {
     clearEmployeeSession();
-    window.location.reload();
+    setIsUserMenuOpen(false);
   };
 
   // 🌟 ออกจากระบบองค์กร (Logout จากระบบ NextAuth ออกไปยังหน้า Login ร้าน)
   const handleOrgLogout = async () => {
-    clearEmployeeSession();
-    await logoutAction();
+    setIsUserMenuOpen(false);
+    setIsLoggingOut(true);
+    try {
+      await logoutAction();
+      clearEmployeeSession();
+      router.push("/");
+    } catch (error) {
+      console.error("Logout Error:", error);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -212,25 +223,28 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
               )}
             </div>
 
-            {/* 🌟 แทนที่ปุ่มตะกร้าเดิม ด้วยปุ่มโปรไฟล์แคชเชียร์/ผู้ใช้งาน */}
-            <div className="relative">
+            {/* 🌟 ปุ่มโปรไฟล์พนักงาน & Dropdown เมนู */}
+            <div className="relative" id="userMenuWrapper">
               <button
+                type="button"
                 onClick={toggleUserMenu}
-                className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-bold flex items-center gap-2 shadow-xs active:scale-95 transition cursor-pointer"
+                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-pos-surface border border-pos-border hover:bg-pos-hover text-pos-text font-bold flex items-center gap-2 shadow-2xs active:scale-95 transition-all duration-200 cursor-pointer"
                 title="โปรไฟล์และตัวเลือกล็อกเอาท์"
               >
-                <div className="w-5 h-5 rounded-full bg-sky-500 text-white font-black text-[10px] flex items-center justify-center">
+                <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 font-black text-[11px] flex items-center justify-center shrink-0">
                   {currentEmployee?.name
                     ? currentEmployee.name.charAt(0).toUpperCase()
                     : "👤"}
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-xs font-extrabold line-clamp-1 max-w-[90px] sm:max-w-[120px]">
+                  <span className="text-xs font-extrabold tracking-tight line-clamp-1 max-w-[90px] sm:max-w-[120px] text-pos-text leading-tight">
                     {currentEmployee?.name || "ยังไม่ระบุพนักงาน"}
                   </span>
                 </div>
                 <svg
-                  className="w-3 h-3 text-slate-400"
+                  className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+                    isUserMenuOpen ? "rotate-180 text-sky-500" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
@@ -246,35 +260,51 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
 
               {/* Dropdown Menu ออกจากระบบ / สลับ PIN */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-2 z-50 space-y-1 select-none animate-fade-in">
-                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase">
-                      แคชเชียร์ปัจจุบัน
+                <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-pos-surface border border-pos-border shadow-xl p-2 z-50 space-y-1.5 select-none animate-fade-in transition-colors duration-300">
+                  {/* Header รายละเอียดแคชเชียร์ */}
+                  <div className="px-3 py-2.5 rounded-xl bg-pos-hover/60 border border-pos-border/50">
+                    <p className="text-[10px] font-black font-mono tracking-wider text-slate-400 uppercase">
+                      แคชเชียร์ประจำเครื่อง
                     </p>
-                    <p className="text-sm font-black text-slate-800 dark:text-slate-100 truncate">
-                      {currentEmployee?.name || "ไม่พบข้อมูล"}
+                    <p className="text-sm font-black text-pos-text truncate mt-0.5">
+                      {currentEmployee?.name || "ไม่พบข้อมูลพนักงาน"}
                     </p>
-                    <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400">
-                      ตำแหน่ง: {currentEmployee?.role || "พนักงาน"}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                      <p className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
+                        ตำแหน่ง: {currentEmployee?.role || "พนักงานทั่วไป"}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* ปุ่มที่ 1: สลับพนักงาน (ใส่ PIN ใหม่) */}
+                  {/* ปุ่มที่ 1: สลับพนักงาน (กรอก PIN ใหม่) */}
                   <button
+                    type="button"
                     onClick={handleSwitchEmployee}
-                    className="w-full p-2.5 rounded-xl flex items-center gap-2.5 text-left hover:bg-sky-50 dark:hover:bg-sky-950/50 text-sky-600 dark:text-sky-400 transition font-bold text-xs cursor-pointer"
+                    className="w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-left hover:bg-sky-500/10 text-sky-600 dark:text-sky-400 transition-all font-bold text-xs cursor-pointer active:scale-[0.98] group"
                   >
-                    <span className="text-base">🔑</span>
-                    <span>สลับพนักงาน (กรอก PIN)</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-base group-hover:scale-110 transition-transform">
+                        🔑
+                      </span>
+                      <span>สลับพนักงาน (กรอก PIN)</span>
+                    </div>
+                    <span className="text-slate-400 text-[10px]">➔</span>
                   </button>
 
-                  {/* ปุ่มที่ 2: ออกจากระบบร้านค้าทั้งหมด (NextAuth Logout) */}
+                  {/* ปุ่มที่ 2: ออกจากระบบร้านค้า (NextAuth Organization Logout) */}
                   <button
+                    type="button"
                     onClick={handleOrgLogout}
-                    className="w-full p-2.5 rounded-xl flex items-center gap-2.5 text-left hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 transition font-bold text-xs cursor-pointer"
+                    className="w-full px-3 py-2.5 rounded-xl flex items-center justify-between text-left bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-all font-bold text-xs cursor-pointer active:scale-[0.98] group"
                   >
-                    <span className="text-base">🏢</span>
-                    <span>ออกจากระบบร้านค้า (Organization)</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-base group-hover:scale-110 transition-transform">
+                        🏢
+                      </span>
+                      <span>ออกจากระบบร้านค้า</span>
+                    </div>
+                    <span className="text-rose-400 text-[10px]">➔</span>
                   </button>
                 </div>
               )}
@@ -288,6 +318,8 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
         isOpen={isShiftModalOpen}
         onClose={() => setIsShiftModalOpen(false)}
       />
+
+      <LogoutLoadingModal isOpen={isLoggingOut} />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { holdOrderToDB } from "@/lib/actions/actionsPos";
+import { useEmployee } from "@/components/providers/EmployeeContext"; // 🌟 1. นำเข้า useEmployee
 
 interface SplitBillModalProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ export default function SplitBillModal({
     updateQuantity,
     removeFromCart,
   } = useCart();
+
+  const { organizationId, employeeId } = useEmployee();
 
   const [splitQuantities, setSplitQuantities] = useState<{
     [key: string]: number;
@@ -104,18 +107,19 @@ export default function SplitBillModal({
           quantity: qtyToSplit,
           priceAtTime: unitPrice,
           options: JSON.stringify(item.selectedOptions || {}),
-          status: (item as any).status || "IDLE",
+          status: (item as any).status || "SERVED",
         };
       });
 
       const newBillPayload = {
-        organizationId: 1,
+        organizationId: organizationId, // 🌟 3. ใช้ ID ร้านค้าปัจจุบันแทนเลข 1
+        createdBy: String(employeeId), // 🌟 4. บันทึก ID พนักงานที่กดแยกบิล
         customerName: activeBillNumber
           ? `แยกจาก ${activeBillNumber}`
           : "บิลแยกใหม่",
         totalAmount: splitTotalPrice,
         netAmount: splitTotalPrice,
-        kitchenStatus: "IDLE" as const,
+        kitchenStatus: "SERVED" as const,
         items: newBillItems,
       };
 
@@ -131,7 +135,7 @@ export default function SplitBillModal({
           }
         });
 
-        await fetchHeldBills(1);
+        await fetchHeldBills(organizationId); // 🌟 5. ดึงบิลของร้านค้าใหม่แทนเลข 1
         onClose();
       } else {
         alert("เกิดข้อผิดพลาดในการสร้างบิลแยก");

@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import { auth } from "./lib/auth";
 
 export default auth((req) => {
+  // 🌟 1. ดักจับ Server Action ไม่ให้ Middleware แทรกแซง (แก้ปัญหา Unexpected Response 100%)
+  const isServerAction = req.headers.has("next-action");
+  if (isServerAction) {
+    return NextResponse.next();
+  }
+
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
 
-  // 1. หน้าแรก / เป็นหน้า Auth หลัก
+  // 2. หน้าแรก / เป็นหน้า Auth หลัก
   const isAuthRoute = pathname === "/";
 
-  // 2. กำหนดหน้าปลายทางที่ต้องการป้องกัน (Protected Routes)
+  // 3. กำหนดหน้าปลายทางที่ต้องการป้องกัน (Protected Routes)
   const isProtectedRoute =
     pathname.startsWith("/pos") ||
     pathname.startsWith("/kitchen") ||

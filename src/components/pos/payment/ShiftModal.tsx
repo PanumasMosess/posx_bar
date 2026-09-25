@@ -3,20 +3,23 @@
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import ToastAlert from "@/components/ToastAlert";
 import { useShift } from "@/components/providers/ShiftContext";
+import { useEmployee } from "@/components/providers/EmployeeContext";
 import { ShiftModalProps } from "@/lib/interface";
 import { useState, useEffect } from "react";
 
 export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
   const { activeShift, openShift, closeShift, isLoading } = useShift();
 
+  // 🌟 ดึงข้อมูลพนักงานปัจจุบัน และ employeeId
+  const { currentEmployee, employeeId } = useEmployee();
+
   // Form States
   const [startingCash, setStartingCash] = useState<string>("0");
   const [endingCash, setEndingCash] = useState<string>("");
-  const [cashierName, setCashierName] = useState<string>("แคชเชียร์");
   const [note, setNote] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // 🌟 State ควบคุมการแสดงConfirm Modal
+  // State ควบคุมการแสดง Confirm Modal
   const [showCloseConfirm, setShowCloseConfirm] = useState<boolean>(false);
 
   // State สำหรับควบคุม ToastAlert
@@ -63,7 +66,10 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
 
     setIsSubmitting(true);
     try {
-      const res = await openShift(Number(startingCash) || 0, cashierName);
+      // 🌟 ใช้ ID ของพนักงานแทนชื่อ (แปลงเป็น String เพราะใน DB รับเป็น String)
+      const openerId = String(employeeId || "0");
+
+      const res = await openShift(Number(startingCash) || 0, openerId);
       if (res.success) {
         showToast("เปิดกะการทำงานเรียบร้อยแล้ว", "success");
         onClose();
@@ -88,12 +94,15 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     setShowCloseConfirm(true);
   };
 
-  // 🌟 ฟังก์ชันปิดกะจริงที่จะเรียกใช้เมื่อกด Confirm
+  // ฟังก์ชันปิดกะจริงที่จะเรียกใช้เมื่อกด Confirm
   const handleExecuteCloseShift = async () => {
     setShowCloseConfirm(false);
     setIsSubmitting(true);
     try {
-      const res = await closeShift(numEndingCash, cashierName, note);
+      // 🌟 ใช้ ID ของพนักงานแทนชื่อ
+      const closerId = String(employeeId || "0");
+
+      const res = await closeShift(numEndingCash, closerId, note);
       if (res.success) {
         showToast("ปิดกะการทำงานเรียบร้อยแล้ว", "success");
         onClose();
@@ -110,7 +119,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
 
   return (
     <>
-      {/* 🌟 1. เรนเดอร์ ShiftModal เฉพาะเมื่อสั่งเปิด และไม่ได้อยู่ในขั้นตอน Confirmation */}
       {isOpen && !showCloseConfirm && (
         <>
           {/* Backdrop */}
@@ -161,19 +169,12 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   onSubmit={handleOpenShift}
                   className="p-4 space-y-4 overflow-y-auto custom-scroll"
                 >
-                  <div>
-                    <label className="block text-xs font-bold text-pos-text mb-1.5">
-                      ชื่อแคชเชียร์ผู้เปิดกะ:
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      disabled={isSubmitting}
-                      value={cashierName}
-                      onChange={(e) => setCashierName(e.target.value)}
-                      placeholder="เช่น แคชเชียร์ A"
-                      className="w-full px-3 py-2 bg-pos-bg border border-pos-border rounded-xl text-xs font-semibold text-pos-text outline-none focus:border-emerald-500 disabled:opacity-50"
-                    />
+                  {/* 🌟 แสดงชื่อผู้ทำรายการเบาๆ ให้ User เห็น (แต่เบื้องหลังเซฟเป็น ID) */}
+                  <div className="flex justify-between items-center px-1 text-xs font-semibold text-pos-text/60">
+                    <span>ผู้ทำรายการ:</span>
+                    <span className="text-pos-text font-bold">
+                      {currentEmployee?.name || "พนักงาน"}
+                    </span>
                   </div>
 
                   <div>
@@ -229,6 +230,14 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   onSubmit={handlePreCloseShift}
                   className="p-4 space-y-3.5 overflow-y-auto custom-scroll"
                 >
+                  {/* 🌟 แสดงชื่อผู้ทำรายการเบาๆ ให้ User เห็น */}
+                  <div className="flex justify-between items-center px-1 text-xs font-semibold text-pos-text/60">
+                    <span>ผู้ทำรายการ:</span>
+                    <span className="text-pos-text font-bold">
+                      {currentEmployee?.name || "พนักงาน"}
+                    </span>
+                  </div>
+
                   <div className="p-3 bg-pos-bg rounded-2xl border border-pos-border space-y-2 text-xs">
                     <div className="flex justify-between items-center pb-2 border-b border-pos-border/60 font-bold">
                       <span className="text-pos-text/70">
@@ -351,7 +360,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
         </>
       )}
 
-      {/* 🌟 2. ConfirmDeleteModal จะแสดงแยกเดี่ยวๆ โดยไม่ซ้อนกับ ShiftModal */}
+      {/* ConfirmDeleteModal จะแสดงแยกเดี่ยวๆ โดยไม่ซ้อนกับ ShiftModal */}
       {showCloseConfirm && (
         <ConfirmDeleteModal
           isOpen={showCloseConfirm}
@@ -364,7 +373,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
         />
       )}
 
-      {/* 🌟 3. ToastAlert แสดงแจ้งเตือนมุมขวาบน */}
+      {/* ToastAlert แสดงแจ้งเตือนมุมขวาบน */}
       <ToastAlert
         isOpen={toast.isOpen}
         message={toast.message}
