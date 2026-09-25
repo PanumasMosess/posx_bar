@@ -7,12 +7,16 @@ import { ModalView } from "@/lib/types";
 import FormOption from "./FormOption";
 import FormCategory from "./FormCategory";
 import FormProduct from "./FormProduct";
-import ToastAlert from "@/components/ToastAlert"; 
+import ToastAlert from "@/components/ToastAlert";
+import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function ProductFormModal({
   onClose,
   initialCategories = [],
 }: ProductFormModalProps) {
+  // 🌟 1. ดึงข้อมูลจาก Context มาเตรียมไว้
+  const { employeeId, organizationId } = useEmployee();
+
   const [activeModal, setActiveModal] = useState<ModalView>("ADD_PRODUCT");
   const [isPending, startTransition] = useTransition();
 
@@ -27,7 +31,7 @@ export default function ProductFormModal({
   });
 
   const [product, setProduct] = useState({
-    code: "", 
+    code: "",
     name: "",
     price: "",
     cost: "",
@@ -52,7 +56,13 @@ export default function ProductFormModal({
   const submitProduct = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const payload = { ...product, optionGroups };
+      const payload = {
+        ...product,
+        optionGroups,
+        organizationId: organizationId,
+        createdBy: String(employeeId),
+      };
+
       const result = await addProductToDB(payload);
 
       if (result.success) {
@@ -61,7 +71,7 @@ export default function ProductFormModal({
           type: "success",
           message: "เพิ่มสินค้าเรียบร้อยแล้ว!",
         });
-        setTimeout(() => onClose(), 1500); 
+        setTimeout(() => onClose(), 1500);
       } else {
         setToast({
           isOpen: true,
@@ -75,7 +85,13 @@ export default function ProductFormModal({
   const submitCategory = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await addCategoryToDB({ name: newCategoryName });
+      // 🌟 3. แนบ organizationId ไปตอนสร้างหมวดหมู่ด้วย
+      const payload = {
+        name: newCategoryName,
+        organizationId: organizationId,
+      };
+
+      const result = await addCategoryToDB(payload);
       if (result.success && result.id !== undefined) {
         setCategories([
           ...categories,
@@ -85,7 +101,6 @@ export default function ProductFormModal({
         setNewCategoryName("");
         setActiveModal("ADD_PRODUCT");
       } else {
-   
         setToast({
           isOpen: true,
           type: "error",
@@ -107,7 +122,6 @@ export default function ProductFormModal({
   };
 
   return (
-
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">

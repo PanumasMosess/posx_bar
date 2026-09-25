@@ -13,6 +13,7 @@ import {
   closeShiftDB,
   getActiveShiftDB,
 } from "@/lib/actions/actionsPos";
+import { useEmployee } from "@/components/providers/EmployeeContext"; // 🌟 1. นำเข้า useEmployee
 
 export interface ShiftData {
   id: number;
@@ -50,17 +51,21 @@ interface ShiftContextType {
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
-export function ShiftProvider({
-  children,
-  organizationId = 1,
-}: {
-  children: ReactNode;
-  organizationId?: number;
-}) {
+// 🌟 2. ลบ organizationId ออกจาก Props
+export function ShiftProvider({ children }: { children: ReactNode }) {
   const [activeShift, setActiveShift] = useState<ShiftData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // 🌟 3. ดึง organizationId จาก EmployeeContext โดยตรง
+  const { organizationId } = useEmployee();
+
   const fetchActiveShift = useCallback(async () => {
+    // 🌟 4. ถ้ายังไม่มี ID ร้านค้า (เช่น เพิ่งเปิดเว็บ) ให้หยุดไว้ก่อน ป้องกันบั๊ก
+    if (!organizationId) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await getActiveShiftDB(organizationId);
@@ -75,19 +80,27 @@ export function ShiftProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId]); // 🌟 ผูกกับ organizationId ถ้าเปลี่ยนร้าน ข้อมูลกะก็จะโหลดใหม่
 
   useEffect(() => {
     fetchActiveShift();
   }, [fetchActiveShift]);
 
   const openShift = async (startingCash: number, openedBy: string) => {
+    // 🌟 5. เช็กกันเหนียวตอนกดเปิดกะ
+    if (!organizationId) {
+      return {
+        success: false,
+        message: "ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่",
+      };
+    }
+
     setIsLoading(true);
     try {
       const res = await openShiftDB({
         startingCash,
         openedBy,
-        organizationId,
+        organizationId, // 🌟 โยน organizationId ที่ดึงมาเข้าไปใช้
       });
 
       if (res.success && res.shift) {

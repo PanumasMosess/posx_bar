@@ -1,10 +1,22 @@
 import KitchenView from "@/components/kitchen/KitchenView";
 import prisma from "@/lib/prisma";
-
+import { auth } from "@/lib/auth"; 
+import { redirect } from "next/navigation"; 
 
 export default async function KitchenHomePage() {
+  // 🌟 2. ดึงข้อมูล Session และ orgId
+  const session = await auth();
+  const userAny = session?.user as any;
+  const orgId = Number(userAny?.orgId);
+
+  // 🌟 3. ตรวจสอบ orgId ถ้าไม่มีให้เด้งกลับหน้า Login
+  if (!orgId || isNaN(orgId)) {
+    redirect("/");
+  }
+
   const activeKitchenOrders = await prisma.orders.findMany({
     where: {
+      organizationId: orgId, 
       items: {
         some: {
           status: "IN_KITCHEN",

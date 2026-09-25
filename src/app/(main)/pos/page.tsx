@@ -1,15 +1,32 @@
 import prisma from "@/lib/prisma";
 import POSView from "@/components/pos/POSView";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 
 export default async function POSHomePage() {
+
+  const session = await auth();
+  const userAny = session?.user as any;
+  const orgId = Number(userAny?.orgId);
+
+  if (!orgId || isNaN(orgId)) {
+    redirect("/");
+  }
+
   const [categories, products] = await Promise.all([
     prisma.categories.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        organizationId: orgId, // 👈 กรองเฉพาะหมวดหมู่ของร้านค้านี้
+      },
       select: { id: true, name: true },
       orderBy: { id: "asc" },
     }),
     prisma.products.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        organizationId: orgId, // 👈 กรองเฉพาะสินค้าของร้านค้านี้
+      },
       select: {
         id: true,
         code: true,

@@ -12,9 +12,11 @@ import PaymentMethodPicker from "./PaymentMethodPicker";
 import CashNumpad from "./CashNumpad";
 import MemberWalletView from "./MemberWalletView";
 import ShiftCheckView from "./ShiftCheckView"; // 🌟 Import Component เปิดกะแยก
+import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const { heldBills, checkoutBill, fetchHeldBills } = useCart();
+  const { organizationId, employeeId, currentEmployee } = useEmployee();
   const { activeShift, openShift } = useShift();
 
   const [paymentMethod, setPaymentMethod] = useState<
@@ -67,7 +69,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const handleQuickOpenShift = async (startingCash: number) => {
     setIsOpeningShift(true);
     try {
-      const res = await openShift(startingCash, "แคชเชียร์");
+      const openerName = currentEmployee?.name || "พนักงาน";
+      const res = await openShift(startingCash, openerName);
       if (!res.success) {
         alert(res.message || "ไม่สามารถเปิดกะได้");
       }
@@ -118,13 +121,13 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
         shiftId: activeShift.id,
         method: paymentMethod,
         referenceNo: selectedMember ? `MEMBER-${selectedMember.id}` : undefined,
-        organizationId: (payingBill as any).organizationId || 1,
-        createdBy: "cashier",
+        organizationId: organizationId, // 👈 ใช้ ID ร้านค้าจาก Context
+        createdBy: String(employeeId), // 👈 ใช้ ID พนักงานที่ทำรายการ
       });
 
       if (res.success) {
         checkoutBill(String(billId));
-        await fetchHeldBills(1);
+        await fetchHeldBills(organizationId);
         onClose();
       } else {
         alert(res.message || "ไม่สามารถชำระเงินได้");

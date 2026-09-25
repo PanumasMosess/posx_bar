@@ -45,9 +45,9 @@ export const addProductToDB = async (data: any) => {
         image: finalImageUrl,
         detail: data.detail || null,
         barcode: data.barcode || null,
-
+        createdBy: data.createdBy,
         categoryId: data.categoryId ? Number(data.categoryId) : null,
-        organizationId: 1,
+        organizationId: data.organizationId,
         isActive: true,
 
         optionGroups: {
@@ -77,12 +77,15 @@ export const addProductToDB = async (data: any) => {
   }
 };
 
-export const addCategoryToDB = async (data: { name: string }) => {
+export const addCategoryToDB = async (data: {
+  name: string;
+  organizationId: number;
+}) => {
   try {
     const newCat = await prisma.categories.create({
       data: {
         name: data.name,
-        organizationId: 1,
+        organizationId: data.organizationId,
         isActive: true,
       },
     });
@@ -213,6 +216,7 @@ export async function getTablesFromDB(organizationId: number) {
 export async function holdOrderToDB(payload: {
   orderId?: number | null;
   organizationId: number;
+  createdBy?: string;
   items: Array<{
     productId: number;
     quantity: number;
@@ -228,6 +232,7 @@ export async function holdOrderToDB(payload: {
 }) {
   try {
     const kStatus = payload.kitchenStatus || "SERVED";
+    const employeeIdStr = payload.createdBy || "0";
 
     // 🌟 หากเป็นการอัปเดตบิลเดิมที่ดึงคืนมา
     if (payload.orderId) {
@@ -244,7 +249,7 @@ export async function holdOrderToDB(payload: {
           customerName: payload.customerName,
           qrCodeId: payload.qrCodeId,
           kitchenStatus: kStatus,
-          createdBy: "0",
+          createdBy: employeeIdStr,
           updatedAt: new Date(),
           items: {
             create: payload.items.map((item) => ({

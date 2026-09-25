@@ -140,6 +140,7 @@ export interface CartContextType {
       qrCodeId?: number | null;
       sendToKitchen?: boolean;
       kitchenItemIds?: string[];
+      createdBy?: string;
     },
   ) => Promise<boolean>;
   resumeBill: (billId: number) => void;

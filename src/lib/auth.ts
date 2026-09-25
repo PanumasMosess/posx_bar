@@ -8,7 +8,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
   pages: {
-    signIn: "/login",
+    signIn: "/",
   },
   providers: [
     Credentials({
@@ -34,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // ตรวจสอบ Password (รองรับทั้ง Hash และ Plaintext สำหรับการทดสอบ)
+        // ตรวจสอบ Password
         let isValid = await bcrypt.compare(passwordInput, org.password);
         if (!isValid && passwordInput === org.password) {
           isValid = true;
@@ -44,9 +44,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // คืนค่า Object เพื่อนำไปเก็บใน JWT/Session
+        // 🌟 คืนค่า Detail องค์กรออกไป
         return {
           id: String(org.id),
+          orgId: org.id, // เก็บ orgId เป็น number โดยตรง
           name: org.name,
           username: org.username,
           slug: org.slug,
@@ -58,17 +59,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.orgId = Number(user.id);
-        token.username = (user as any).username;
-        token.slug = (user as any).slug;
-        token.ownerId = (user as any).ownerId;
+        // 🌟 บันทึกข้อมูลลง Token อย่างปลอดภัย
+        const u = user as any;
+        token.orgId = u.orgId || Number(u.id);
+        token.username = u.username;
+        token.slug = u.slug;
+        token.ownerId = u.ownerId;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
+        // 🌟 ผูกข้อมูลองค์กรกลับเข้าไปใน Session Object
         session.user.id = String(token.orgId);
-        (session.user as any).orgId = token.orgId;
+        (session.user as any).orgId = Number(token.orgId);
         (session.user as any).username = token.username;
         (session.user as any).slug = token.slug;
         (session.user as any).ownerId = token.ownerId;
