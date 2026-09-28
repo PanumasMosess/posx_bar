@@ -24,7 +24,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
   const [activeBillNumber, setActiveBillNumber] = useState<string | null>(null);
-  const [activeBillInfo, setActiveBillInfo] = useState<HeldBill | null>(null);
+  const [activeBillInfo, setActiveBillInfo] = useState<any | null>(null); // 🌟 เปลี่ยนเป็น any ชั่วคราวเพื่อรับ tableName
 
   const { organizationId } = useEmployee();
 
@@ -34,7 +34,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [organizationId]);
 
-  // 🌟 ล้างบิลทั้งหมด (เคลียร์ความจำหน้าจอ + ลบออกจาก DB ถ้าเป็นบิลเดิมที่ดึงมาแก้ไข)
   const clearCart = async () => {
     if (activeBillId) {
       await deleteHeldOrderFromDB(activeBillId);
@@ -84,13 +83,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: item.quantity,
         selectedOptions: item.selectedOptions || {},
         totalPrice: item.totalPrice,
-        status: "SERVED", // 🌟 เริ่มต้นเป็น SERVED ตาม Schema ใหม่
+        status: "SERVED",
       };
       return [...prev, newItem];
     });
   };
 
-  // 🌟 ลบสินค้า: ถ้าเมนูหมดตะกร้า (เหลือ 0) สั่งล้างบิล + ลบออกจาก DB ทันที
   const removeFromCart = (id: string) => {
     const updatedCart = cart.filter((item) => item.id !== id);
 
@@ -101,7 +99,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 🌟 ลดจำนวนสินค้า: พอลดจนเหลือ 0 สั่งล้างบิล + ลบออกจาก DB ทันที
   const updateQuantity = (id: string, delta: number) => {
     const updatedCart = cart
       .map((item) => {
@@ -129,21 +126,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const fetchHeldBills = async (organizationId: number) => {
     const result = await getHeldOrdersFromDB(organizationId);
     if (result.success && result.data) {
-      const formatted: HeldBill[] = result.data.map((order: any) => ({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        customerName: order.customerName,
-        qrCodeId: order.qrCodeId,
-        kitchenStatus: order.kitchenStatus,
-        items: order.items,
-        totalPrice: order.netAmount || order.totalAmount,
-        heldAt: new Date(order.createdAt),
-      }));
+      const formatted: any[] = result.data.map((order: any) => {
+        const tableRelation =
+          order.qrcode || order.qrcodes || order.qrCode || order.table;
+        const extractedTableName =
+          tableRelation?.tableName ||
+          (order.qrCodeId ? `โต๊ะ ${order.qrCodeId}` : null);
+
+        return {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          qrCodeId: order.qrCodeId,
+          tableName: extractedTableName,
+          kitchenStatus: order.kitchenStatus,
+          items: order.items,
+          totalPrice: order.netAmount || order.totalAmount,
+          heldAt: new Date(order.createdAt),
+          qrcode: tableRelation,
+        };
+      });
       setHeldBills(formatted);
     }
   };
 
-  // 🌟 บันทึกพักบิล / ส่งเข้าครัว
   const holdBill = async (
     organizationId: number,
     options?: {
@@ -165,8 +171,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       createdBy: options?.createdBy || "0",
       customerName:
         options?.customerName ||
+        activeBillInfo?.customerName ||
         (activeBillNumber ? `บิล ${activeBillNumber}` : "บิลพักชั่วคราว"),
-      qrCodeId: options?.qrCodeId || null,
+      qrCodeId: options?.qrCodeId || activeBillInfo?.qrCodeId || null,
       kitchenStatus: options?.sendToKitchen
         ? ("IN_KITCHEN" as const)
         : ("SERVED" as const),
@@ -178,7 +185,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
             options.kitchenItemIds.includes(String((item as any).dbItemId))
           : !!options?.sendToKitchen;
 
-        // ถ้าเลือกส่งเข้าครัวให้เป็น IN_KITCHEN / ถ้าไม่เลือกให้เป็น SERVED (หรือคงสถานะเดิมไว้)
         let finalStatus = (item as any).status || "SERVED";
         if (isSelectedForKitchen) {
           finalStatus = "IN_KITCHEN";
@@ -209,14 +215,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  // 🌟 ดึงบิลเก่ากลับมาแก้ไข
   const resumeBill = (billId: number) => {
     const bill = heldBills.find((b) => b.id === billId);
     if (!bill) return;
 
     setActiveBillId(bill.id);
     setActiveBillNumber(bill.orderNumber);
-    setActiveBillInfo(bill);
+
+    // 🌟 นำบิลที่เลือกใส่ไว้ใน activeBillInfo (มี tableName ติดไปด้วยแล้ว)
+    setActiveBillInfo({
+      ...bill,
+      qrCodeId: bill.qrCodeId,
+      customerName: bill.customerName,
+      tableName: (bill as any).tableName, // 🌟 แนบชื่อโต๊ะไว้ใช้ในหน้า POS
+    });
 
     const reloadedCart: CartItem[] = bill.items.map((item: any) => {
       let parsedOptions = {};
@@ -241,7 +253,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: qty,
         selectedOptions: parsedOptions,
         totalPrice: unitPrice * qty,
-        status: item.status || "SERVED", // 🌟 Default เป็น SERVED
+        status: item.status || "SERVED",
       } as any;
     });
 
