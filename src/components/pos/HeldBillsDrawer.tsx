@@ -16,17 +16,16 @@ export default function HeldBillsDrawer({
   onClose,
   onSelectToPay,
 }: HeldBillsDrawerProps) {
-  // 🌟 ดึง fetchHeldBills เข้ามาด้วย
   const { heldBills, resumeBill, deleteBill, fetchHeldBills } = useCart();
 
   const [deletingBillId, setDeletingBillId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 🌟 สั่งดึงข้อมูลบิลที่พักไว้จาก DB ทันทีเมื่อเปิดลิ้นชักนี้ขึ้นมา
   useEffect(() => {
     if (isOpen) {
       fetchHeldBills(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleConfirmDeleteBill = async () => {
@@ -37,7 +36,6 @@ export default function HeldBillsDrawer({
     setDeletingBillId(null);
   };
 
-  // 🌟 ฟังก์ชันถอดรหัส Options ดึงเฉพาะชื่อตัวเลือกมาแสดง (ป้องกัน [object Object])
   const renderOptionsText = (rawOptions: any) => {
     if (!rawOptions) return "";
 
@@ -76,16 +74,107 @@ export default function HeldBillsDrawer({
     }
   };
 
-  // 🌟 Badge สถานะครัวประจำรายการอาหาร
+  // 🌟 ฟังก์ชันดึง ID ตัวเลือกเพื่อสร้าง Key
+  const getNormalizedOptionKey = (rawOptions: any) => {
+    if (!rawOptions) return "";
+    try {
+      let parsed = rawOptions;
+      if (typeof rawOptions === "string") {
+        if (!rawOptions.trim() || rawOptions === "{}" || rawOptions === "[]")
+          return "";
+        parsed = JSON.parse(rawOptions);
+      }
+      if (!parsed || typeof parsed !== "object") return "";
+
+      const choiceIds: number[] = [];
+
+      const extractIds = (obj: any) => {
+        if (!obj) return;
+        if (Array.isArray(obj)) {
+          obj.forEach((item) => extractIds(item));
+        } else if (typeof obj === "object") {
+          if (obj.id !== undefined) {
+            choiceIds.push(Number(obj.id));
+          } else {
+            Object.values(obj).forEach((val) => extractIds(val));
+          }
+        }
+      };
+
+      extractIds(parsed);
+      return choiceIds.sort((a, b) => a - b).join("_");
+    } catch (e) {
+      return "";
+    }
+  };
+
+  // 🌟 ฟังก์ชันจัดกลุ่ม: รวมเฉพาะ SERVED / แยกบรรทัดสำหรับ IN_KITCHEN และ DRAFT
+  const aggregateItemsByStatus = (items: any[]) => {
+    if (!items || !Array.isArray(items)) return [];
+
+    const mergedServedMap = new Map<string, any>();
+    const unmergedItems: any[] = [];
+
+    items.forEach((item) => {
+      const rawStatus = (item.status || "IDLE").toString().toUpperCase();
+
+      // 🌟 รวมบรรทัดเฉพาะรายการที่เป็น SERVED
+      if (rawStatus === "SERVED") {
+        const productId = item.productId || item.product?.id || item.id;
+        const optionKey = getNormalizedOptionKey(
+          item.options || item.selectedOptions,
+        );
+
+        // คีย์สำหรับจัดกลุ่มรายการที่เสิร์ฟแล้ว
+        const uniqueKey = `${productId}_${optionKey}`;
+
+        if (mergedServedMap.has(uniqueKey)) {
+          const existing = mergedServedMap.get(uniqueKey);
+          existing.quantity += Number(item.quantity || 1);
+        } else {
+          mergedServedMap.set(uniqueKey, {
+            ...item,
+            quantity: Number(item.quantity || 1),
+          });
+        }
+      } else {
+        // 🌟 รายการที่เป็น IN_KITCHEN, COOKING หรือ DRAFT ให้แยกแสดงเป็นบรรทัดใหม่ตามปกติ
+        unmergedItems.push({
+          ...item,
+          quantity: Number(item.quantity || 1),
+        });
+      }
+    });
+
+    return [...Array.from(mergedServedMap.values()), ...unmergedItems];
+  };
+
+  // 🌟 Badge แสดงผลสถานะ
   const renderItemKitchenBadge = (status: string) => {
-    if (status === "IN_KITCHEN") {
+    const rawStatus = (status || "IDLE").toString().toUpperCase();
+
+    if (
+      rawStatus === "IN_KITCHEN" ||
+      rawStatus === "COOKING" ||
+      rawStatus === "PENDING"
+    ) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
-          ส่งครัวแล้ว
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          กำลังเข้าครัว
         </span>
       );
     }
+
+    if (rawStatus === "SERVED") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+          ส่งแล้ว
+        </span>
+      );
+    }
+
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-pos-surface border border-pos-border text-pos-text/60 shrink-0">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -173,12 +262,9 @@ export default function HeldBillsDrawer({
               <p className="text-base font-medium">ไม่มีบิลที่พักไว้</p>
             </div>
           ) : (
-            heldBills.map((bill) => {
-              // 🌟 ดึงข้อมูลโต๊ะ
-              const tableName =
-                (bill as any).table?.tableName ||
-                (bill as any).tableName ||
-                (bill.qrCodeId ? `โต๊ะ ${bill.qrCodeId}` : null);
+            heldBills.map((bill: any) => {
+              const tableName = bill.tableName;
+              const displayItems = aggregateItemsByStatus(bill.items);
 
               return (
                 <div
@@ -226,11 +312,11 @@ export default function HeldBillsDrawer({
                       <p className="text-[11px] text-pos-text/60">
                         ผู้ทำรายการ:{" "}
                         <span className="font-medium text-pos-text/80">
-                          {(bill as any).createdBy || "พนักงาน"}
+                          {bill.createdBy || "พนักงาน"}
                         </span>
                       </p>
                       <p className="text-[11px] text-pos-text/60 mt-0.5">
-                        {bill.items?.length || 0} รายการ •{" "}
+                        {displayItems.length} รายการ •{" "}
                         {new Date(bill.heldAt).toLocaleTimeString("th-TH", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -242,80 +328,68 @@ export default function HeldBillsDrawer({
                       <span className="font-mono font-black text-base text-sky-600 dark:text-sky-400 block">
                         {bill.totalPrice.toLocaleString()}
                       </span>
-                      <span className="text-[10px] font-medium text-pos-text/60">
-                        LAK
-                      </span>
                     </div>
                   </div>
 
-                  {/* รายการสินค้า (แสดง Badge สถานะครัวประจำเมนู) */}
-                  <div className="space-y-2 pt-2 border-t border-pos-border/60">
-                    {bill.items
-                      ?.slice(0, 3)
-                      .map((subItem: any, idx: number) => {
-                        const subTitle =
-                          subItem.product?.name ||
-                          subItem.product?.title ||
-                          subItem.name ||
-                          subItem.title ||
-                          "สินค้า";
-                        const subImage =
-                          subItem.product?.image ||
-                          subItem.product?.img ||
-                          subItem.image ||
-                          "";
+                  {/* รายการสินค้า */}
+                  <div className="space-y-2 pt-2 border-t border-pos-border/60 max-h-[170px] overflow-y-auto custom-scroll pr-1">
+                    {displayItems.map((subItem: any, idx: number) => {
+                      const subTitle =
+                        subItem.product?.name ||
+                        subItem.product?.title ||
+                        subItem.name ||
+                        subItem.title ||
+                        "สินค้า";
+                      const subImage =
+                        subItem.product?.image ||
+                        subItem.product?.img ||
+                        subItem.image ||
+                        "";
 
-                        const subOptionsDisplay = renderOptionsText(
-                          subItem.options || subItem.selectedOptions,
-                        );
+                      const subOptionsDisplay = renderOptionsText(
+                        subItem.options || subItem.selectedOptions,
+                      );
 
-                        // อ่านสถานะครัวเฉพาะเมนูนี้จาก DB
-                        const itemStatus = subItem.status || "IDLE";
+                      const itemStatus = subItem.status || "IDLE";
 
-                        return (
-                          <div
-                            key={subItem.id || idx}
-                            className="flex items-center gap-3 text-xs text-pos-text"
-                          >
-                            <div className="relative w-10 h-10 rounded-lg bg-pos-surface border border-pos-border overflow-hidden shrink-0 flex items-center justify-center">
-                              {subImage ? (
-                                <Image
-                                  src={subImage}
-                                  alt={subTitle}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <span className="text-[9px] text-slate-400 font-medium">
-                                  POS
-                                </span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-semibold text-pos-text leading-tight">
-                                {subTitle}
-                              </p>
-                              {subOptionsDisplay && (
-                                <p className="truncate text-[10px] text-sky-600 dark:text-sky-400 font-medium mt-0.5">
-                                  {subOptionsDisplay}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* แสดงสถานะครัวของแต่ละเมนู */}
-                            {renderItemKitchenBadge(itemStatus)}
-
-                            <span className="font-mono font-bold text-sm shrink-0 bg-pos-bg px-2 py-1 rounded-md border border-pos-border">
-                              x{subItem.quantity}
-                            </span>
+                      return (
+                        <div
+                          key={subItem.id || idx}
+                          className="flex items-center gap-3 text-xs text-pos-text"
+                        >
+                          <div className="relative w-10 h-10 rounded-lg bg-pos-surface border border-pos-border overflow-hidden shrink-0 flex items-center justify-center">
+                            {subImage ? (
+                              <Image
+                                src={subImage}
+                                alt={subTitle}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <span className="text-[9px] text-slate-400 font-medium">
+                                POS
+                              </span>
+                            )}
                           </div>
-                        );
-                      })}
-                    {bill.items && bill.items.length > 3 && (
-                      <p className="text-[11px] font-medium text-pos-text/50 pl-14 pt-1">
-                        และอีก {bill.items.length - 3} รายการ...
-                      </p>
-                    )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-pos-text leading-tight">
+                              {subTitle}
+                            </p>
+                            {subOptionsDisplay && (
+                              <p className="truncate text-[10px] text-sky-600 dark:text-sky-400 font-medium mt-0.5">
+                                {subOptionsDisplay}
+                              </p>
+                            )}
+                          </div>
+
+                          {renderItemKitchenBadge(itemStatus)}
+
+                          <span className="font-mono font-bold text-sm shrink-0 bg-pos-bg px-2 py-1 rounded-md border border-pos-border">
+                            x{subItem.quantity}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* ปุ่ม Action */}

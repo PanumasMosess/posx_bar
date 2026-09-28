@@ -222,7 +222,7 @@ export async function holdOrderToDB(payload: {
     quantity: number;
     priceAtTime: number;
     options?: string;
-    status?: string; // 🌟 รับสถานะเฉพาะรายการอาหารเข้ามา
+    status?: string;
   }>;
   totalAmount: number;
   netAmount: number;
@@ -234,7 +234,7 @@ export async function holdOrderToDB(payload: {
     const kStatus = payload.kitchenStatus || "SERVED";
     const employeeIdStr = payload.createdBy || "0";
 
-    // 🌟 หากเป็นการอัปเดตบิลเดิมที่ดึงคืนมา
+    // 🌟 เคสที่ 1: การอัปเดตบิลเดิมที่ดึงคืนมา (ฝั่งพนักงาน POS เป็นคนทำ)
     if (payload.orderId) {
       await prisma.orderitems.deleteMany({
         where: { orderId: payload.orderId },
@@ -265,7 +265,47 @@ export async function holdOrderToDB(payload: {
       return { success: true, order: updatedOrder };
     }
 
-    // กรณีเป็นบิลใหม่
+    // 🌟 เคสที่ 2: ลูกค้าสแกนสั่งจาก QR Code (มีเลขโต๊ะ แต่ไม่มี orderId)
+    // ให้ค้นหาว่าโต๊ะนี้มีบิลค้างอยู่ (HOLD) หรือไม่?
+    if (!payload.orderId && payload.qrCodeId) {
+      const existingTableOrder = await prisma.orders.findFirst({
+        where: {
+          qrCodeId: payload.qrCodeId,
+          organizationId: payload.organizationId,
+          status: "HOLD", // เช็กบิลที่ยังพักไว้ (ยังไม่ได้ชำระเงิน)
+        },
+      });
+
+      // ถ้าเจอบิลเดิมของโต๊ะนี้ ให้ "ยัดของใหม่เพิ่มเข้าไป" (Append) และบวกราคาเพิ่ม
+      if (existingTableOrder) {
+        const updatedOrder = await prisma.orders.update({
+          where: { id: existingTableOrder.id },
+          data: {
+            // บวกยอดเงินของใหม่เข้าไปในบิลเดิม
+            totalAmount: existingTableOrder.totalAmount + payload.totalAmount,
+            netAmount: existingTableOrder.netAmount + payload.netAmount,
+
+            // อัปเดตสถานะให้รู้ว่ามีของเข้าครัว
+            kitchenStatus: kStatus,
+            updatedAt: new Date(),
+
+            // 🌟 สร้างแค่ item ใหม่เพิ่มเข้าไป (ไม่ลบของเก่า)
+            items: {
+              create: payload.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                priceAtTime: item.priceAtTime,
+                options: item.options || "",
+                status: (item.status as any) || kStatus,
+              })),
+            },
+          },
+        });
+        return { success: true, order: updatedOrder };
+      }
+    }
+
+    // 🌟 เคสที่ 3: เปิดบิลใหม่เอี่ยม (ลูกค้าเพิ่งเปิดโต๊ะครั้งแรก หรือ สั่งกลับบ้าน)
     const orderNumber = `ORDER-${Date.now().toString().slice(-6)}`;
     const newOrder = await prisma.orders.create({
       data: {
@@ -277,7 +317,7 @@ export async function holdOrderToDB(payload: {
         netAmount: payload.netAmount,
         customerName: payload.customerName || "บิลพักชั่วคราว",
         organizationId: payload.organizationId,
-        createdBy: "0",
+        createdBy: employeeIdStr, // ใช้ชื่อคนที่ส่งมา (เช่น QR_ORDER)
         qrCodeId: payload.qrCodeId,
         items: {
           create: payload.items.map((item) => ({
