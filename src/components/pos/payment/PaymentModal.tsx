@@ -11,7 +11,7 @@ import PaymentItemsList from "./PaymentItemsList";
 import PaymentMethodPicker from "./PaymentMethodPicker";
 import CashNumpad from "./CashNumpad";
 import MemberWalletView from "./MemberWalletView";
-import ShiftCheckView from "./ShiftCheckView"; // 🌟 Import Component เปิดกะแยก
+import ShiftCheckView from "./ShiftCheckView";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
@@ -26,7 +26,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpeningShift, setIsOpeningShift] = useState(false);
 
-  // State สมาชิก
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedMember, setSelectedMember] = useState<{
     id: string;
@@ -65,7 +64,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const canCheckout =
     Boolean(activeShift) && isCashSufficient && isMemberWalletSufficient;
 
-  // ฟังก์ชันเปิดกะผ่าน Sub-component
   const handleQuickOpenShift = async (startingCash: number) => {
     setIsOpeningShift(true);
     try {
@@ -121,8 +119,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
         shiftId: activeShift.id,
         method: paymentMethod,
         referenceNo: selectedMember ? `MEMBER-${selectedMember.id}` : undefined,
-        organizationId: organizationId, // 👈 ใช้ ID ร้านค้าจาก Context
-        createdBy: String(employeeId), // 👈 ใช้ ID พนักงานที่ทำรายการ
+        organizationId: organizationId,
+        createdBy: String(employeeId),
       });
 
       if (res.success) {
@@ -181,37 +179,42 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
       />
 
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-4 pointer-events-none">
+        {/* 🌟 กล่องนอกสุด (ความสูงห้ามเกิน 90vh) */}
         <div className="w-full max-w-2xl bg-pos-surface rounded-3xl shadow-2xl border border-pos-border pointer-events-auto flex flex-col md:flex-row max-h-[90vh] overflow-hidden animate-slide-up transition-colors">
-          {/* ฝั่งซ้าย: รายการบิล + ระบบสมาชิก */}
-          <div className="flex-1 flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-pos-border">
-            <PaymentHeader
-              orderNumber={payingBill.orderNumber}
-              tableName={tableName}
-              shiftNumber={activeShift?.shiftNumber}
-              onClose={onClose}
-            />
+          {/* 🌟 ฝั่งซ้าย: "min-h-0" ตรงนี้สำคัญที่สุด! มันจะบังคับให้กล่องไม่ยืดทะลุขอบ และยอมให้ข้างในมีแถบเลื่อน */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 border-b md:border-b-0 md:border-r border-pos-border">
+            <div className="shrink-0">
+              <PaymentHeader
+                orderNumber={payingBill.orderNumber}
+                tableName={tableName}
+                shiftNumber={activeShift?.shiftNumber}
+                onClose={onClose}
+              />
+              <MemberSelector
+                selectedMember={selectedMember}
+                showInput={showMemberInput}
+                searchQuery={memberSearch}
+                onSearchChange={setMemberSearch}
+                onSearchSubmit={handleSearchMember}
+                onToggleInput={setShowMemberInput}
+                onClearMember={() => setSelectedMember(null)}
+              />
+            </div>
 
-            <MemberSelector
-              selectedMember={selectedMember}
-              showInput={showMemberInput}
-              searchQuery={memberSearch}
-              onSearchChange={setMemberSearch}
-              onSearchSubmit={handleSearchMember}
-              onToggleInput={setShowMemberInput}
-              onClearMember={() => setSelectedMember(null)}
-            />
-
-            <PaymentItemsList
-              items={payingBill.items || []}
-              discountAmount={discountAmount}
-              discountPercent={selectedMember?.discountPercent}
-              netTotal={netTotal}
-              renderOptionsText={renderOptionsText}
-            />
+            {/* 🌟 โยนเข้า PaymentItemsList กล่องนี้จะยืดเต็มที่และเลื่อนได้ */}
+            <div className="flex-1 flex flex-col min-h-0 bg-pos-bg/30">
+              <PaymentItemsList
+                items={payingBill.items || []}
+                discountAmount={discountAmount}
+                discountPercent={selectedMember?.discountPercent}
+                netTotal={netTotal}
+                renderOptionsText={renderOptionsText}
+              />
+            </div>
           </div>
 
-          {/* ฝั่งขวา: เลือกประเภทชำระเงิน / หรือแสดงหน้าเปิดกะ */}
-          <div className="w-full md:w-80 flex flex-col justify-between bg-pos-surface p-3.5 gap-3 shrink-0">
+          {/* ฝั่งขวา: Numpad / ประเภทชำระเงิน (ใส่ overflow-y-auto เผื่อหน้าจอมือถือเล็กมาก) */}
+          <div className="w-full md:w-80 flex flex-col justify-between bg-pos-surface p-3.5 gap-3 shrink-0 overflow-y-auto custom-scroll">
             {!activeShift ? (
               <ShiftCheckView
                 onOpenShift={handleQuickOpenShift}
@@ -260,7 +263,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
             )}
 
             {/* ปุ่มยืนยันชำระเงิน */}
-            <div className="space-y-1">
+            <div className="space-y-1 shrink-0">
               {!isCashSufficient && paymentMethod === "CASH" && activeShift && (
                 <p className="text-[10px] text-rose-500 font-bold text-center">
                   * จำนวนเงินที่รับมายังไม่ครบถ้วน

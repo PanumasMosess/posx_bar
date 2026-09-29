@@ -59,3 +59,27 @@ export async function markAllItemsServedDB(orderId: number) {
     return { success: false, message: error.message };
   }
 }
+
+export async function getActiveKitchenOrdersJSON() {
+  try {
+    const orders = await prisma.orders.findMany({
+      where: {
+        status: "HOLD",
+        items: { some: { status: "IN_KITCHEN" } },
+      },
+      include: {
+        items: {
+          where: { status: "IN_KITCHEN" },
+          include: { product: true },
+        },
+        qrcode: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return { success: true, data: orders };
+  } catch (error) {
+    console.error(error);
+    return { success: false, data: [] };
+  }
+}
