@@ -1,5 +1,11 @@
 import POSQR from "@/components/pos/by_tables/POSQR";
 import prisma from "@/lib/prisma";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "สั่งอาหาร",
+  description: "ระบบสั่งอาหารผ่าน QR Code",
+};
 
 
 export default async function QROrderingPage({
