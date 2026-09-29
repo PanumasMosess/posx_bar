@@ -32,8 +32,9 @@ export default function POSQR({
   const [visibleCount, setVisibleCount] = useState(10);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  // State และ Refs สำหรับปุ่มตะกร้าแบบลากได้
-  const [cartPos, setCartPos] = useState({ x: -100, y: -100 });
+  // 🌟 State และ Refs สำหรับปุ่มตะกร้าแบบลากได้
+  const [cartPos, setCartPos] = useState({ x: 0, y: 0 });
+  const [isDragged, setIsDragged] = useState(false); // 🌟 เพิ่ม State เช็กว่าเคยถูกลากหรือยัง
   const dragRef = useRef({ startX: 0, startY: 0, isDragging: false });
 
   // กรองสินค้าตามหมวดหมู่
@@ -47,15 +48,6 @@ export default function POSQR({
   useEffect(() => {
     setVisibleCount(10);
   }, [activeCategory]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCartPos({
-        x: window.innerWidth - 80,
-        y: window.innerHeight - 100,
-      });
-    }
-  }, []);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0];
@@ -83,6 +75,8 @@ export default function POSQR({
 
     if (moveX > 5 || moveY > 5) {
       dragRef.current.isDragging = true;
+      setIsDragged(true); // 🌟 เริ่มใช้พิกัดจากการลากแทน CSS เริ่มต้น
+
       let newX = clientX - 30;
       let newY = clientY - 30;
       newX = Math.max(0, Math.min(newX, window.innerWidth - 60));
@@ -104,20 +98,19 @@ export default function POSQR({
       setSelectedProduct(product);
       setSelectedOptions({});
     } else {
-      addToCart(product, {}, product.price);
+      addToCart(product, {}, Number(product.price || 0));
     }
   };
 
   const handleOptionChange = (group: any, choice: any) => {
     setSelectedOptions((prev) => {
       const newOpts = { ...prev };
-      // 🌟 ใช้ groupId ( String/Number ) เป็น Key เหมือน POS พนักงาน
-      const groupKey = String(group.id);
+      const groupKey = group.id ? String(group.id) : String(group.name);
 
       const choiceObject = {
         id: choice.id,
         name: choice.name,
-        priceAdd: choice.priceAdd || 0,
+        priceAdd: Number(choice.priceAdd || 0),
       };
 
       if (group.allowMultiple) {
@@ -134,7 +127,6 @@ export default function POSQR({
           newOpts[groupKey] = [...currentArr, choiceObject];
         }
       } else {
-        // 🌟 เลือกได้ข้อเดียว แต่เก็บไว้ใน Array เหมือน POS พนักงาน
         newOpts[groupKey] = [choiceObject];
       }
       return newOpts;
@@ -146,7 +138,7 @@ export default function POSQR({
 
     let isValid = true;
     selectedProduct.optionGroups.forEach((group: any) => {
-      const groupKey = String(group.id);
+      const groupKey = group.id ? String(group.id) : String(group.name);
       if (group.isRequired) {
         if (
           !selectedOptions[groupKey] ||
@@ -169,7 +161,7 @@ export default function POSQR({
       }
     });
 
-    addToCart(selectedProduct, selectedOptions, finalItemPrice);
+    addToCart(selectedProduct, { ...selectedOptions }, finalItemPrice);
     setSelectedProduct(null);
   };
 
@@ -185,11 +177,15 @@ export default function POSQR({
 
       if (existingIdx > -1) {
         const updated = [...prev];
-        updated[existingIdx].quantity += 1;
-        updated[existingIdx].totalPrice =
-          updated[existingIdx].quantity * finalPrice;
+        const existingItem = updated[existingIdx];
+        updated[existingIdx] = {
+          ...existingItem,
+          quantity: existingItem.quantity + 1,
+          totalPrice: (existingItem.quantity + 1) * finalPrice,
+        };
         return updated;
       }
+
       return [
         ...prev,
         {
@@ -474,11 +470,13 @@ export default function POSQR({
 
             <div className="p-4 overflow-y-auto custom-scroll flex-1 bg-slate-50/50">
               {selectedProduct.optionGroups.map((group: any) => {
-                const groupKey = String(group.id);
+                const groupKey = group.id
+                  ? String(group.id)
+                  : String(group.name);
 
                 return (
                   <div
-                    key={group.id}
+                    key={group.id || group.name}
                     className="mb-5 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm"
                   >
                     <div className="flex justify-between items-end mb-3">
@@ -579,13 +577,13 @@ export default function POSQR({
         </div>
       )}
 
-      {/* ปุ่มตะกร้าลอย */}
-      {totalItems > 0 && !isCartOpen && cartPos.x !== -100 && (
+      {/* 🌟 ปุ่มตะกร้าลอย (ปรับให้ใช้ CSS เป็นหลัก ป้องกันบั๊กปุ่มลอยหายบนมือถือ) */}
+      {totalItems > 0 && !isCartOpen && (
         <div
-          className="fixed z-40 touch-none shadow-xl shadow-slate-900/20"
+          className={`fixed z-40 touch-none shadow-xl shadow-slate-900/20 transition-transform ${
+            !isDragged ? "bottom-10 right-6" : ""
+          }`}
           style={{
-            left: `${cartPos.x}px`,
-            top: `${cartPos.y}px`,
             width: "60px",
             height: "60px",
             borderRadius: "50%",
@@ -595,6 +593,9 @@ export default function POSQR({
             alignItems: "center",
             justifyContent: "center",
             cursor: "grab",
+            ...(isDragged
+              ? { left: `${cartPos.x}px`, top: `${cartPos.y}px` }
+              : {}),
           }}
           onTouchStart={(e) =>
             handleDragStart(e.touches[0].clientX, e.touches[0].clientY)
