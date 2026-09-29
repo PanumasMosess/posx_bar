@@ -28,13 +28,13 @@ export default function POSQR({
     {},
   );
 
-  // State สำหรับ Infinite Scroll (โหลดทีละ 10)
+  // State สำหรับ Infinite Scroll
   const [visibleCount, setVisibleCount] = useState(10);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  // 🌟 State และ Refs สำหรับปุ่มตะกร้าแบบลากได้
+  // State และ Refs สำหรับปุ่มตะกร้าแบบลากได้
   const [cartPos, setCartPos] = useState({ x: 0, y: 0 });
-  const [isDragged, setIsDragged] = useState(false); // 🌟 เพิ่ม State เช็กว่าเคยถูกลากหรือยัง
+  const [isDragged, setIsDragged] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, isDragging: false });
 
   // กรองสินค้าตามหมวดหมู่
@@ -44,6 +44,11 @@ export default function POSQR({
       : products.filter((p) => p.categoryId === activeCategory);
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
+
+  // เปลี่ยนชื่อ Tab (Title) ตามโต๊ะ
+  useEffect(() => {
+    document.title = tableName ? `สั่งอาหาร - ${tableName}` : "สั่งอาหาร";
+  }, [tableName]);
 
   useEffect(() => {
     setVisibleCount(10);
@@ -75,7 +80,7 @@ export default function POSQR({
 
     if (moveX > 5 || moveY > 5) {
       dragRef.current.isDragging = true;
-      setIsDragged(true); // 🌟 เริ่มใช้พิกัดจากการลากแทน CSS เริ่มต้น
+      setIsDragged(true);
 
       let newX = clientX - 30;
       let newY = clientY - 30;
@@ -92,7 +97,7 @@ export default function POSQR({
     dragRef.current = { startX: 0, startY: 0, isDragging: false };
   };
 
-  // --- ระบบ Options (ปรับเป็น Format เดียวกับ POS พนักงาน) ---
+  // --- ระบบ Options ---
   const handleAddClick = (product: any) => {
     if (product.optionGroups && product.optionGroups.length > 0) {
       setSelectedProduct(product);
@@ -327,11 +332,11 @@ export default function POSQR({
   return (
     <div className="min-h-screen bg-slate-50 pb-safe relative overflow-hidden">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md shadow-sm px-4 py-3 flex items-center justify-between border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 shadow-inner">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl shadow-sm px-4 py-3 flex items-center justify-between border-b border-slate-200/60">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-sky-500/20">
             <svg
-              className="w-4 h-4"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
@@ -344,25 +349,31 @@ export default function POSQR({
               />
             </svg>
           </div>
-          <h1 className="font-black text-slate-800 text-base tracking-wide">
-            เลือกรายการ
-          </h1>
+          <div>
+            <h1 className="font-black text-slate-800 text-sm tracking-wide leading-none">
+              เลือกรายการ
+            </h1>
+            <p className="text-[10px] text-slate-500 font-medium mt-1">
+              สั่งอาหารง่ายๆ ผ่านมือถือ
+            </p>
+          </div>
         </div>
         {tableName && (
-          <span className="px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 text-[10px] font-black rounded-full shadow-sm border border-amber-200/50 flex items-center gap-1">
-            📍 {tableName}
+          <span className="px-3.5 py-1.5 bg-slate-900 text-white text-[11px] font-black rounded-full shadow-md flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            โต๊ะ {tableName}
           </span>
         )}
       </div>
 
       {/* หมวดหมู่ */}
-      <div className="bg-white border-b border-slate-100 px-3 py-2 overflow-x-auto flex flex-nowrap gap-2 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="bg-white border-b border-slate-200/60 px-3 py-2.5 overflow-x-auto flex flex-nowrap gap-2 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setActiveCategory("ALL")}
-          className={`shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
+          className={`shrink-0 px-5 py-2 rounded-full text-[12px] font-bold whitespace-nowrap transition-all duration-300 ${
             activeCategory === "ALL"
-              ? "bg-slate-800 text-white shadow-md"
-              : "bg-slate-100 text-slate-600"
+              ? "bg-slate-900 text-white shadow-md scale-105"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           }`}
         >
           ทั้งหมด
@@ -371,10 +382,10 @@ export default function POSQR({
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
+            className={`shrink-0 px-5 py-2 rounded-full text-[12px] font-bold whitespace-nowrap transition-all duration-300 ${
               activeCategory === cat.id
-                ? "bg-slate-800 text-white shadow-md"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-slate-900 text-white shadow-md scale-105"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
             {cat.name}
@@ -382,30 +393,20 @@ export default function POSQR({
         ))}
       </div>
 
-      {/* รายการสินค้า */}
-      <div className="p-2.5 grid grid-cols-3 gap-2">
+      {/* 🌟🌟🌟 รายการสินค้า (ดีไซน์พรีเมียม สัดส่วน 1:1 + ภาพเบลอเนียนเป็นพื้นหลัง) 🌟🌟🌟 */}
+      <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         {displayedProducts.map((p) => (
           <div
             key={p.id}
-            className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col active:scale-[0.98] transition-transform overflow-hidden relative"
+            onClick={() => handleAddClick(p)}
+            className="group bg-white rounded-3xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] hover:shadow-xl hover:shadow-sky-500/10 border border-slate-100/80 flex flex-col active:scale-[0.98] transition-all duration-300 overflow-hidden cursor-pointer relative"
           >
+            {/* ป้าย "มีตัวเลือก" สไตล์ Glassmorphism */}
             {p.optionGroups && p.optionGroups.length > 0 && (
-              <span className="absolute top-1 right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">
-                มีตัวเลือก
-              </span>
-            )}
-
-            <div className="aspect-square bg-slate-100 relative">
-              {p.image ? (
-                <img
-                  src={p.image}
-                  alt={p.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300">
+              <div className="absolute top-2.5 right-2.5 z-20">
+                <span className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-white/10">
                   <svg
-                    className="w-6 h-6"
+                    className="w-3 h-3 text-sky-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -413,7 +414,45 @@ export default function POSQR({
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  ตัวเลือก
+                </span>
+              </div>
+            )}
+
+            {/* 🌟 คอนเทนเนอร์รูปภาพ (เทคนิค ภาพเต็ม 100% + พื้นหลังเบลอกลืนไปกับรูป) */}
+            <div className="aspect-square relative overflow-hidden bg-slate-100 flex items-center justify-center">
+              {p.image ? (
+                <>
+                  {/* เลเยอร์ที่ 1: รูปภาพขยายเต็มพื้นที่แล้วเบลอ (ดึงสีมาทำ Background) */}
+                  <img
+                    src={p.image}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl scale-125 saturate-150 pointer-events-none"
+                  />
+
+                  {/* เลเยอร์ที่ 2: รูปภาพหลักแบบเต็มใบ (object-contain) พร้อมเงาให้ลอยขึ้นมา */}
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    className="relative z-10 w-full h-full p-3 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500 ease-out"
+                  />
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
+                  <svg
+                    className="w-10 h-10 opacity-30"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
@@ -421,29 +460,56 @@ export default function POSQR({
               )}
             </div>
 
-            <div className="p-1.5 flex flex-col flex-1">
-              <h3 className="text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-tight">
+            {/* รายละเอียดด้านล่างของการ์ด */}
+            <div className="p-3.5 flex flex-col flex-1 bg-white relative z-10">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-sky-600 transition-colors">
                 {p.name}
               </h3>
-              <p className="text-sky-600 font-black text-[10px] mt-0.5">
-                {p.price.toLocaleString()}
-              </p>
-              <button
-                onClick={() => handleAddClick(p)}
-                className="mt-auto pt-1.5 w-full"
-              >
-                <div className="w-full py-1.5 bg-sky-50 active:bg-sky-100 text-sky-600 font-bold text-[10px] rounded-lg transition-colors">
-                  + เพิ่ม
+
+              <div className="mt-auto pt-3 flex items-end justify-between gap-2">
+                <div className="flex flex-col">
+                  <span className="text-sky-600 font-black text-[13px] sm:text-[15px] tracking-tight leading-none">
+                    {p.price.toLocaleString()}
+                  </span>
+                  <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                    LAK
+                  </span>
                 </div>
-              </button>
+
+                {/* ปุ่ม Add ทรงกลมล้ำๆ (ดีไซน์น่ากด) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddClick(p);
+                  }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-sky-50 text-sky-600 group-hover:bg-sky-500 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-sky-500/30 active:scale-90 shrink-0"
+                >
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 4.5v15m7.5-7.5h-15"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {visibleCount < filteredProducts.length && (
-        <div ref={loaderRef} className="py-4 flex justify-center items-center">
-          <div className="w-5 h-5 border-2 border-slate-300 border-t-sky-500 rounded-full animate-spin" />
+        <div ref={loaderRef} className="py-6 flex justify-center items-center">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm text-slate-500 text-xs font-bold border border-slate-100">
+            <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-sky-500 rounded-full animate-spin" />
+            กำลังโหลด...
+          </div>
         </div>
       )}
 
@@ -462,7 +528,7 @@ export default function POSQR({
               </h2>
               <button
                 onClick={() => setSelectedProduct(null)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500"
+                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 hover:bg-slate-200 transition-colors"
               >
                 ✕
               </button>
@@ -477,7 +543,7 @@ export default function POSQR({
                 return (
                   <div
                     key={group.id || group.name}
-                    className="mb-5 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm"
+                    className="mb-5 bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm"
                   >
                     <div className="flex justify-between items-end mb-3">
                       <div>
@@ -489,8 +555,8 @@ export default function POSQR({
                             ? "เลือกได้หลายข้อ"
                             : "เลือกได้ 1 ข้อ"}{" "}
                           {group.isRequired && (
-                            <span className="text-rose-500 font-bold">
-                              (จำเป็น)
+                            <span className="text-rose-500 font-bold ml-1">
+                              *จำเป็น
                             </span>
                           )}
                         </p>
@@ -509,19 +575,19 @@ export default function POSQR({
                           <div
                             key={choice.id}
                             onClick={() => handleOptionChange(group, choice)}
-                            className={`flex justify-between items-center p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                            className={`flex justify-between items-center p-3 rounded-xl border transition-all cursor-pointer active:scale-[0.98] ${
                               isSelected
-                                ? "border-sky-500 bg-sky-50"
-                                : "border-slate-200"
+                                ? "border-sky-500 bg-sky-50 shadow-sm shadow-sky-500/10"
+                                : "border-slate-200 hover:border-slate-300"
                             }`}
                           >
                             <div className="flex items-center gap-3">
                               <div
-                                className={`w-4 h-4 flex items-center justify-center border rounded ${group.allowMultiple ? "rounded-sm" : "rounded-full"} ${isSelected ? "border-sky-500 bg-sky-500 text-white" : "border-slate-300"}`}
+                                className={`w-5 h-5 flex items-center justify-center border transition-colors ${group.allowMultiple ? "rounded-md" : "rounded-full"} ${isSelected ? "border-sky-500 bg-sky-500 text-white" : "border-slate-300"}`}
                               >
                                 {isSelected && (
                                   <svg
-                                    className="w-3 h-3"
+                                    className="w-3.5 h-3.5"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -555,12 +621,12 @@ export default function POSQR({
               })}
             </div>
 
-            <div className="p-4 border-t bg-white shrink-0 pb-safe">
+            <div className="p-4 border-t bg-white shrink-0 pb-safe shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-center mb-3 px-1">
-                <span className="font-bold text-xs text-slate-600">
+                <span className="font-bold text-xs text-slate-500">
                   ราคารวม (ชิ้นนี้)
                 </span>
-                <span className="text-lg font-black text-sky-600">
+                <span className="text-xl font-black text-sky-600">
                   {(
                     selectedProduct.price + currentOptionPrice
                   ).toLocaleString()}
@@ -568,7 +634,7 @@ export default function POSQR({
               </div>
               <button
                 onClick={confirmOptionsAndAdd}
-                className="w-full py-3.5 bg-sky-500 active:bg-sky-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-sky-500/30 transition flex justify-center items-center gap-2"
+                className="w-full py-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-sky-500/30 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
               >
                 เพิ่มลงตะกร้า
               </button>
@@ -577,17 +643,17 @@ export default function POSQR({
         </div>
       )}
 
-      {/* 🌟 ปุ่มตะกร้าลอย (ปรับให้ใช้ CSS เป็นหลัก ป้องกันบั๊กปุ่มลอยหายบนมือถือ) */}
+      {/* 🌟 ปุ่มตะกร้าลอย */}
       {totalItems > 0 && !isCartOpen && (
         <div
-          className={`fixed z-40 touch-none shadow-xl shadow-slate-900/20 transition-transform ${
-            !isDragged ? "bottom-10 right-6" : ""
+          className={`fixed z-40 touch-none shadow-2xl shadow-sky-900/30 transition-transform ${
+            !isDragged ? "bottom-10 right-6 animate-bounce-short" : ""
           }`}
           style={{
-            width: "60px",
-            height: "60px",
+            width: "64px",
+            height: "64px",
             borderRadius: "50%",
-            backgroundColor: "#0f172a",
+            backgroundColor: "#0ea5e9", // สีฟ้า Sky-500 ให้เด่นๆ ชวนให้กด
             color: "white",
             display: "flex",
             alignItems: "center",
@@ -611,10 +677,10 @@ export default function POSQR({
           onMouseUp={handleDragEnd}
         >
           <svg
-            className="w-6 h-6"
+            className="w-7 h-7"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2"
             viewBox="0 0 24 24"
           >
             <path
@@ -623,7 +689,7 @@ export default function POSQR({
               d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+          <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
             {totalItems > 99 ? "99+" : totalItems}
           </div>
         </div>
@@ -640,19 +706,20 @@ export default function POSQR({
           <div className="bg-white w-full rounded-t-3xl shadow-2xl relative z-10 animate-slide-up max-h-[85vh] flex flex-col">
             <div className="p-4 border-b flex justify-between items-center shrink-0">
               <div>
-                <h2 className="text-base font-black text-slate-800">
+                <h2 className="text-xl font-black text-slate-800">
                   ตะกร้าอาหาร
                 </h2>
                 {tableName && (
-                  <p className="text-[10px] text-slate-500 font-bold">
-                    สั่งสำหรับ {tableName}
+                  <p className="text-[11px] text-slate-500 font-bold mt-0.5">
+                    สั่งสำหรับโต๊ะ{" "}
+                    <span className="text-sky-600">{tableName}</span>
                   </p>
                 )}
               </div>
               <button
                 disabled={isSubmitting}
                 onClick={() => setIsCartOpen(false)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500"
+                className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 hover:bg-slate-200 transition-colors"
               >
                 ✕
               </button>
@@ -664,38 +731,38 @@ export default function POSQR({
                 return (
                   <div
                     key={index}
-                    className="flex justify-between items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm"
+                    className="flex justify-between items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm"
                   >
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-slate-800 line-clamp-1">
+                      <h4 className="text-sm font-bold text-slate-800 line-clamp-1">
                         {item.product.name}
                       </h4>
                       {optText && (
-                        <p className="text-[10px] text-sky-600 mt-0.5 line-clamp-1">
+                        <p className="text-[10px] text-sky-600 mt-1 line-clamp-1 bg-sky-50 px-1.5 py-0.5 rounded inline-block font-medium border border-sky-100">
                           {optText}
                         </p>
                       )}
-                      <p className="text-[10px] text-slate-500 font-bold mt-1">
+                      <p className="text-[11px] text-slate-500 font-bold mt-1.5">
                         {(item.totalPrice / item.quantity).toLocaleString()} /
                         ชิ้น
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-xl p-1 border border-slate-100 shrink-0">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-xl p-1 border border-slate-100 shrink-0 shadow-inner">
                       <button
                         disabled={isSubmitting}
                         onClick={() => updateQty(index, -1)}
-                        className="w-7 h-7 bg-white rounded-lg shadow-sm flex items-center justify-center font-black text-rose-500"
+                        className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black text-rose-500 active:scale-95 transition-transform"
                       >
                         -
                       </button>
-                      <span className="w-5 text-center font-black text-xs text-slate-800">
+                      <span className="w-6 text-center font-black text-xs text-slate-800">
                         {item.quantity}
                       </span>
                       <button
                         disabled={isSubmitting}
                         onClick={() => updateQty(index, 1)}
-                        className="w-7 h-7 bg-white rounded-lg shadow-sm flex items-center justify-center font-black text-sky-500"
+                        className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black text-sky-500 active:scale-95 transition-transform"
                       >
                         +
                       </button>
@@ -705,21 +772,33 @@ export default function POSQR({
               })}
             </div>
 
-            <div className="p-4 border-t bg-white shrink-0 pb-safe">
-              <div className="flex justify-between items-center mb-4 px-1">
-                <span className="font-bold text-xs text-slate-600">
+            <div className="p-5 border-t bg-white shrink-0 pb-safe shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
+              <div className="flex justify-between items-end mb-4 px-1">
+                <span className="font-bold text-sm text-slate-500">
                   ยอดรวมทั้งหมด
                 </span>
-                <span className="text-lg font-black text-sky-600">
-                  {totalPrice.toLocaleString()}
-                </span>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-slate-800">
+                    {totalPrice.toLocaleString()}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400 ml-1">
+                    LAK
+                  </span>
+                </div>
               </div>
               <button
                 onClick={handleConfirmOrder}
                 disabled={isSubmitting}
-                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20 transition disabled:opacity-50 flex justify-center items-center gap-2"
+                className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20 transition-all disabled:opacity-50 flex justify-center items-center gap-2 active:scale-[0.98]"
               >
-                {isSubmitting ? "กำลังส่งออเดอร์..." : "ส่งออเดอร์เข้าครัว"}
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    กำลังส่งออเดอร์...
+                  </div>
+                ) : (
+                  "ส่งออเดอร์เข้าครัว"
+                )}
               </button>
             </div>
           </div>
