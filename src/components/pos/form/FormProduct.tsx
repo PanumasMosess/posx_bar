@@ -219,7 +219,7 @@ export default function FormProduct({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              ราคา (LAK) *
+              ราคา *
             </label>
             <input
               required
@@ -232,7 +232,7 @@ export default function FormProduct({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              ต้นทุน (LAK)
+              ต้นทุน 
             </label>
             <input
               type="number"
