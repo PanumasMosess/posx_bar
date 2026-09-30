@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useEmployee } from '@/components/providers/EmployeeContext';
 
 function ToggleSwitch({
   checked,
@@ -19,7 +20,7 @@ function ToggleSwitch({
         onChange(!checked);
       }}
       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? 'bg-[#1694a4]' : 'bg-slate-200 dark:bg-slate-700'
+        checked ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'
       }`}
     >
       <span
@@ -32,15 +33,61 @@ function ToggleSwitch({
 }
 
 export default function RestaurantModeSetting() {
-  const [isRestaurantMode, setIsRestaurantMode] = useState(true);
+  const { organizationId } = useEmployee();
+  const storageKey = `posx_restaurant_mode_${organizationId || 'default'}`;
 
-  // 1. เพิ่ม State สำหรับจัดการสถานะเปิด/ปิด ของแต่ละฟีเจอร์ย่อย
-  const [activeFeatures, setActiveFeatures] = useState<Record<string, boolean>>({
-    'hold-bill': true,
-    'send-kitchen': true,
-    'qr-order': true,
-    'invoice': true,
+  const [isRestaurantMode, setIsRestaurantMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`${storageKey}_enabled`);
+        if (saved !== null) return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return true;
   });
+
+  const [activeFeatures, setActiveFeatures] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`${storageKey}_features`);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      'hold-bill': true,
+      'send-kitchen': true,
+      'qr-order': true,
+      'invoice': true,
+    };
+  });
+
+  // Toast notification
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${storageKey}_enabled`, JSON.stringify(isRestaurantMode));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isRestaurantMode, storageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${storageKey}_features`, JSON.stringify(activeFeatures));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeFeatures, storageKey]);
 
   const features = [
     {
@@ -61,67 +108,98 @@ export default function RestaurantModeSetting() {
     {
       id: 'invoice',
       title: 'ใบแจ้งหนี้',
-      desc: 'แจ้งยอดให้ลูกค้าโอนชำระก่อนออกใบเสร็จ (พิมพ์ใบแจ้งหนี้/เรียกแชร์)',
+      desc: 'แจ้งยอดให้ลูกค้าโอนชำระก่อนออกใบเสร็จ (พิมพ์ใบแจ้งหนี้หรือแชร์)',
     },
   ];
 
-  // ฟังก์ชันสลับสถานะของฟีเจอร์ย่อย
+  const handleToggleMainMode = (checked: boolean) => {
+    setIsRestaurantMode(checked);
+    showToast(checked ? 'เปิดโหมดร้านอาหารแล้ว' : 'ปิดโหมดร้านอาหารแล้ว', 'success');
+  };
+
   const toggleFeature = (id: string) => {
-    setActiveFeatures((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setActiveFeatures((prev) => {
+      const nextState = !prev[id];
+      const updated = { ...prev, [id]: nextState };
+      showToast(nextState ? 'เปิดใช้งานฟีเจอร์แล้ว' : 'ปิดใช้งานฟีเจอร์แล้ว', 'success');
+      return updated;
+    });
   };
 
   return (
-    <div className="w-full space-y-6 animate-fadeIn pb-6">
+    <div className="w-full space-y-4 animate-fadeIn pb-6 relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-fadeIn">
+          <div
+            className={`px-4 py-2.5 rounded-full shadow-lg border text-xs sm:text-sm font-bold flex items-center gap-2 ${
+              toast.type === 'success'
+                ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/80 dark:border-teal-700 dark:text-teal-100'
+                : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-900/80 dark:border-rose-700 dark:text-rose-100'
+            }`}
+          >
+            <span>{toast.type === 'success' ? '✅' : '❌'}</span>
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* 1. กล่องการ์ดเปิดโหมดร้านอาหาร */}
-      <div className="w-full rounded-2xl border border-slate-200/90 dark:border-slate-700/80 p-4 sm:p-5 bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-between">
-        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+      <div className="w-full rounded-2xl border border-pos-border dark:border-slate-500/40 p-4 sm:p-5 bg-pos-surface shadow-2xs flex items-center justify-between transition-colors duration-300">
+        <span className="text-sm font-bold text-pos-text">
           เปิดโหมดร้านอาหาร
         </span>
 
         <ToggleSwitch
           checked={isRestaurantMode}
-          onChange={setIsRestaurantMode}
+          onChange={handleToggleMainMode}
         />
       </div>
 
-      {/* 2. รายการฟีเจอร์ย่อย */}
+      {/* 2. รายการฟีเจอร์ย่อย พร้อมเส้นคั่นประ */}
       {isRestaurantMode && (
-        <div className="space-y-6 pt-1 px-1 animate-fadeIn">
+        <div className="pt-2 animate-fadeIn divide-y divide-dashed divide-pos-border dark:divide-slate-500/40">
           {features.map((item) => {
-            const isActive = activeFeatures[item.id]; // เช็คว่าปัจจุบันเปิดหรือปิดอยู่
+            const isActive = !!activeFeatures[item.id];
 
             return (
-              <div 
-                key={item.id} 
-                className="flex items-start gap-3.5 cursor-pointer group"
-                onClick={() => toggleFeature(item.id)} // 2. เพิ่ม onClick เพื่อให้กดได้ทั้งแถว
+              <div
+                key={item.id}
+                onClick={() => toggleFeature(item.id)}
+                className="py-4 first:pt-2 last:pb-2 flex items-start gap-3.5 cursor-pointer group transition select-none"
               >
-                {/* 3. ปรับสไตล์วงกลมตามสถานะ (เปิด = สีฟ้า-เขียว / ปิด = วงกลมใสๆ ขอบเทา) */}
-                <div 
+                {/* Checkmark วงกลม (เปิด = ฟ้า sky-500 พร้อมเครื่องหมายถูกสีขาว / ปิด = ขอบเทา) */}
+                <div
                   className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-2xs transition-colors duration-200 ${
-                    isActive 
-                      ? 'bg-[#1694a4] text-white border-transparent' 
-                      : 'bg-transparent text-transparent border-[1.5px] border-slate-300 dark:border-slate-500'
+                    isActive
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-transparent text-transparent border-2 border-slate-300 dark:border-slate-600'
                   }`}
                 >
-                  <svg 
-                    className={`w-3 h-3 stroke-[3] transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-0'}`} 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className={`w-3 h-3 stroke-[3] transition-opacity duration-200 ${
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </div>
 
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight transition-colors group-hover:text-[#1694a4]">
+                {/* ชื่อฟีเจอร์ และคำอธิบาย */}
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-sm font-bold leading-tight transition-colors ${
+                      isActive
+                        ? 'text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400'
+                        : 'text-slate-400 dark:text-slate-500'
+                    }`}
+                  >
                     {item.title}
                   </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
                     {item.desc}
                   </p>
                 </div>

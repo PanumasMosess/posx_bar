@@ -18,20 +18,19 @@ function ToggleSwitch({
         e.stopPropagation();
         onChange(!checked);
       }}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? 'bg-[#1694a4]' : 'bg-slate-200 dark:bg-slate-700'
-      }`}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'
+        }`}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 mt-[4px] rounded-full bg-white shadow transform ring-0 transition duration-200 ease-in-out ${
-          checked ? 'translate-x-[23px]' : 'translate-x-[3px]'
-        }`}
+        className={`pointer-events-none inline-block h-4 w-4 mt-[4px] rounded-full bg-white shadow transform ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-[23px]' : 'translate-x-[3px]'
+          }`}
       />
     </button>
   );
 }
 
-type RoundingOption = 'nearest' | 'always_up' | 'none';
+type RoundingOption = 'nearest' | 'always_down' | 'none';
+type VatTypeOption = 'included' | 'excluded';
 
 function RoundingSelector({
   label,
@@ -43,25 +42,24 @@ function RoundingSelector({
   onChange: (v: RoundingOption) => void;
 }) {
   const options: { id: RoundingOption; label: string }[] = [
-    { id: 'nearest', label: 'ปิดใกล้สุด' },
-    { id: 'always_up', label: 'ปิดออกเสมอ' },
-    { id: 'none', label: 'ไม่ปิด' },
+    { id: 'nearest', label: 'ปัดใกล้สุด' },
+    { id: 'always_down', label: 'ปัดลงเสมอ' },
+    { id: 'none', label: 'ไม่ปัด' },
   ];
 
   return (
     <div>
-      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">{label}</p>
-      <div className="grid grid-cols-3 gap-2">
+      <p className="text-sm font-semibold text-pos-text mb-2.5">{label}</p>
+      <div className="flex gap-2.5">
         {options.map((opt) => (
           <button
             key={opt.id}
             type="button"
             onClick={() => onChange(opt.id)}
-            className={`py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
-              value === opt.id
-                ? 'bg-[#d7f3f5] text-[#0f828e] font-bold dark:bg-teal-900/60 dark:text-teal-200'
-                : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
+            className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer ${value === opt.id
+                ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold'
+                : 'bg-pos-bg hover:bg-pos-hover text-slate-500 dark:text-slate-400 font-semibold'
+              }`}
           >
             {opt.label}
           </button>
@@ -71,19 +69,25 @@ function RoundingSelector({
   );
 }
 
-export default function VatSetting() {
+interface VatSettingProps {
+  onSwitchSection?: () => void;
+}
+
+export default function VatSetting({ onSwitchSection }: VatSettingProps) {
   const [isVatEnabled, setIsVatEnabled] = useState(false);
+  const [vatType, setVatType] = useState<VatTypeOption>('included');
   const [cashRounding, setCashRounding] = useState<RoundingOption>('nearest');
   const [transferRounding, setTransferRounding] = useState<RoundingOption>('none');
 
   return (
     <div className="w-full space-y-4 animate-fadeIn pb-6">
-      {/* Card: เปิดใช้ VAT + การปัดเศษ */}
-      <div className="w-full rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-800 shadow-2xs overflow-hidden">
 
-        {/* 1. Toggle: เปิดใช้ VAT 7% */}
-        <div className="flex items-center justify-between p-4 sm:p-5">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+      {/* Card 1: ตั้งค่า VAT */}
+      <div className="w-full rounded-3xl bg-pos-surface border border-pos-border shadow-2xs overflow-hidden transition-colors duration-300">
+
+        {/* Toggle เปิดใช้ VAT */}
+        <div className="flex items-center justify-between p-5">
+          <p className="text-sm font-bold text-pos-text">
             เปิดใช้ VAT 7%
           </p>
           <ToggleSwitch
@@ -92,36 +96,69 @@ export default function VatSetting() {
           />
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-slate-100 dark:bg-slate-700/50 mx-4" />
+        {/* ส่วนที่แสดงเมื่อเปิด VAT */}
+        {isVatEnabled && (
+          <div className="px-5 pb-5 animate-fadeIn">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2.5">
+              ราคาสินค้าที่ตั้งไว้
+            </p>
+            <div className="flex gap-2.5 mb-3.5">
+              <button
+                type="button"
+                onClick={() => setVatType('included')}
+                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer ${vatType === 'included'
+                    ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold'
+                    : 'bg-pos-bg hover:bg-pos-hover text-slate-500 dark:text-slate-400 font-semibold'
+                  }`}
+              >
+                รวม VAT แล้ว
+              </button>
+              <button
+                type="button"
+                onClick={() => setVatType('excluded')}
+                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer ${vatType === 'excluded'
+                    ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold'
+                    : 'bg-pos-bg hover:bg-pos-hover text-slate-500 dark:text-slate-400 font-semibold'
+                  }`}
+              >
+                ยังไม่รวม VAT
+              </button>
+            </div>
 
-        {/* 2. ปัดเศษเงินสด */}
-        <div className="p-4 sm:p-5">
-          <RoundingSelector
-            label="ปัดเศษเงินสด"
-            value={cashRounding}
-            onChange={setCashRounding}
-          />
-        </div>
+            {/* คำเตือนเรื่องเลขผู้เสียภาษี */}
+            <button
+              type="button"
+              onClick={onSwitchSection} // เพิ่ม onClick ตรงนี้
+              className="text-[11px] sm:text-xs font-bold text-amber-500 hover:text-amber-600 underline decoration-amber-500/40 underline-offset-4 transition cursor-pointer"
+            >
+              ยังไม่ได้กรอกเลขผู้เสียภาษี
+            </button>
+          </div>
+        )}
+      </div>
 
-        {/* Divider */}
-        <div className="h-px bg-slate-100 dark:bg-slate-700/50 mx-4" />
+      {/* Card 2: การปัดเศษ */}
+      <div className="w-full rounded-3xl bg-pos-surface border border-pos-border shadow-2xs p-5 space-y-5 transition-colors duration-300">
 
-        {/* 3. ปัดเศษเงินโอน */}
-        <div className="p-4 sm:p-5">
+        {/* ปัดเศษเงินสด */}
+        <RoundingSelector
+          label="ปัดเศษเงินสด"
+          value={cashRounding}
+          onChange={setCashRounding}
+        />
+
+        {/* ปัดเศษเงินโอน */}
+        <div>
           <RoundingSelector
             label="ปัดเศษเงินโอน"
             value={transferRounding}
             onChange={setTransferRounding}
           />
-        </div>
-
-        {/* คำอธิบาย */}
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
-            ยอดที่ลูกค้าโอนมาจะถูกปัดเศษก่อนบันทึก เพื่อความสะดวกในการรับเงินและออกใบเสร็จ
+          <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-2.5 font-medium">
+            ยอดที่ลูกค้าต้องโอนและยอดในคิวอาร์พร้อมเพย์จะเป็นยอดหลังปัดแล้ว
           </p>
         </div>
+
       </div>
     </div>
   );

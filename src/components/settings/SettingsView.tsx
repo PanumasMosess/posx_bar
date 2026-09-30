@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import SettingsEmptyView from './SettingsEmptyView';
 import EmployeeSetting from './EmployeeSetting';
 import ScanSetting from './ScanSetting';
-import CurrencySetting from './CurrencySetting';
+import CurrencySetting, { ALL_CURRENCIES } from './CurrencySetting';
 import BusinessHoursSetting from './BusinessHoursSetting';
 import PaymentSetting from './PaymentSetting';
 import VatSetting from './VatSetting';
@@ -15,6 +15,7 @@ import RestaurantModeSetting from './RestaurantModeSetting';
 
 import { getShopProfileSettings, updateShopNameAction } from '@/lib/actions/actionsSettings';
 import { SettingsSection } from '@/lib/types';
+import { useEmployee } from '@/components/providers/EmployeeContext';
 
 /* ==================== Graphic Components ==================== */
 function UserAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
@@ -83,16 +84,16 @@ function MenuRow({
       type="button"
       onClick={onClick}
       className={`w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3.5 transition text-left cursor-pointer select-none ${active
-          ? 'bg-[#e8f6f7] dark:bg-teal-950/60 text-[#0f766e] dark:text-teal-300'
-          : 'hover:bg-slate-50/80 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100'
+        ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
+        : 'hover:bg-pos-hover text-pos-text'
         }`}
     >
       <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
         {icon && (
           <div
             className={`w-5 h-5 shrink-0 flex items-center justify-center transition-colors ${active
-                ? 'text-[#0f766e] dark:text-teal-300'
-                : 'text-slate-400 dark:text-slate-500'
+              ? 'text-sky-600 dark:text-sky-400'
+              : 'text-slate-400 dark:text-slate-500'
               }`}
           >
             {icon}
@@ -100,14 +101,14 @@ function MenuRow({
         )}
         <div className="min-w-0 flex-1">
           <p
-            className={`text-sm leading-tight truncate ${active ? 'font-bold text-[#0f766e] dark:text-teal-300' : 'font-semibold'
+            className={`text-sm leading-tight truncate ${active ? 'font-bold' : 'font-semibold'
               }`}
           >
             {label}
           </p>
           {sub && (
             <p
-              className={`text-xs mt-0.5 truncate ${active ? 'text-[#0f828e]/80 dark:text-teal-400/80' : 'text-slate-400'
+              className={`text-xs mt-0.5 truncate ${active ? 'text-sky-600/80 dark:text-sky-400/80' : 'text-slate-400 dark:text-slate-500'
                 }`}
             >
               {sub}
@@ -115,7 +116,7 @@ function MenuRow({
           )}
         </div>
       </div>
-      <ChevronRight className={active ? 'text-[#1694a4]' : 'text-slate-300 dark:text-slate-600'} />
+      <ChevronRight className={active ? 'text-sky-500' : 'text-slate-400 dark:text-slate-600'} />
     </button>
   );
 }
@@ -132,7 +133,6 @@ export default function SettingsView() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // State สำหรับแก้ไขชื่อร้านแบบ Inline[cite: 2, 3]
   const [isEditingShopName, setIsEditingShopName] = useState(false);
   const [editShopNameInput, setEditShopNameInput] = useState('');
   const [isSavingShop, setIsSavingShop] = useState(false);
@@ -148,26 +148,41 @@ export default function SettingsView() {
     createdDateStr: '',
   });
 
-  const ORGANIZATION_ID = 1; // เปลี่ยนเป็น ID ของร้านที่กำลังล็อกอินอยู่
+  const { organizationId: contextOrgId } = useEmployee();
+  const orgId = contextOrgId || 0;
 
-  // ดึงข้อมูลร้านตอนเปิดหน้า
+  // ดึงข้อมูลร้านตอนเปิดหน้า / เมื่อ orgId พร้อม (auto-reactive)
   useEffect(() => {
+    if (!contextOrgId) return;
+
     const fetchShopInfo = async () => {
       try {
-        const data = await getShopProfileSettings(ORGANIZATION_ID);
+        const data = await getShopProfileSettings(contextOrgId);
         if (data) {
           setShopInfo({
             name: data.name || 'ไม่ได้ตั้งชื่อร้าน',
             phone: data.phone || 'ยังไม่ได้ตั้งค่าเบอร์โทร',
             createdDateStr: data.createdDateStr
           });
+
+          if (data.currencyCode) {
+            const found = ALL_CURRENCIES.find((c) => c.code === data.currencyCode);
+            setSelectedCurrency(data.currencyCode === 'THB' ? 'บาท · THB' : (found ? `${found.symbol} · ${found.code}` : data.currencyCode));
+          }
+
+          // อัปเดตเวลาทำการเริ่มต้น
+          if (data.openTime && data.closeTime) {
+            setBusinessHoursText(`${data.openTime} - ${data.closeTime}`);
+          } else {
+            setBusinessHoursText('ตัดยอดตามเที่ยงคืน');
+          }
         }
       } catch (error) {
         console.error("Error fetching shop profile:", error);
       }
     };
     fetchShopInfo();
-  }, []);
+  }, [contextOrgId]);
 
   const sectionTitle: Record<Exclude<SettingsSection, null>, string> = {
     'shop-team': 'ร้านและทีม',
@@ -193,6 +208,13 @@ export default function SettingsView() {
     setBusinessHoursText(text);
   };
 
+  const handleUpdateMisc = (newPhone: string) => {
+    setShopInfo((prev) => ({
+      ...prev,
+      phone: newPhone || 'ยังไม่ได้ตั้งค่าเบอร์โทร',
+    }));
+  };
+
   // ฟังก์ชันเริ่มแก้ไขชื่อร้าน
   const handleStartEdit = () => {
     setEditShopNameInput(shopInfo.name);
@@ -208,11 +230,14 @@ export default function SettingsView() {
   // ฟังก์ชันบันทึกชื่อร้าน
   const handleSaveShopName = async () => {
     const trimmedName = editShopNameInput.trim();
-    if (!trimmedName) return;
+    if (!trimmedName || !orgId) {
+      if (!orgId) showToast('ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่', 'error');
+      return;
+    }
 
     setIsSavingShop(true);
     try {
-      await updateShopNameAction(ORGANIZATION_ID, trimmedName);
+      await updateShopNameAction(orgId, trimmedName);
       setShopInfo(prev => ({ ...prev, name: trimmedName }));
       showToast('อัปเดตชื่อร้านสำเร็จ', 'success');
       setIsEditingShopName(false);
@@ -260,7 +285,7 @@ export default function SettingsView() {
       label: 'ภาษีมูลค่าเพิ่ม (VAT)',
       sub: 'VAT ปิดอยู่ · เงินสด: ปิดใกล้สุด',
       icon: (
-        <span className="text-base font-black text-slate-400 leading-none">%</span>
+        <span className="text-base font-black text-slate-400 dark:text-slate-500 leading-none">%</span>
       ),
     },
   ];
@@ -291,20 +316,20 @@ export default function SettingsView() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
-      case 'shop-team': return <EmployeeSetting />;
+      case 'shop-team': return <EmployeeSetting organizationId={orgId} />;
       case 'scan': return <ScanSetting />;
       case 'restaurant-mode': return <RestaurantModeSetting />;
-      case 'currency': return <CurrencySetting currentCurrency="THB" onSelectCurrency={handleSelectCurrency} />;
-      case 'business-hours': return <BusinessHoursSetting currentHoursText={businessHoursText} onUpdateHours={handleUpdateHours} />;
+      case 'currency': return <CurrencySetting organizationId={orgId} currentCurrency="THB" onSelectCurrency={handleSelectCurrency} />;
+      case 'business-hours': return <BusinessHoursSetting organizationId={orgId} currentHoursText={businessHoursText} onUpdateHours={handleUpdateHours} />;
       case 'payment': return <PaymentSetting />;
-      case 'vat': return <VatSetting />;
-      case 'misc': return <MiscSetting />;
+      case 'vat': return <VatSetting onSwitchSection={() => handleSelectSection('misc')} />;
+      case 'misc': return <MiscSetting organizationId={orgId} onUpdateMisc={handleUpdateMisc} />;
       default: return <SettingsEmptyView />;
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-[#eaedf1] dark:bg-slate-900 font-sans select-none relative">
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-pos-bg font-sans select-none relative transition-colors duration-300">
 
       {/* Toast Notification */}
       {toast && (
@@ -321,14 +346,14 @@ export default function SettingsView() {
 
       {/* 1. TOP SEARCH BAR */}
       <div className="px-4 pt-3 pb-2 shrink-0">
-        <div className="w-full bg-white dark:bg-slate-800 rounded-full shadow-xs border border-slate-200/70 dark:border-slate-700 px-4 py-2 flex items-center gap-2.5">
+        <div className="w-full bg-pos-surface rounded-full shadow-xs border border-pos-border px-4 py-2 flex items-center gap-2.5 transition-colors duration-300">
           <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
             <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <input
             type="text"
             placeholder="ค้นหาการตั้งค่า"
-            className="w-full bg-transparent text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
+            className="w-full bg-transparent text-xs sm:text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
           />
         </div>
       </div>
@@ -342,10 +367,10 @@ export default function SettingsView() {
           <div className="flex-1 overflow-y-auto custom-scroll space-y-3.5 pr-1">
             {/* Section: ข้อมูลร้าน */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-300 px-1">ข้อมูลร้าน</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">ข้อมูลร้าน</p>
 
               {/* Shop Profile Mini Box */}
-              <div className="rounded-3xl bg-white dark:bg-slate-800 p-4 shadow-xs border border-slate-200/70 dark:border-slate-700/60 space-y-3">
+              <div className="rounded-3xl bg-pos-surface p-4 shadow-xs border border-pos-border space-y-3 transition-colors duration-300">
 
                 {/* ----------------- Toggle Edit / View Mode ----------------- */}
                 {!isEditingShopName ? (
@@ -354,15 +379,15 @@ export default function SettingsView() {
                     <div className="flex items-center gap-3">
                       <UserAvatar size="lg" />
                       <div className="flex flex-col justify-center mt-0.5">
-                        <h3 className="font-bold text-base text-slate-800 dark:text-white leading-tight">
+                        <h3 className="font-bold text-base text-pos-text leading-tight">
                           {shopInfo.name}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1.5">
                           {/* ป้ายเจ้าของร้านสีฟ้าอ่อน */}
-                          <span className="text-[10px] font-bold text-[#0f828e] dark:text-teal-300 bg-[#d7f3f5] dark:bg-teal-950/60 px-2 py-0.5 rounded-md">
+                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md">
                             เจ้าของร้าน
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
                             สร้าง {shopInfo.createdDateStr || 'ไม่ระบุ'}
                           </span>
                         </div>
@@ -374,7 +399,7 @@ export default function SettingsView() {
                       type="button"
                       title="แก้ไขชื่อร้าน"
                       onClick={handleStartEdit}
-                      className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-[#0f766e] hover:bg-[#e8f6f7] dark:hover:text-teal-300 dark:hover:bg-teal-950/60 transition cursor-pointer shrink-0 ml-2"
+                      className="w-8 h-8 rounded-full bg-pos-bg flex items-center justify-center text-slate-500 hover:text-sky-600 hover:bg-sky-500/10 transition cursor-pointer shrink-0 ml-2"
                     >
                       <EditIcon className="w-4 h-4" />
                     </button>
@@ -385,7 +410,7 @@ export default function SettingsView() {
                     <div className="relative shrink-0">
                       <UserAvatar size="lg" />
                       {/* ไอคอนดินสอตรงรูปโปรไฟล์ */}
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1694a4] rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 text-white shadow-sm cursor-pointer hover:bg-[#0f766e]">
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center border-2 border-pos-surface text-white shadow-sm cursor-pointer hover:bg-sky-600">
                         <EditIcon className="w-3 h-3" />
                       </div>
                     </div>
@@ -396,7 +421,7 @@ export default function SettingsView() {
                         type="text"
                         value={editShopNameInput}
                         onChange={(e) => setEditShopNameInput(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-[#1694a4] focus:ring-2 focus:ring-[#1694a4]/20 focus:outline-none text-sm font-semibold text-slate-800 dark:text-white bg-transparent"
+                        className="w-full px-3 py-1.5 rounded-lg border border-pos-border focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-sm font-semibold text-pos-text bg-pos-bg"
                         autoFocus
                       />
 
@@ -405,7 +430,7 @@ export default function SettingsView() {
                         <button
                           type="button"
                           onClick={handleCancelEdit}
-                          className="flex-1 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition cursor-pointer"
+                          className="flex-1 py-1.5 rounded-lg bg-pos-bg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-pos-hover transition cursor-pointer"
                         >
                           ยกเลิก
                         </button>
@@ -413,7 +438,7 @@ export default function SettingsView() {
                           type="button"
                           onClick={handleSaveShopName}
                           disabled={!editShopNameInput.trim() || isSavingShop}
-                          className="flex-1 py-1.5 rounded-lg bg-[#1694a4] hover:bg-[#138290] text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
+                          className="flex-1 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
                         >
                           {isSavingShop ? 'กำลังบันทึก...' : 'บันทึก'}
                         </button>
@@ -421,10 +446,10 @@ export default function SettingsView() {
 
                       {/* ป้ายและวันที่ (เลื่อนลงมาข้างล่างตามรูป) */}
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] font-bold text-[#0f828e] dark:text-teal-300 bg-[#d7f3f5] dark:bg-teal-950/60 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md">
                           เจ้าของร้าน
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
                           สร้าง {shopInfo.createdDateStr || 'ไม่ระบุ'}
                         </span>
                       </div>
@@ -434,58 +459,59 @@ export default function SettingsView() {
                 {/* ------------------------------------------------------------- */}
 
                 {/* ข้อมูลการเข้าสู่ระบบ, สกุลเงิน (กดได้), เวลาเปิด-ปิด (กดได้) */}
-                <div className="space-y-2 border-t border-slate-100 dark:border-slate-700/60 pt-3 text-xs">
-                  
-                  {/* เบอร์ติดต่อ (กดไม่ได้) */}
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-slate-400 font-medium">เบอร์ติดต่อ</span>
-                    <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-medium">
+                <div className="space-y-2 border-t border-pos-border pt-3 text-xs">
+
+                  {/* เบอร์ติดต่อ (กดไปหน้า MiscSetting) */}
+                  <div
+                    onClick={() => handleSelectSection('misc')}
+                    className="flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition hover:bg-pos-hover group"
+                  >
+                    <span className="font-medium text-slate-500 dark:text-slate-400 transition-colors">
+                      เบอร์ติดต่อ
+                    </span>
+                    <div className="flex items-center gap-1 font-medium text-pos-text">
                       <span>{shopInfo.phone}</span>
-                      <ChevronRight className="text-slate-400" />
+                      <ChevronRight className="text-slate-400 dark:text-slate-500" />
                     </div>
                   </div>
 
                   {/* สกุลเงิน */}
                   <div
                     onClick={() => handleSelectSection('currency')}
-                    className={`flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition group ${
-                      activeSection === 'currency'
-                        ? 'bg-[#e8f6f7] dark:bg-teal-950/60'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                    }`}
+                    className={`flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition group ${activeSection === 'currency'
+                      ? 'bg-sky-500/10'
+                      : 'hover:bg-pos-hover'
+                      }`}
                   >
-                    <span className={`font-medium ${activeSection === 'currency' ? 'text-[#0f766e] dark:text-teal-300 font-bold' : 'text-slate-400'}`}>
+                    <span className={`font-medium ${activeSection === 'currency' ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
                       สกุลเงิน
                     </span>
-                    <div className={`flex items-center gap-1 font-medium ${
-                      activeSection === 'currency'
-                        ? 'text-[#0f766e] dark:text-teal-300 font-bold'
-                        : 'text-slate-800 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white'
-                    }`}>
+                    <div className={`flex items-center gap-1 font-medium ${activeSection === 'currency'
+                      ? 'text-sky-600 dark:text-sky-400 font-bold'
+                      : 'text-pos-text'
+                      }`}>
                       <span>{selectedCurrency}</span>
-                      <ChevronRight className={activeSection === 'currency' ? 'text-[#1694a4]' : 'text-slate-400 group-hover:text-slate-500'} />
+                      <ChevronRight className={activeSection === 'currency' ? 'text-sky-500' : 'text-slate-400 dark:text-slate-500'} />
                     </div>
                   </div>
 
                   {/* เวลาเปิด-ปิด */}
                   <div
                     onClick={() => handleSelectSection('business-hours')}
-                    className={`flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition group ${
-                      activeSection === 'business-hours'
-                        ? 'bg-[#e8f6f7] dark:bg-teal-950/60'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                    }`}
+                    className={`flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition group ${activeSection === 'business-hours'
+                      ? 'bg-sky-500/10'
+                      : 'hover:bg-pos-hover'
+                      }`}
                   >
-                    <span className={`font-medium ${activeSection === 'business-hours' ? 'text-[#0f766e] dark:text-teal-300 font-bold' : 'text-slate-400'}`}>
+                    <span className={`font-medium ${activeSection === 'business-hours' ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
                       เวลาเปิด-ปิด
                     </span>
-                    <div className={`flex items-center gap-1 font-medium ${
-                      activeSection === 'business-hours'
-                        ? 'text-[#0f766e] dark:text-teal-300 font-bold'
-                        : 'text-slate-800 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white'
-                    }`}>
+                    <div className={`flex items-center gap-1 font-medium ${activeSection === 'business-hours'
+                      ? 'text-sky-600 dark:text-sky-400 font-bold'
+                      : 'text-pos-text'
+                      }`}>
                       <span>{businessHoursText}</span>
-                      <ChevronRight className={activeSection === 'business-hours' ? 'text-[#1694a4]' : 'text-slate-400 group-hover:text-slate-500'} />
+                      <ChevronRight className={activeSection === 'business-hours' ? 'text-sky-500' : 'text-slate-400 dark:text-slate-500'} />
                     </div>
                   </div>
 
@@ -493,7 +519,7 @@ export default function SettingsView() {
               </div>
 
               {/* เมนูกลุ่มข้อมูลร้าน */}
-              <div className="rounded-3xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200/70 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/50 overflow-hidden">
+              <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
                 {menuShopItems.map(({ section, label, sub, icon }) => (
                   <MenuRow
                     key={section}
@@ -509,8 +535,8 @@ export default function SettingsView() {
 
             {/* Section: การขาย */}
             <div className="space-y-2 pb-6">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-300 px-1">การขาย</p>
-              <div className="rounded-3xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200/70 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/50 overflow-hidden">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">การขาย</p>
+              <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
                 {menuSalesItems.map(({ section, label, sub, icon }) => (
                   <MenuRow
                     key={section}
@@ -529,11 +555,11 @@ export default function SettingsView() {
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: BIG WHITE PANEL */}
         {/* ========================================================================= */}
-        <div className="hidden sm:flex flex-1 min-w-0 h-full overflow-hidden bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex-col p-5 sm:p-6">
+        <div className="hidden sm:flex flex-1 min-w-0 h-full overflow-hidden bg-pos-surface rounded-3xl border border-pos-border shadow-xs flex-col p-5 sm:p-6 transition-colors duration-300">
           {activeSection ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="pb-3.5 shrink-0">
-                <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">
+                <h1 className="text-base sm:text-lg font-bold text-pos-text">
                   {sectionTitle[activeSection]}
                 </h1>
               </div>
@@ -551,15 +577,15 @@ export default function SettingsView() {
       {isMobileModalOpen && activeSection && (
         <div className="sm:hidden fixed inset-0 z-40 flex items-end justify-center bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="fixed inset-0" onClick={() => setIsMobileModalOpen(false)} />
-          <div className="relative w-full max-h-[90dvh] bg-[#eaedf1] dark:bg-slate-900 rounded-t-3xl shadow-2xl overflow-hidden flex flex-col z-10 border-t border-slate-200 dark:border-slate-700">
-            <div className="px-5 py-3.5 bg-white dark:bg-slate-800 flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700 shrink-0">
-              <h2 className="text-base font-bold text-slate-800 dark:text-white">
+          <div className="relative w-full max-h-[90dvh] bg-pos-bg rounded-t-3xl shadow-2xl overflow-hidden flex flex-col z-10 border-t border-pos-border">
+            <div className="px-5 py-3.5 bg-pos-surface flex items-center justify-between border-b border-pos-border shrink-0">
+              <h2 className="text-base font-bold text-pos-text">
                 {sectionTitle[activeSection]}
               </h2>
               <button
                 type="button"
                 onClick={() => setIsMobileModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-pos-text hover:bg-pos-hover transition cursor-pointer"
               >
                 ✕
               </button>
