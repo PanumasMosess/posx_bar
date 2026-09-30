@@ -22,13 +22,20 @@ export default function POSQR({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // 🌟 State สำหรับระบบค้นหาสินค้า
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchPos, setSearchPos] = useState({ x: 0, y: 0 });
+  const [isSearchDragged, setIsSearchDragged] = useState(false);
+  const searchDragRef = useRef({ startX: 0, startY: 0, isDragging: false });
+
   // State สำหรับ Option Modal
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any[]>>(
     {},
   );
 
-  // State สำหรับ Infinite Scroll
+  // State สำหรับ Infinite Scroll (โหลดทีละ 10)
   const [visibleCount, setVisibleCount] = useState(10);
   const loaderRef = useRef<HTMLDivElement>(null);
 
@@ -37,11 +44,25 @@ export default function POSQR({
   const [isDragged, setIsDragged] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, isDragging: false });
 
-  // กรองสินค้าตามหมวดหมู่
-  const filteredProducts =
-    activeCategory === "ALL"
-      ? products
-      : products.filter((p) => p.categoryId === activeCategory);
+  // 🌟 กรองสินค้าตามหมวดหมู่ และ คำค้นหา (Search Query)
+  const filteredProducts = products.filter((p) => {
+    // 1. กรองตามหมวดหมู่
+    const matchCategory =
+      activeCategory === "ALL" || p.categoryId === activeCategory;
+
+    // 2. กรองตามคำค้นหา (ถ้ายกเลิกค้นหาให้ผ่านทั้งหมด)
+    if (!searchQuery.trim()) return matchCategory;
+
+    const q = searchQuery.toLowerCase().trim();
+    const matchName = p.name?.toLowerCase().includes(q);
+    const matchPrice = p.price?.toString().includes(q);
+    const matchCode = p.code?.toLowerCase().includes(q);
+    const matchBarcode = p.barcode?.toLowerCase().includes(q);
+
+    return (
+      matchCategory && (matchName || matchPrice || matchCode || matchBarcode)
+    );
+  });
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
 
@@ -50,9 +71,10 @@ export default function POSQR({
     document.title = tableName ? `สั่งอาหาร - ${tableName}` : "สั่งอาหาร";
   }, [tableName]);
 
+  // รีเซ็ตจำนวนที่แสดงเมื่อหมวดหมู่ หรือคำค้นหาเปลี่ยน
   useEffect(() => {
     setVisibleCount(10);
-  }, [activeCategory]);
+  }, [activeCategory, searchQuery]);
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0];
@@ -68,6 +90,39 @@ export default function POSQR({
     return () => observer.disconnect();
   }, [handleObserver, displayedProducts.length]);
 
+  // --- 🌟 ฟังก์ชันควบคุมการลากปุ่มค้นหา ---
+  const handleSearchDragStart = (clientX: number, clientY: number) => {
+    searchDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      isDragging: false,
+    };
+  };
+
+  const handleSearchDragMove = (clientX: number, clientY: number) => {
+    if (!searchDragRef.current) return;
+    const moveX = Math.abs(clientX - searchDragRef.current.startX);
+    const moveY = Math.abs(clientY - searchDragRef.current.startY);
+
+    if (moveX > 5 || moveY > 5) {
+      searchDragRef.current.isDragging = true;
+      setIsSearchDragged(true);
+
+      let newX = clientX - 28; // ศูนย์กลางปุ่มค้นหาขนาด 56px
+      let newY = clientY - 28;
+      newX = Math.max(0, Math.min(newX, window.innerWidth - 56));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - 56));
+      setSearchPos({ x: newX, y: newY });
+    }
+  };
+
+  const handleSearchDragEnd = () => {
+    if (!searchDragRef.current.isDragging) {
+      setIsSearchOpen((prev) => !prev);
+    }
+    searchDragRef.current = { startX: 0, startY: 0, isDragging: false };
+  };
+
   // --- ฟังก์ชันควบคุมการลากปุ่มตะกร้า ---
   const handleDragStart = (clientX: number, clientY: number) => {
     dragRef.current = { startX: clientX, startY: clientY, isDragging: false };
@@ -82,10 +137,10 @@ export default function POSQR({
       dragRef.current.isDragging = true;
       setIsDragged(true);
 
-      let newX = clientX - 30;
-      let newY = clientY - 30;
-      newX = Math.max(0, Math.min(newX, window.innerWidth - 60));
-      newY = Math.max(0, Math.min(newY, window.innerHeight - 60));
+      let newX = clientX - 32; // ศูนย์กลางปุ่มตะกร้า 64px
+      let newY = clientY - 32;
+      newX = Math.max(0, Math.min(newX, window.innerWidth - 64));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - 64));
       setCartPos({ x: newX, y: newY });
     }
   };
@@ -331,8 +386,68 @@ export default function POSQR({
 
   return (
     <div className="min-h-screen bg-slate-50 pb-safe relative overflow-hidden">
+      {/* 🌟 1. UI ช่องค้นหาลอยจากด้านบน (Sticky) */}
+      {isSearchOpen && (
+        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-sm border-b border-slate-200/60 px-4 py-3 flex items-center gap-3 animate-fade-in">
+          <div className="relative flex-1 flex items-center">
+            <svg
+              className="absolute left-3.5 w-4 h-4 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+              />
+            </svg>
+            <input
+              autoFocus
+              type="text"
+              placeholder="ค้นหาชื่อ, รหัส, ราคา..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-100 border-transparent focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-200 rounded-xl text-sm font-bold text-slate-800 transition-all outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 text-slate-400 hover:text-rose-500 transition-colors p-1"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setIsSearchOpen(false);
+              setSearchQuery("");
+            }}
+            className="text-xs font-bold text-slate-500 hover:text-slate-800 whitespace-nowrap px-1"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl shadow-sm px-4 py-3 flex items-center justify-between border-b border-slate-200/60">
+      <div
+        className={`sticky ${isSearchOpen ? "top-[60px]" : "top-0"} z-10 bg-white/80 backdrop-blur-xl shadow-sm px-4 py-3 flex items-center justify-between border-b border-slate-200/60 transition-all duration-300`}
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-sky-500/20">
             <svg
@@ -393,116 +508,128 @@ export default function POSQR({
         ))}
       </div>
 
-      {/* 🌟🌟🌟 รายการสินค้า (ดีไซน์พรีเมียม สัดส่วน 1:1 + ภาพเบลอเนียนเป็นพื้นหลัง) 🌟🌟🌟 */}
-      <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-        {displayedProducts.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => handleAddClick(p)}
-            className="group bg-white rounded-3xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] hover:shadow-xl hover:shadow-sky-500/10 border border-slate-100/80 flex flex-col active:scale-[0.98] transition-all duration-300 overflow-hidden cursor-pointer relative"
+      {/* รายการสินค้า */}
+      {displayedProducts.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center text-slate-400">
+          <svg
+            className="w-16 h-16 mb-4 opacity-50"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
           >
-            {/* ป้าย "มีตัวเลือก" สไตล์ Glassmorphism */}
-            {p.optionGroups && p.optionGroups.length > 0 && (
-              <div className="absolute top-2.5 right-2.5 z-20">
-                <span className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-white/10">
-                  <svg
-                    className="w-3 h-3 text-sky-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2.5"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                  ตัวเลือก
-                </span>
-              </div>
-            )}
-
-            {/* 🌟 คอนเทนเนอร์รูปภาพ (เทคนิค ภาพเต็ม 100% + พื้นหลังเบลอกลืนไปกับรูป) */}
-            <div className="aspect-square relative overflow-hidden bg-slate-100 flex items-center justify-center">
-              {p.image ? (
-                <>
-                  {/* เลเยอร์ที่ 1: รูปภาพขยายเต็มพื้นที่แล้วเบลอ (ดึงสีมาทำ Background) */}
-                  <img
-                    src={p.image}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl scale-125 saturate-150 pointer-events-none"
-                  />
-
-                  {/* เลเยอร์ที่ 2: รูปภาพหลักแบบเต็มใบ (object-contain) พร้อมเงาให้ลอยขึ้นมา */}
-                  <img
-                    src={p.image}
-                    alt={p.name}
-                    className="relative z-10 w-full h-full p-3 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500 ease-out"
-                  />
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
-                  <svg
-                    className="w-10 h-10 opacity-30"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p className="font-bold text-sm">ไม่พบสินค้าที่ค้นหา</p>
+        </div>
+      ) : (
+        <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          {displayedProducts.map((p) => (
+            <div
+              key={p.id}
+              onClick={() => handleAddClick(p)}
+              className="group bg-white rounded-3xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] hover:shadow-xl hover:shadow-sky-500/10 border border-slate-100/80 flex flex-col active:scale-[0.98] transition-all duration-300 overflow-hidden cursor-pointer relative"
+            >
+              {p.optionGroups && p.optionGroups.length > 0 && (
+                <div className="absolute top-2.5 right-2.5 z-20">
+                  <span className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-white/10">
+                    <svg
+                      className="w-3 h-3 text-sky-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2.5"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    ตัวเลือก
+                  </span>
                 </div>
               )}
-            </div>
 
-            {/* รายละเอียดด้านล่างของการ์ด */}
-            <div className="p-3.5 flex flex-col flex-1 bg-white relative z-10">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-sky-600 transition-colors">
-                {p.name}
-              </h3>
-
-              <div className="mt-auto pt-3 flex items-end justify-between gap-2">
-                <div className="flex flex-col">
-                  <span className="text-sky-600 font-black text-[13px] sm:text-[15px] tracking-tight leading-none">
-                    {p.price.toLocaleString()}
-                  </span>
-                  <span className="text-[9px] text-slate-400 font-medium mt-0.5">
-                    LAK
-                  </span>
-                </div>
-
-                {/* ปุ่ม Add ทรงกลมล้ำๆ (ดีไซน์น่ากด) */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddClick(p);
-                  }}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-sky-50 text-sky-600 group-hover:bg-sky-500 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-sky-500/30 active:scale-90 shrink-0"
-                >
-                  <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
+              <div className="aspect-square relative overflow-hidden bg-slate-100 flex items-center justify-center">
+                {p.image ? (
+                  <>
+                    <img
+                      src={p.image}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl scale-125 saturate-150 pointer-events-none"
                     />
-                  </svg>
-                </button>
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      className="relative z-10 w-full h-full p-3 object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500 ease-out"
+                    />
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
+                    <svg
+                      className="w-10 h-10 opacity-30"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 flex flex-col flex-1 bg-white relative z-10">
+                <h3 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-sky-600 transition-colors">
+                  {p.name}
+                </h3>
+
+                <div className="mt-auto pt-3 flex items-end justify-between gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-sky-600 font-black text-[13px] sm:text-[15px] tracking-tight leading-none">
+                      {p.price.toLocaleString()}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                      LAK
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddClick(p);
+                    }}
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-sky-50 text-sky-600 group-hover:bg-sky-500 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-sky-500/30 active:scale-90 shrink-0"
+                  >
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {visibleCount < filteredProducts.length && (
         <div ref={loaderRef} className="py-6 flex justify-center items-center">
@@ -640,6 +767,56 @@ export default function POSQR({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🌟 2. ปุ่มค้นหาลอยแบบเลื่อนได้ (Draggable Search Button) */}
+      {!isSearchOpen && !isCartOpen && (
+        <div
+          className={`fixed z-30 touch-none shadow-xl shadow-slate-900/10 transition-transform ${
+            !isSearchDragged ? "bottom-10 left-6 animate-fade-in" : ""
+          }`}
+          style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            color: "#64748b",
+            border: "1px solid #e2e8f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "grab",
+            ...(isSearchDragged
+              ? { left: `${searchPos.x}px`, top: `${searchPos.y}px` }
+              : {}),
+          }}
+          onTouchStart={(e) =>
+            handleSearchDragStart(e.touches[0].clientX, e.touches[0].clientY)
+          }
+          onTouchMove={(e) =>
+            handleSearchDragMove(e.touches[0].clientX, e.touches[0].clientY)
+          }
+          onTouchEnd={handleSearchDragEnd}
+          onMouseDown={(e) => handleSearchDragStart(e.clientX, e.clientY)}
+          onMouseMove={(e) => {
+            if (e.buttons === 1) handleSearchDragMove(e.clientX, e.clientY);
+          }}
+          onMouseUp={handleSearchDragEnd}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
         </div>
       )}
 
