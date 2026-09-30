@@ -73,7 +73,7 @@ export default function MainLayout({
         <main className="w-full min-h-screen">{children}</main>
       ) : (
         <CartProvider>
-          <ShiftProvider organizationId={currentOrgId}>
+          <ShiftProvider>
             <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
               <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 

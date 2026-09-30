@@ -127,7 +127,7 @@ model optionchoices {
 
 model qrcodes {
   id        Int     @id @default(autoincrement())
-  token     String  @unique
+  token     String? @unique
   tableName String
   isActive  Boolean @default(true)
 
@@ -268,16 +268,18 @@ model shifts {
 
 model organizations_settings {
   id             Int           @id @default(autoincrement())
-  currencyCode   String        @default("THB") // เช่น THB, USD, LAK
-  currencyLabel  String        @default("บาท · THB") // ข้อความที่ใช้โชว์ใน UI
-  businessHours  String        @default("08:00 - 22:30") // เวลาเปิด-ปิด
-  phone          String? // เบอร์โทรศัพท์ร้าน
-  address        String? // ที่อยู่ร้าน
-  receiptFooter  String? // ข้อความท้ายใบเสร็จ (เช่น "ขอบคุณที่ใช้บริการ WiFi: 1234")
+  currencyCode   String        @default("THB")
+  openTime       String?
+  closeTime      String?
+  isManualOpenClose     Boolean       @default(false) // เก็บค่าสวิตช์โหมดเปิด-ปิดร้าน (true = เปิดโหมด, false = ปิดโหมด)
+  phone          String? 
+  address        String? 
+  receiptFooter  String? 
+  taxId          String?
   organizationId Int           @unique
   organization   organizations @relation(fields: [organizationId], references: [id])
 
-  updatedAt DateTime @updatedAt
+  updatedAt      DateTime      @updatedAt
 }
 
 model employees {
