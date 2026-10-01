@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "../providers/CartContext";
+import { useOrgSettings } from "../providers/OrganizationSettingsContext";
 import { CartDrawerProps } from "@/lib/interface";
 
 import HoldBillModal from "./HoldBillModal";
@@ -26,6 +27,10 @@ export default function CartDrawer({
     activeBillNumber,
     heldBills,
   } = useCart();
+
+  // 🌟 ดึงค่าการตั้งค่าองค์กรเพื่อใช้ สกุลเงิน แบบ Dynamic
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
 
   const [showHeldBills, setShowHeldBills] = useState(false);
   const [showHoldModal, setShowHoldModal] = useState(false);
@@ -117,7 +122,7 @@ export default function CartDrawer({
               </span>
               <div className="text-lg font-black font-mono text-sky-600 leading-tight">
                 {totalPrice.toLocaleString()}{" "}
-                <span className="text-xs">LAK</span>
+                <span className="text-xs">{currencyCode}</span>
               </div>
             </div>
           </div>
@@ -300,7 +305,7 @@ export default function CartDrawer({
                     <span className="font-mono font-black text-base sm:text-lg text-pos-text transition-colors">
                       {item.totalPrice.toLocaleString()}{" "}
                       <span className="text-xs text-pos-text/60 font-normal">
-                        LAK
+                        {currencyCode}
                       </span>
                     </span>
                   </div>
@@ -319,7 +324,7 @@ export default function CartDrawer({
                 {totalPrice.toLocaleString()}
               </span>
               <span className="text-sm font-semibold text-pos-text/60 ml-1">
-                LAK
+                {currencyCode}
               </span>
             </div>
           </div>
@@ -347,7 +352,7 @@ export default function CartDrawer({
             </button>
           </div>
 
-          {/* 🌟 ปุ่มหลักเปลี่ยนเป็น "บันทึก / พักบิล" (นำไปชำระเงินที่ลิ้นชักพักบิล) */}
+          {/* ปุ่มหลัก: บันทึก / พักบิล */}
           <button
             onClick={() => setShowHoldModal(true)}
             disabled={cart.length === 0}

@@ -3,12 +3,17 @@
 import { ProductOptionModalProps } from "@/lib/interface";
 import { useState } from "react";
 import Image from "next/image";
+import { useOrgSettings } from "../providers/OrganizationSettingsContext";
 
 export default function ProductOptionModal({
   product,
   onClose,
   onConfirm,
 }: ProductOptionModalProps) {
+  // 🌟 ดึงค่าการตั้งค่าองค์กรและฟังก์ชันฟอร์แมตเงินจาก Context
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
+
   const [selectedOptions, setSelectedOptions] = useState<Record<number, any[]>>(
     {},
   );
@@ -131,7 +136,7 @@ export default function ProductOptionModal({
               </svg>
             </button>
 
-            {/* ข้อมูลสินค้าหลักบน Header */}
+            {/* ข้อมูลสินค้าหลักบน Header (แสดง currencyCode แบบ Dynamic) */}
             <div className="absolute bottom-2.5 left-4 right-4 z-10">
               <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
                 {product.category?.name || "รายการสินค้า"}
@@ -140,7 +145,7 @@ export default function ProductOptionModal({
                 {product.name}
               </h2>
               <p className="text-xs font-mono font-semibold text-pos-text/60">
-                ราคาเริ่มต้น {Number(product.price).toLocaleString()} LAK
+                ราคาเริ่มต้น {formatCurrency(Number(product.price))}
               </p>
             </div>
           </div>
@@ -243,7 +248,7 @@ export default function ProductOptionModal({
                                   : "bg-pos-bg text-pos-text/60 border border-pos-border"
                               }`}
                             >
-                              +{priceAdd.toLocaleString()} LAK
+                              +{priceAdd.toLocaleString()} {currencyCode}
                             </span>
                           ) : (
                             <span className="text-[11px] text-pos-text/40 font-medium">
@@ -267,7 +272,7 @@ export default function ProductOptionModal({
               </span>
               <div className="text-xl font-black font-mono text-sky-600 dark:text-sky-400 leading-tight truncate">
                 {totalPrice.toLocaleString()}{" "}
-                <span className="text-xs font-bold">LAK</span>
+                <span className="text-xs font-bold">{currencyCode}</span>
               </div>
             </div>
 

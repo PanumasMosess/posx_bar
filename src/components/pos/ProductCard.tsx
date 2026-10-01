@@ -2,6 +2,7 @@
 
 import { ProductCardProps } from "@/lib/interface";
 import Image from "next/image";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
 
 export default function ProductCard({
   product,
@@ -9,6 +10,10 @@ export default function ProductCard({
   onAdd,
   onEdit,
 }: ProductCardProps) {
+  // 🌟 ดึงข้อมูลการตั้งค่าองค์กรและฟังก์ชันฟอร์แมตเงินจาก Context
+  const { settings } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
+
   const hasOptions = product.optionGroups && product.optionGroups.length > 0;
   const numericPrice = Number(product.price || 0);
 
@@ -29,7 +34,6 @@ export default function ProductCard({
             alt={product.name}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-            /* 🌟 ใช้ object-contain พร้อม p-2 ให้เห็นรูปครบสมบูรณ์ทุกสัดส่วนโดยไม่โดนตัด */
             className={`object-contain p-2 transition-transform duration-300 ease-out ${
               isSelected ? "scale-105" : "group-hover:scale-108"
             }`}
@@ -56,11 +60,13 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* 🌟 ป้ายราคา Glassmorphism ลอยมุมซ้ายบน */}
+        {/* 🌟 ป้ายราคา Glassmorphism ลอยมุมซ้ายบน (แสดง currencyCode แบบ Dynamic) */}
         <div className="absolute top-2 left-2 z-10">
           <span className="px-2.5 py-1 text-xs font-black font-mono tracking-tight rounded-xl bg-slate-900/80 backdrop-blur-md text-white border border-white/20 shadow-md flex items-center gap-1">
             {numericPrice.toLocaleString()}
-            <span className="text-[9px] font-normal text-slate-300">LAK</span>
+            <span className="text-[9px] font-normal text-slate-300">
+              {currencyCode}
+            </span>
           </span>
         </div>
 

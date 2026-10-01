@@ -13,23 +13,23 @@ export async function getShopProfileSettings(organizationId: number) {
   if (!shop) return null;
 
   const createdDate = new Date(shop.createdAt);
-  const formatter = new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+  const formatter = new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 
   const setting = Array.isArray(shop.organizationSetting)
     ? shop.organizationSetting[0]
     : shop.organizationSetting;
 
-return {
+  return {
     name: shop.name,
-    phone: setting?.phone || '',
-    address: setting?.address || '',
-    receiptFooter: setting?.receiptFooter || '',
-    taxId: setting?.taxId || '',
-    currencyCode: setting?.currencyCode || 'THB',
+    phone: setting?.phone || "",
+    address: setting?.address || "",
+    receiptFooter: setting?.receiptFooter || "",
+    taxId: setting?.taxId || "",
+    currencyCode: setting?.currencyCode || "THB",
     openTime: setting?.openTime || null,
     closeTime: setting?.closeTime || null,
     isManualOpenClose: setting?.isManualOpenClose ?? false,
@@ -121,7 +121,7 @@ export async function updateMiscSettingsAction(
 export async function getQRCodesAction(organizationId: number) {
   return await prisma.qrcodes.findMany({
     where: { organizationId },
-    orderBy: { id: 'asc' },
+    orderBy: { id: "asc" },
   });
 }
 
@@ -204,9 +204,33 @@ export async function updateQRCodeAction(
   return await prisma.qrcodes.update({
     where: { id },
     data: {
-      ...(data.tableName !== undefined ? { tableName: data.tableName.trim() } : {}),
+      ...(data.tableName !== undefined
+        ? { tableName: data.tableName.trim() }
+        : {}),
       ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
     },
   });
 }
 
+export async function getOrganizationSettingsDB(organizationId: number) {
+  try {
+    let settings = await prisma.organizations_settings.findUnique({
+      where: { organizationId },
+    });
+
+    if (!settings) {
+      settings = await prisma.organizations_settings.create({
+        data: {
+          organizationId,
+          currencyCode: "THB", 
+          isManualOpenClose: false,
+        },
+      });
+    }
+
+    return { success: true, data: settings };
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    return { success: false, data: null };
+  }
+}

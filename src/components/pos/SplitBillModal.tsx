@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { holdOrderToDB } from "@/lib/actions/actionsPos";
-import { useEmployee } from "@/components/providers/EmployeeContext"; // 🌟 1. นำเข้า useEmployee
+import { useEmployee } from "@/components/providers/EmployeeContext";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
 
 interface SplitBillModalProps {
   isOpen: boolean;
@@ -23,6 +24,10 @@ export default function SplitBillModal({
   } = useCart();
 
   const { organizationId, employeeId } = useEmployee();
+
+  // 🌟 2. ดึงค่า settings และ formatCurrency จาก OrganizationSettingsContext
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
 
   const [splitQuantities, setSplitQuantities] = useState<{
     [key: string]: number;
@@ -112,8 +117,8 @@ export default function SplitBillModal({
       });
 
       const newBillPayload = {
-        organizationId: organizationId, // 🌟 3. ใช้ ID ร้านค้าปัจจุบันแทนเลข 1
-        createdBy: String(employeeId), // 🌟 4. บันทึก ID พนักงานที่กดแยกบิล
+        organizationId: organizationId,
+        createdBy: String(employeeId),
         customerName: activeBillNumber
           ? `แยกจาก ${activeBillNumber}`
           : "บิลแยกใหม่",
@@ -135,7 +140,7 @@ export default function SplitBillModal({
           }
         });
 
-        await fetchHeldBills(organizationId); // 🌟 5. ดึงบิลของร้านค้าใหม่แทนเลข 1
+        await fetchHeldBills(organizationId);
         onClose();
       } else {
         alert("เกิดข้อผิดพลาดในการสร้างบิลแยก");
@@ -281,7 +286,7 @@ export default function SplitBillModal({
             <div className="flex justify-between items-center text-xs font-bold text-pos-text">
               <span>ยอดรวมบิลใหม่:</span>
               <span className="font-mono text-sm font-black text-sky-600 dark:text-sky-400">
-                {splitTotalPrice.toLocaleString()} LAK
+                {formatCurrency(splitTotalPrice)}
               </span>
             </div>
 

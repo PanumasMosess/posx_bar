@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { holdOrderToDB } from "@/lib/actions/actionsPos";
+import {
+  OrganizationSettingsProvider,
+  useOrgSettings,
+} from "@/components/providers/OrganizationSettingsContext";
 
-export default function POSQR({
+function POSQRContent({
   categories,
   products,
   orgId,
@@ -16,6 +20,10 @@ export default function POSQR({
   tableId?: number;
   tableName?: string;
 }) {
+  // 🌟 ดึงข้อมูล setting ตาม orgId ที่ส่งมาจาก URL/Link
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
+
   const [activeCategory, setActiveCategory] = useState<number | "ALL">("ALL");
   const [cart, setCart] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -504,7 +512,7 @@ export default function POSQR({
         ))}
       </div>
 
-      {/* 🌟 รายการสินค้า (ปรับพื้นหลังเบลอให้จางลง นุ่มนวล และสอดคล้องกับสีจริงของรูป) */}
+      {/* รายการสินค้า */}
       {displayedProducts.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-slate-400">
           <svg
@@ -530,7 +538,6 @@ export default function POSQR({
               onClick={() => handleAddClick(p)}
               className="group relative w-full aspect-[4/5] sm:aspect-[3/4] rounded-[24px] shadow-sm hover:shadow-2xl hover:shadow-slate-900/15 border border-slate-200/60 overflow-hidden cursor-pointer bg-slate-100/80 transition-all duration-300 active:scale-[0.98]"
             >
-              {/* 🌟 ภาพพื้นหลังเบลอน้อยลง (blur-md / saturate-200) เพื่อดึงโทนสีจริงของรูปมาทำฉากหลังแบบเนียนตา */}
               {p.image && (
                 <img
                   src={p.image}
@@ -539,7 +546,6 @@ export default function POSQR({
                 />
               )}
 
-              {/* รูปภาพสินค้าเต็มใบ + เงาสามมิติ */}
               <div className="absolute inset-0 flex items-center justify-center p-3 pb-12">
                 {p.image ? (
                   <img
@@ -564,11 +570,9 @@ export default function POSQR({
                 )}
               </div>
 
-              {/* Gradient บังหลังข้อความให้อ่านง่าย */}
               <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/15 to-transparent pointer-events-none" />
               <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
 
-              {/* ป้ายชื่อสินค้า (Top Left) */}
               <div className="absolute top-3 left-3 right-3 flex justify-between items-start gap-2">
                 <div className="bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-[10px] shadow-sm border border-white/60 max-w-full drop-shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
                   <h3 className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-snug">
@@ -576,7 +580,6 @@ export default function POSQR({
                   </h3>
                 </div>
 
-                {/* ตัวเลือก (Options Badge) */}
                 {p.optionGroups && p.optionGroups.length > 0 && (
                   <span className="shrink-0 bg-slate-900/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1.5 rounded-[10px] shadow-sm flex items-center gap-1 border border-white/10">
                     <svg
@@ -596,14 +599,14 @@ export default function POSQR({
                 )}
               </div>
 
-              {/* ป้ายราคา (Bottom Left) และปุ่ม Add (Bottom Right) */}
+              {/* 🌟 ป้ายราคาดึงสกุลเงินจาก currencyCode */}
               <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                 <div className="bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full shadow-md border border-white/60 flex items-baseline gap-1 drop-shadow-[0_4px_6px_rgba(0,0,0,0.1)]">
                   <span className="text-slate-900 font-black text-sm sm:text-base tracking-tight">
                     {p.price.toLocaleString()}
                   </span>
                   <span className="text-[9px] text-slate-500 font-bold">
-                    LAK
+                    {currencyCode}
                   </span>
                 </div>
 
@@ -739,7 +742,7 @@ export default function POSQR({
                             </div>
                             {Number(choice.priceAdd) > 0 && (
                               <span className="text-[10px] font-bold text-sky-600">
-                                +{Number(choice.priceAdd).toLocaleString()}
+                                +{formatCurrency(Number(choice.priceAdd))}
                               </span>
                             )}
                           </div>
@@ -757,9 +760,7 @@ export default function POSQR({
                   ราคารวม (ชิ้นนี้)
                 </span>
                 <span className="text-xl font-black text-sky-600">
-                  {(
-                    selectedProduct.price + currentOptionPrice
-                  ).toLocaleString()}
+                  {formatCurrency(selectedProduct.price + currentOptionPrice)}
                 </span>
               </div>
               <button
@@ -923,8 +924,7 @@ export default function POSQR({
                         </p>
                       )}
                       <p className="text-[11px] text-slate-500 font-bold mt-1.5">
-                        {(item.totalPrice / item.quantity).toLocaleString()} /
-                        ชิ้น
+                        {formatCurrency(item.totalPrice / item.quantity)} / ชิ้น
                       </p>
                     </div>
 
@@ -952,6 +952,7 @@ export default function POSQR({
               })}
             </div>
 
+            {/* ยอดรวมในตะกร้า */}
             <div className="p-5 border-t bg-white shrink-0 pb-safe shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-end mb-4 px-1">
                 <span className="font-bold text-sm text-slate-500">
@@ -962,7 +963,7 @@ export default function POSQR({
                     {totalPrice.toLocaleString()}
                   </span>
                   <span className="text-xs font-bold text-slate-400 ml-1">
-                    LAK
+                    {currencyCode}
                   </span>
                 </div>
               </div>
@@ -985,5 +986,19 @@ export default function POSQR({
         </div>
       )}
     </div>
+  );
+}
+
+export default function POSQR(props: {
+  categories: any[];
+  products: any[];
+  orgId: number;
+  tableId?: number;
+  tableName?: string;
+}) {
+  return (
+    <OrganizationSettingsProvider organizationId={props.orgId}>
+      <POSQRContent {...props} />
+    </OrganizationSettingsProvider>
   );
 }
