@@ -8,6 +8,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import CartDrawer from "@/components/pos/CartDrawer";
 import { CartProvider } from "@/components/providers/CartContext";
 import { ShiftProvider } from "@/components/providers/ShiftContext";
+import { OrganizationSettingsProvider } from "@/components/providers/OrganizationSettingsContext";
 import { getSessionAction } from "@/lib/actions/authActions";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import EmployeePinModal from "@/components/auth/EmployeePinModal";
@@ -37,7 +38,7 @@ export default function MainLayout({
         }
       }
     });
-  }, []); 
+  }, []);
 
   const isAuthPage = pathname === "/" || pathname === "/login";
   const isPosPage = pathname === "/pos";
@@ -72,30 +73,35 @@ export default function MainLayout({
       {isAuthPage ? (
         <main className="w-full min-h-screen">{children}</main>
       ) : (
-        <CartProvider>
-          <ShiftProvider>
-            <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
-              <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
+        /* 🌟 ครอบ OrganizationSettingsProvider โดยส่ง currentOrgId เข้าไป */
+        <OrganizationSettingsProvider organizationId={currentOrgId}>
+          <CartProvider>
+            <ShiftProvider>
+              <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
+                <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 
-              <div className="flex-1 flex overflow-hidden relative">
-                <Sidebar />
+                <div className="flex-1 flex overflow-hidden relative">
+                  <Sidebar />
 
-                <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
-                  <div className="flex-1 overflow-y-auto">{children}</div>
-                  <MobileNav onToggleCart={isPosPage ? toggleCart : () => {}} />
-                </main>
+                  <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
+                    <div className="flex-1 overflow-y-auto">{children}</div>
+                    <MobileNav
+                      onToggleCart={isPosPage ? toggleCart : () => {}}
+                    />
+                  </main>
 
-                {isPosPage && (
-                  <CartDrawer
-                    isOpen={isCartOpen}
-                    onClose={closeCart}
-                    onOpen={openCart}
-                  />
-                )}
+                  {isPosPage && (
+                    <CartDrawer
+                      isOpen={isCartOpen}
+                      onClose={closeCart}
+                      onOpen={openCart}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          </ShiftProvider>
-        </CartProvider>
+            </ShiftProvider>
+          </CartProvider>
+        </OrganizationSettingsProvider>
       )}
 
       {/* 🌟 แสดง Modal เฉพาะตอนไม่ใช่หน้า Auth และยังไม่มีพนักงานล็อกอิน หรือ PIN หมดอายุ */}

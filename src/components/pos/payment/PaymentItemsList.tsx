@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { PaymentItemsListProps } from "@/lib/interface";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
 
 export default function PaymentItemsList({
   items,
@@ -10,6 +11,10 @@ export default function PaymentItemsList({
   netTotal,
   renderOptionsText,
 }: PaymentItemsListProps) {
+  // 🌟 2. ดึงค่า settings และ formatCurrency จาก OrganizationSettingsContext
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
+
   // 🌟 ฟังก์ชันดึง ID ตัวเลือกเพื่อใช้จัดกลุ่ม
   const getNormalizedOptionKey = (rawOptions: any) => {
     if (!rawOptions) return "";
@@ -130,7 +135,7 @@ export default function PaymentItemsList({
                     {subTitle}
                   </h5>
 
-                  {/* 🌟 Option Badge โทนสีตามธีม POS (เข้ากันทั้ง Light & Dark mode) */}
+                  {/* 🌟 Option Badge โทนสีตามธีม POS */}
                   {optionsDisplay && (
                     <div className="mt-0.5">
                       <span className="inline-block text-[10px] font-medium text-pos-text/70 bg-pos-surface border border-pos-border px-2 py-0.5 rounded-md truncate max-w-full">
@@ -140,7 +145,9 @@ export default function PaymentItemsList({
                   )}
 
                   <p className="text-[10px] text-pos-text/50 font-mono mt-1 flex items-center gap-1">
-                    <span>{subPrice.toLocaleString()} LAK</span>
+                    <span>
+                      {subPrice.toLocaleString()} {currencyCode}
+                    </span>
                     <span className="text-pos-text/30">×</span>
                     <span className="font-bold text-pos-text/80">{subQty}</span>
                   </p>
@@ -167,7 +174,7 @@ export default function PaymentItemsList({
           <div className="flex justify-between items-center text-xs text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/30 p-2 rounded-xl border border-rose-200/50 dark:border-rose-900/30">
             <span>ส่วนลดสมาชิก ({discountPercent}%):</span>
             <span className="font-mono">
-              -{discountAmount.toLocaleString()} LAK
+              -{discountAmount.toLocaleString()} {currencyCode}
             </span>
           </div>
         )}
@@ -185,7 +192,7 @@ export default function PaymentItemsList({
               {netTotal.toLocaleString()}
             </span>
             <span className="text-xs font-bold text-emerald-600/70 dark:text-emerald-400/70 ml-1">
-              LAK
+              {currencyCode}
             </span>
           </div>
         </div>
