@@ -4,6 +4,7 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import ToastAlert from "@/components/ToastAlert";
 import { useShift } from "@/components/providers/ShiftContext";
 import { useEmployee } from "@/components/providers/EmployeeContext";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; 
 import { ShiftModalProps } from "@/lib/interface";
 import { useState, useEffect } from "react";
 
@@ -12,6 +13,10 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
 
   // 🌟 ดึงข้อมูลพนักงานปัจจุบัน และ employeeId
   const { currentEmployee, employeeId } = useEmployee();
+
+  // 🌟 2. ดึงค่า settings และ formatCurrency จาก OrganizationSettingsContext
+  const { settings, formatCurrency } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
 
   // Form States
   const [startingCash, setStartingCash] = useState<string>("0");
@@ -66,7 +71,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
 
     setIsSubmitting(true);
     try {
-      // 🌟 ใช้ ID ของพนักงานแทนชื่อ (แปลงเป็น String เพราะใน DB รับเป็น String)
       const openerId = String(employeeId || "0");
 
       const res = await openShift(Number(startingCash) || 0, openerId);
@@ -99,7 +103,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     setShowCloseConfirm(false);
     setIsSubmitting(true);
     try {
-      // 🌟 ใช้ ID ของพนักงานแทนชื่อ
       const closerId = String(employeeId || "0");
 
       const res = await closeShift(numEndingCash, closerId, note);
@@ -169,7 +172,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   onSubmit={handleOpenShift}
                   className="p-4 space-y-4 overflow-y-auto custom-scroll"
                 >
-                  {/* 🌟 แสดงชื่อผู้ทำรายการเบาๆ ให้ User เห็น (แต่เบื้องหลังเซฟเป็น ID) */}
                   <div className="flex justify-between items-center px-1 text-xs font-semibold text-pos-text/60">
                     <span>ผู้ทำรายการ:</span>
                     <span className="text-pos-text font-bold">
@@ -193,7 +195,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                         className="w-full px-3 py-2.5 bg-pos-bg border border-pos-border rounded-xl text-base font-mono font-black text-emerald-600 dark:text-emerald-400 outline-none focus:border-emerald-500 disabled:opacity-50"
                       />
                       <span className="absolute right-3 top-3 text-xs font-bold text-pos-text/50">
-                        LAK
+                        {currencyCode}
                       </span>
                     </div>
                   </div>
@@ -230,7 +232,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   onSubmit={handlePreCloseShift}
                   className="p-4 space-y-3.5 overflow-y-auto custom-scroll"
                 >
-                  {/* 🌟 แสดงชื่อผู้ทำรายการเบาๆ ให้ User เห็น */}
                   <div className="flex justify-between items-center px-1 text-xs font-semibold text-pos-text/60">
                     <span>ผู้ทำรายการ:</span>
                     <span className="text-pos-text font-bold">
@@ -244,7 +245,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                         เงินสดตั้งต้น (เริ่มต้นกะ):
                       </span>
                       <span className="font-mono text-pos-text">
-                        {(activeShift.startingCash || 0).toLocaleString()} LAK
+                        {formatCurrency(activeShift.startingCash || 0)}
                       </span>
                     </div>
 
@@ -252,25 +253,23 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                       <div className="flex justify-between text-pos-text/70">
                         <span>💵 ยอดขายเงินสด:</span>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          +{(activeShift.cashSales || 0).toLocaleString()} LAK
+                          +{formatCurrency(activeShift.cashSales || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>📱 ยอดสแกน QR / โอน:</span>
-                        <span>
-                          {(activeShift.qrSales || 0).toLocaleString()} LAK
-                        </span>
+                        <span>{formatCurrency(activeShift.qrSales || 0)}</span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>💳 ยอดบัตรเครดิต:</span>
                         <span>
-                          {(activeShift.cardSales || 0).toLocaleString()} LAK
+                          {formatCurrency(activeShift.cardSales || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>👑 ยอดตัดกระเป๋าสมาชิก:</span>
                         <span>
-                          {(activeShift.memberSales || 0).toLocaleString()} LAK
+                          {formatCurrency(activeShift.memberSales || 0)}
                         </span>
                       </div>
                     </div>
@@ -280,7 +279,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                         เงินสดที่ควรมีในลิ้นชัก:
                       </span>
                       <span className="text-base font-black font-mono text-sky-600 dark:text-sky-400">
-                        {expectedCashCalculated.toLocaleString()} LAK
+                        {formatCurrency(expectedCashCalculated)}
                       </span>
                     </div>
                   </div>
@@ -303,7 +302,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                         className="w-full px-3 py-2.5 bg-pos-bg border border-pos-border rounded-xl text-base font-mono font-black text-pos-text outline-none focus:border-rose-500 disabled:opacity-50"
                       />
                       <span className="absolute right-3 top-3 text-xs font-bold text-pos-text/50">
-                        LAK
+                        {currencyCode}
                       </span>
                     </div>
                   </div>
@@ -321,9 +320,8 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                       <span>ส่วนต่างเงินสด (เกิน/ขาด):</span>
                       <span className="font-mono font-black text-sm">
                         {cashDiff > 0
-                          ? `+${cashDiff.toLocaleString()}`
-                          : cashDiff.toLocaleString()}{" "}
-                        LAK
+                          ? `+${formatCurrency(cashDiff)}`
+                          : formatCurrency(cashDiff)}
                       </span>
                     </div>
                   )}
@@ -365,7 +363,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
         <ConfirmDeleteModal
           isOpen={showCloseConfirm}
           title="ยืนยันการปิดกะการทำงาน?"
-          message={`คุณต้องการปิดกะ #${activeShift?.shiftNumber} ยอดเงินนับจริง ${numEndingCash.toLocaleString()} LAK ใช่หรือไม่?`}
+          message={`คุณต้องการปิดกะ #${activeShift?.shiftNumber} ยอดเงินนับจริง ${formatCurrency(numEndingCash)} ใช่หรือไม่?`}
           onConfirm={handleExecuteCloseShift}
           onClose={() => setShowCloseConfirm(false)}
           isPending={isSubmitting}
