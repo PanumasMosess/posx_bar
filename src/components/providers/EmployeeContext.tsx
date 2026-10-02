@@ -9,7 +9,7 @@ import React, {
 } from "react";
 
 export interface EmployeeSession {
-  id: number; // 👈 ตรงนี้คือ ID ของพนักงานอยู่แล้ว
+  id: number;
   name: string;
   role: string;
   img?: string | null;
@@ -19,7 +19,7 @@ export interface EmployeeSession {
 
 interface EmployeeContextType {
   currentEmployee: EmployeeSession | null;
-  employeeId: number | null; // 🌟 1. เพิ่มตัวแปร employeeId ให้เรียกใช้ง่ายๆ (ถ้ายังไม่ล็อกอินจะเป็น null)
+  employeeId: number | null;
   activeOrgId: number;
   organizationId: number;
   isPinExpired: boolean;
@@ -39,36 +39,43 @@ export function EmployeeProvider({ children }: { children: React.ReactNode }) {
   const [currentEmployee, setCurrentEmployee] =
     useState<EmployeeSession | null>(null);
   const [activeOrgId, setActiveOrgIdState] = useState<number>(0);
-  const [isPinExpired, setIsPinExpired] = useState<boolean>(false);
+  const [isPinExpired, setIsPinExpired] = useState<boolean>(true); 
 
-  // ดึงค่าตั้งต้นตอนโหลดแอป
   useEffect(() => {
     const savedEmployee = localStorage.getItem("posx_active_employee");
-    const savedTime = localStorage.getItem("posx_employee_last_active");
     const savedOrgId = localStorage.getItem("posx_active_org_id");
 
     if (savedOrgId) {
       setActiveOrgIdState(Number(savedOrgId));
     }
 
-    if (savedEmployee && savedTime) {
+    if (savedEmployee) {
       try {
         const parsedEmployee = JSON.parse(savedEmployee);
-        const lastActiveTime = Number(savedTime);
-        const now = Date.now();
-
-        if (now - lastActiveTime > ONE_HOUR_MS) {
-          setCurrentEmployee(parsedEmployee);
-          setIsPinExpired(true);
-        } else {
-          setCurrentEmployee(parsedEmployee);
-          setIsPinExpired(false);
-        }
+        setCurrentEmployee(parsedEmployee);
+        setIsPinExpired(true);
       } catch (e) {
         clearEmployeeSession();
       }
+    } else {
+      setIsPinExpired(true);
     }
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedTime = localStorage.getItem("posx_employee_last_active");
+      if (savedTime && !isPinExpired) {
+        const lastActiveTime = Number(savedTime);
+        const now = Date.now();
+        if (now - lastActiveTime > ONE_HOUR_MS) {
+          setIsPinExpired(true);
+        }
+      }
+    }, 60 * 1000); 
+
+    return () => clearInterval(interval);
+  }, [isPinExpired]);
 
   const setOrgId = useCallback((id: number) => {
     setActiveOrgIdState(id);
@@ -94,7 +101,7 @@ export function EmployeeProvider({ children }: { children: React.ReactNode }) {
 
   const clearEmployeeSession = useCallback(() => {
     setCurrentEmployee(null);
-    setIsPinExpired(false);
+    setIsPinExpired(true);
     localStorage.removeItem("posx_active_employee");
     localStorage.removeItem("posx_employee_last_active");
   }, []);
@@ -103,7 +110,7 @@ export function EmployeeProvider({ children }: { children: React.ReactNode }) {
     <EmployeeContext.Provider
       value={{
         currentEmployee,
-        employeeId: currentEmployee?.id || null, // 🌟 2. ดึง id จากพนักงานปัจจุบันมาให้เรียกใช้ตรงๆ
+        employeeId: currentEmployee?.id || null,
         activeOrgId,
         organizationId: activeOrgId,
         isPinExpired,
