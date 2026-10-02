@@ -2,11 +2,16 @@
 
 import { ShiftCheckViewProps } from "@/lib/interface";
 import { useState } from "react";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
 
 export default function ShiftCheckView({
   onOpenShift,
   isLoading = false,
 }: ShiftCheckViewProps) {
+  // 🌟 2. ดึงค่า settings จาก OrganizationSettingsContext
+  const { settings } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "LAK";
+
   const [startingCashInput, setStartingCashInput] = useState<string>("0");
 
   const handleSubmit = async () => {
@@ -31,7 +36,7 @@ export default function ShiftCheckView({
       <div className="w-full space-y-2 pt-2">
         <div className="text-left">
           <label className="text-[10px] font-bold text-pos-text/70 block mb-1">
-            เงินสดเริ่มต้นกะ (LAK):
+            เงินสดเริ่มต้นกะ ({currencyCode}):
           </label>
           <input
             type="number"
