@@ -63,6 +63,7 @@ model organizations {
   categories          categories[]
   shifts              shifts[]
   employees           employees[]
+  paymentSettings       payments_settings[]
   organizationSetting organizations_settings?
 }
 
@@ -306,4 +307,16 @@ model employee_permissions {
   cancelRefund   Boolean   @default(false) // สิทธิ์ในการกดยกเลิกบิลหรือคืนเงิน (Cancel / Refund)
   employeeId     Int       @unique
   employee       employees @relation(fields: [employeeId], references: [id])
+}
+
+model payments_settings {
+  id              Int           @id @default(autoincrement())
+  promptPayName   String?  // ชื่อบัญชี หรือ ชื่อกำกับที่จะแสดงใต้ QR
+  promptPayNumber String?  // เลขพร้อมเพย์ (เบอร์โทร/เลขบัตรปชช.) สำหรับเอาไปสร้าง QR อัตโนมัติ
+  qrImageUrl      String?  // ลิงก์รูปภาพ QR Code (กรณีที่ร้านอัปโหลดรูปเอง ไม่ได้ให้ระบบ Gen)
+  creditCardFee   Float?   // ค่าธรรมเนียม (ถ้าเป็น null แปลว่าร้านนี้ไม่รับบัตรเครดิต ไม่ต้องแสดงปุ่ม)
+  organizationId  Int           @unique
+  organization    organizations @relation(fields: [organizationId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
