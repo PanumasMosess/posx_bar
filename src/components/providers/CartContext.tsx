@@ -24,7 +24,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
   const [activeBillNumber, setActiveBillNumber] = useState<string | null>(null);
-  const [activeBillInfo, setActiveBillInfo] = useState<any | null>(null); // 🌟 เปลี่ยนเป็น any ชั่วคราวเพื่อรับ tableName
+  const [activeBillInfo, setActiveBillInfo] = useState<any | null>(null);
 
   const { organizationId } = useEmployee();
 
@@ -222,15 +222,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setActiveBillId(bill.id);
     setActiveBillNumber(bill.orderNumber);
 
-    // 🌟 นำบิลที่เลือกใส่ไว้ใน activeBillInfo (มี tableName ติดไปด้วยแล้ว)
+    // นำบิลที่เลือกใส่ไว้ใน activeBillInfo (มี tableName ติดไปด้วยแล้ว)
     setActiveBillInfo({
       ...bill,
       qrCodeId: bill.qrCodeId,
       customerName: bill.customerName,
-      tableName: (bill as any).tableName, // 🌟 แนบชื่อโต๊ะไว้ใช้ในหน้า POS
+      tableName: (bill as any).tableName,
     });
 
-    const reloadedCart: CartItem[] = bill.items.map((item: any) => {
+    // 🌟 สร้าง Map เพื่อจัดกลุ่มและรวม(Merge)สินค้าที่เหมือนกันเข้าด้วยกัน
+    const mergedCartMap = new Map<string, any>();
+
+    bill.items.forEach((item: any) => {
       let parsedOptions = {};
       try {
         parsedOptions = item.options
@@ -245,17 +248,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const targetProduct = item.product || item;
       const qty = item.quantity || 1;
       const unitPrice = item.priceAtTime || targetProduct.price || 0;
+      const status = item.status || "SERVED";
 
-      return {
-        id: `${targetProduct.id}-${item.id || Date.now()}`,
-        dbItemId: item.id,
-        product: targetProduct,
-        quantity: qty,
-        selectedOptions: parsedOptions,
-        totalPrice: unitPrice * qty,
-        status: item.status || "SERVED",
-      } as any;
+      // 🌟 คีย์สำหรับการรวม (สินค้าเดียวกัน + ตัวเลือกเดียวกันเป๊ะ + สถานะครัวเหมือนกัน)
+      const optionString = JSON.stringify(parsedOptions);
+      const uniqueKey = `${targetProduct.id}_${optionString}_${status}`;
+
+      if (mergedCartMap.has(uniqueKey)) {
+        // ถ้ามีสินค้านี้อยู่ใน Map แล้ว ให้บวกจำนวนและราคาเพิ่มเข้าไป
+        const existingItem = mergedCartMap.get(uniqueKey);
+        existingItem.quantity += qty;
+        existingItem.totalPrice += unitPrice * qty;
+      } else {
+        // ถ้ายะงไม่มี ให้สร้างบรรทัดใหม่
+        mergedCartMap.set(uniqueKey, {
+          id: `${targetProduct.id}-${item.id || Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          dbItemId: item.id, // เก็บอ้างอิง ID ใน Database ไว้
+          product: targetProduct,
+          quantity: qty,
+          selectedOptions: parsedOptions,
+          totalPrice: unitPrice * qty,
+          status: status,
+        });
+      }
     });
+
+    // แปลงกลับเป็น Array เพื่อนำไปแสดงในตะกร้า
+    const reloadedCart: CartItem[] = Array.from(mergedCartMap.values());
 
     setCart(reloadedCart);
     setHeldBills((prev) => prev.filter((b) => b.id !== billId));
