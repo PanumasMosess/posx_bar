@@ -74,7 +74,6 @@ export default function HeldBillsDrawer({
     }
   };
 
-  // 🌟 ฟังก์ชันดึง ID ตัวเลือกเพื่อสร้าง Key
   const getNormalizedOptionKey = (rawOptions: any) => {
     if (!rawOptions) return "";
     try {
@@ -108,45 +107,34 @@ export default function HeldBillsDrawer({
     }
   };
 
-  // 🌟 ฟังก์ชันจัดกลุ่ม: รวมเฉพาะ SERVED / แยกบรรทัดสำหรับ IN_KITCHEN และ DRAFT
+  // 🌟 ฟังก์ชันจัดกลุ่มใหม่: รวมรายการที่ "สินค้าเดียวกัน + ตัวเลือกเดียวกัน + สถานะเดียวกัน" เข้าด้วยกันทั้งหมด
   const aggregateItemsByStatus = (items: any[]) => {
     if (!items || !Array.isArray(items)) return [];
 
-    const mergedServedMap = new Map<string, any>();
-    const unmergedItems: any[] = [];
+    const mergedMap = new Map<string, any>();
 
     items.forEach((item) => {
       const rawStatus = (item.status || "IDLE").toString().toUpperCase();
+      const productId = item.productId || item.product?.id || item.id;
+      const optionKey = getNormalizedOptionKey(
+        item.options || item.selectedOptions,
+      );
 
-      // 🌟 รวมบรรทัดเฉพาะรายการที่เป็น SERVED
-      if (rawStatus === "SERVED") {
-        const productId = item.productId || item.product?.id || item.id;
-        const optionKey = getNormalizedOptionKey(
-          item.options || item.selectedOptions,
-        );
+      // สร้าง Key เฉพาะตัว ถ้าสินค้าเหมือนกัน ตัวเลือกเหมือนกัน สถานะเหมือนกัน จะถูกรวมเป็นบรรทัดเดียว
+      const uniqueKey = `${productId}_${optionKey}_${rawStatus}`;
 
-        // คีย์สำหรับจัดกลุ่มรายการที่เสิร์ฟแล้ว
-        const uniqueKey = `${productId}_${optionKey}`;
-
-        if (mergedServedMap.has(uniqueKey)) {
-          const existing = mergedServedMap.get(uniqueKey);
-          existing.quantity += Number(item.quantity || 1);
-        } else {
-          mergedServedMap.set(uniqueKey, {
-            ...item,
-            quantity: Number(item.quantity || 1),
-          });
-        }
+      if (mergedMap.has(uniqueKey)) {
+        const existing = mergedMap.get(uniqueKey);
+        existing.quantity += Number(item.quantity || 1);
       } else {
-        // 🌟 รายการที่เป็น IN_KITCHEN, COOKING หรือ DRAFT ให้แยกแสดงเป็นบรรทัดใหม่ตามปกติ
-        unmergedItems.push({
+        mergedMap.set(uniqueKey, {
           ...item,
           quantity: Number(item.quantity || 1),
         });
       }
     });
 
-    return [...Array.from(mergedServedMap.values()), ...unmergedItems];
+    return Array.from(mergedMap.values());
   };
 
   // 🌟 Badge แสดงผลสถานะ
