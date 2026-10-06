@@ -302,7 +302,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
 
             {/* ส่วนหัวบิล */}
             <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1 mt-2">
-              POS STORE
+              POSX
             </h3>
             <p className="text-xs font-semibold text-slate-500 mb-6">
               บิล:{" "}
