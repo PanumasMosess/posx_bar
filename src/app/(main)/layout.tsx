@@ -62,7 +62,10 @@ export default function MainLayout({
 
   useEffect(() => {
     if (!isPosPage) {
-      closeCart();
+      const timer = setTimeout(() => {
+        setIsCartOpen(false);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isPosPage]);
 
