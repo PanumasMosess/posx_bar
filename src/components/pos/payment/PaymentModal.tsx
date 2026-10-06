@@ -13,7 +13,8 @@ import CashNumpad from "./CashNumpad";
 import MemberWalletView from "./MemberWalletView";
 import ShiftCheckView from "./ShiftCheckView";
 import { useEmployee } from "@/components/providers/EmployeeContext";
-import { toPng } from "html-to-image"; // 🌟 เปลี่ยนมาใช้ html-to-image
+import { toPng } from "html-to-image";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const { heldBills, checkoutBill, fetchHeldBills } = useCart();
@@ -30,7 +31,9 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   // 🌟 State สำหรับหน้าใบเสร็จ
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string>("");
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const [memberSearch, setMemberSearch] = useState("");
@@ -46,7 +49,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
 
   if (!billId) return null;
 
-  // 🌟 อนุญาตให้ payingBill เป็น null ได้เฉพาะตอนที่จ่ายเงินสำเร็จแล้ว (เพื่อโชว์ใบเสร็จ)
   const payingBill = heldBills.find((b) => b.id === billId) ?? null;
   if (!payingBill && !isPaymentSuccess) return null;
 
@@ -138,18 +140,16 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
       });
 
       if (res.success) {
-        // 🌟 สำเนาข้อมูลใบเสร็จเก็บไว้ก่อนลบบิลทิ้ง
+        // 🌟 สร้างลิ้งก์ใบเสร็จออนไลน์เพื่อซ่อนใน QR Code
+        const baseUrl =
+          typeof window !== "undefined" ? window.location.origin : "";
+        const generatedUrl = `${baseUrl}/receipt/${payingBill.id}`;
+        setReceiptUrl(generatedUrl);
+
         setReceiptData({
           orderNumber: payingBill.orderNumber,
           tableName: tableName,
-          items: payingBill.items,
-          baseTotal: baseTotal,
-          discountPercent: selectedMember?.discountPercent || 0,
-          discountAmount: discountAmount,
           netTotal: netTotal,
-          paymentMethod: paymentMethod,
-          receivedAmount: paymentMethod === "CASH" ? numReceived : netTotal,
-          changeAmount: changeAmount,
           date: new Date(),
         });
 
@@ -167,13 +167,12 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
     }
   };
 
-  // 🌟 ฟังก์ชันสร้างรูปใบเสร็จโดยใช้ html-to-image
   const generateReceiptImage = async () => {
     if (!receiptRef.current) return null;
     setIsProcessingReceipt(true);
     try {
       const dataUrl = await toPng(receiptRef.current, {
-        pixelRatio: 2, // ความคมชัด x2
+        pixelRatio: 3,
         backgroundColor: "#ffffff",
       });
       return dataUrl;
@@ -186,43 +185,59 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
     }
   };
 
-  // 🌟 ฟังก์ชันดาวน์โหลดลงเครื่อง
   const handleSaveReceipt = async () => {
     const dataUrl = await generateReceiptImage();
     if (!dataUrl || !receiptData) return;
 
     const link = document.createElement("a");
-    link.download = `Receipt_${receiptData.orderNumber}.png`;
+    link.download = `QR_Receipt_${receiptData.orderNumber}.png`;
     link.href = dataUrl;
     link.click();
   };
 
-  // 🌟 ฟังก์ชันแชร์ (มือถือ)
   const handleShareReceipt = async () => {
-    const dataUrl = await generateReceiptImage();
-    if (!dataUrl || !receiptData) return;
+    if (isSharing) return;
+    setIsSharing(true);
 
     try {
-      // แปลง DataURL เป็น File object เพื่อใช้กับ Web Share API
+      const dataUrl = await generateReceiptImage();
+      if (!dataUrl || !receiptData) {
+        setIsSharing(false);
+        return;
+      }
+
       const res = await fetch(dataUrl);
       const blob = await res.blob();
-      const file = new File([blob], `Receipt_${receiptData.orderNumber}.png`, {
-        type: "image/png",
-      });
+      const file = new File(
+        [blob],
+        `QR_Receipt_${receiptData.orderNumber}.png`,
+        {
+          type: "image/png",
+        },
+      );
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `ใบเสร็จรับเงิน ${receiptData.orderNumber}`,
-          text: "ขอบคุณที่ใช้บริการครับ/ค่ะ",
+          title: `ใบเสร็จออนไลน์ - บิล ${receiptData.orderNumber}`,
+          text: `สแกน QR โค้ดหรือคลิกลิ้งก์เพื่อดูใบเสร็จ: ${receiptUrl}`,
           files: [file],
         });
       } else {
         alert("อุปกรณ์ของคุณไม่รองรับการแชร์โดยตรง ระบบจะดาวน์โหลดแทน");
-        handleSaveReceipt(); // ถ้าแชร์ไม่ได้ ให้เซฟลงเครื่องแทน
+        handleSaveReceipt();
       }
-    } catch (error) {
-      console.error("Error sharing:", error);
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Error sharing:", error);
+      }
+    } finally {
+      setIsSharing(false);
     }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(receiptUrl);
+    alert("คัดลอกลิ้งก์ใบเสร็จแล้ว");
   };
 
   const renderOptionsText = (rawOptions: any) => {
@@ -253,162 +268,158 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
     }
   };
 
-  // 🌟 หน้าจอใบเสร็จหลังจากชำระเงินสำเร็จ
+  // 🌟 ---------------- หน้าจอชำระเงินสำเร็จ (QR Code View) ---------------- 🌟
   if (isPaymentSuccess && receiptData) {
     return (
-      <>
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] transition-opacity animate-in fade-in flex flex-col items-center justify-center p-4 overflow-y-auto">
-          {/* พื้นที่จำลองใบเสร็จรับเงิน (Thermal Slip Style) */}
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] transition-opacity animate-in fade-in flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-sm flex flex-col items-center">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-sm border border-emerald-100">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.5 12.75l6 6 9-13.5"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-black text-white mb-6 drop-shadow-md">
+            ชำระเงินสำเร็จ
+          </h2>
+
+          {/* 🌟 พื้นที่ที่จะถูก Capture ไปเป็นรูปภาพ (ปรับ Size ให้เล็กลงกะทัดรัด กว้าง 300px) */}
           <div
             ref={receiptRef}
-            className="bg-white text-slate-900 w-full max-w-[320px] p-6 rounded-sm shadow-xl relative mt-10 sm:mt-0"
-            style={{ fontFamily: "monospace" }}
+            className="bg-white px-6 py-8 rounded-[24px] flex flex-col items-center text-center w-[300px] shadow-2xl relative overflow-hidden"
           >
-            {/* ขอบใบเสร็จหยักๆ */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwb2x5Z29uIGZpbGw9IiNmZmZmZmYiIHBvaW50cz0iMCwwIDgsMCA0LDgiLz48L3N2Zz4=')] bg-repeat-x -mt-2 z-10" />
+            {/* แถบสีตกแต่งด้านบน */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-sky-500" />
 
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-black mb-1">POSX</h2>
-              {/* <p className="text-xs text-slate-500">โทร: 02-123-4567</p> */}
-              <p className="text-xs text-slate-500 mt-1 font-bold">
-                ใบเสร็จรับเงิน / Receipt
+            {/* ส่วนหัวบิล */}
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-1 mt-2">
+              POS STORE
+            </h3>
+            <p className="text-xs font-semibold text-slate-500 mb-6">
+              บิล:{" "}
+              <span className="text-slate-800">{receiptData.orderNumber}</span>
+            </p>
+
+            {/* ส่วนโชว์ QR Code */}
+            <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm mb-5">
+              <QRCodeSVG
+                value={receiptUrl}
+                size={160} // ขนาดกำลังดี สแกนง่าย
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+
+            {/* ข้อมูลการชำระเงินใต้ QR */}
+            <div className="w-full pt-4 border-t border-dashed border-slate-200">
+              <p className="text-[15px] font-black text-slate-800 mb-1">
+                ยอดชำระ {receiptData.netTotal.toLocaleString()} LAK
               </p>
-            </div>
-
-            <div className="flex justify-between items-center text-xs mb-1 font-bold">
-              <span>บิล: {receiptData.orderNumber}</span>
-              <span>
-                {receiptData.tableName
-                  ? `โต๊ะ ${receiptData.tableName}`
-                  : "ทั่วไป"}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-xs mb-4 pb-4 border-b border-dashed border-slate-300">
-              <span>
-                วันที่: {receiptData.date.toLocaleDateString("th-TH")}
-              </span>
-              <span>
-                เวลา:{" "}
-                {receiptData.date.toLocaleTimeString("th-TH", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-
-            <div className="space-y-3 mb-4">
-              {receiptData.items.map((item: any, idx: number) => {
-                const subTitle = item.product?.name || item.name || "สินค้า";
-                const qty = item.quantity || 1;
-                const price = item.priceAtTime || item.product?.price || 0;
-                return (
-                  <div
-                    key={idx}
-                    className="flex justify-between text-xs items-start gap-2"
-                  >
-                    <span className="flex-1">
-                      {qty}x {subTitle}
-                    </span>
-                    <span className="shrink-0">
-                      {(price * qty).toLocaleString()}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="border-t border-dashed border-slate-300 pt-4 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span>ยอดรวม</span>
-                <span>{receiptData.baseTotal.toLocaleString()} LAK</span>
-              </div>
-              {receiptData.discountAmount > 0 && (
-                <div className="flex justify-between text-slate-600">
-                  <span>ส่วนลด ({receiptData.discountPercent}%)</span>
-                  <span>
-                    - {receiptData.discountAmount.toLocaleString()} LAK
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between font-black text-sm pt-2">
-                <span>ยอดสุทธิ</span>
-                <span>{receiptData.netTotal.toLocaleString()} LAK</span>
-              </div>
-            </div>
-
-            <div className="border-t border-dashed border-slate-300 mt-4 pt-4 space-y-1 text-xs text-slate-600">
-              <div className="flex justify-between">
-                <span>รับชำระ ({receiptData.paymentMethod})</span>
-                <span>{receiptData.receivedAmount.toLocaleString()} LAK</span>
-              </div>
-              <div className="flex justify-between font-bold text-slate-900">
-                <span>เงินทอน</span>
-                <span>{receiptData.changeAmount.toLocaleString()} LAK</span>
-              </div>
-            </div>
-
-            <div className="text-center mt-8 text-xs font-bold text-slate-500 pb-2">
-              <p>*** ขอบคุณที่ใช้บริการ ***</p>
+              <p className="text-sm font-bold text-sky-600 mb-0.5">
+                สแกนคิวอาร์โค้ด
+              </p>
+              <p className="text-[10px] text-slate-400 font-medium">
+                เพื่อดูใบเสร็จรับเงินออนไลน์
+              </p>
             </div>
           </div>
 
-          {/* กลุ่มปุ่ม Action (ไม่โดน Capture ไปในรูป) */}
-          <div className="mt-8 flex flex-col gap-3 w-full max-w-[320px] relative z-[110] pb-10">
+          {/* 🌟 กลุ่มปุ่ม Action */}
+          <div className="mt-8 flex flex-col w-full max-w-[300px] gap-3">
+            <button
+              onClick={handleCopyLink}
+              className="w-full py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 backdrop-blur-sm"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+                />
+              </svg>
+              คัดลอกลิ้งก์ (URL)
+            </button>
+
             <div className="flex gap-3">
               <button
                 onClick={handleShareReceipt}
-                disabled={isProcessingReceipt}
-                className="flex-1 py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shadow-md shadow-sky-500/20"
+                disabled={isProcessingReceipt || isSharing}
+                className="flex-1 py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shadow-lg shadow-sky-500/20"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
-                  />
-                </svg>
-                แชร์บิล
+                {isSharing ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+                    />
+                  </svg>
+                )}
+                แชร์ QR
               </button>
+
               <button
                 onClick={handleSaveReceipt}
-                disabled={isProcessingReceipt}
-                className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shadow-md shadow-emerald-500/20"
+                disabled={isProcessingReceipt || isSharing}
+                className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shadow-lg shadow-emerald-500/20"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                  />
-                </svg>
-                บันทึกรูป
+                {isProcessingReceipt ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                    />
+                  </svg>
+                )}
+                บันทึก QR
               </button>
             </div>
+
             <button
               onClick={onClose}
-              className="w-full py-3.5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition active:scale-95 shadow-sm"
+              className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition active:scale-95"
             >
-              ปิด / เสร็จสิ้น
+              เสร็จสิ้น / ปิด
             </button>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
-  // 🌟 หน้าจอชำระเงินปกติ
+  // 🌟 ---------------- หน้าจอชำระเงินปกติ ---------------- 🌟
   return (
     <>
       <div
