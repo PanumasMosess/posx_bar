@@ -4,18 +4,19 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import ToastAlert from "@/components/ToastAlert";
 import { useShift } from "@/components/providers/ShiftContext";
 import { useEmployee } from "@/components/providers/EmployeeContext";
-import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; 
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useShiftRevenue } from "@/components/providers/ShiftRevenueContext"; // 🌟 นำเข้า Provider
 import { ShiftModalProps } from "@/lib/interface";
 import { useState, useEffect } from "react";
 
 export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
   const { activeShift, openShift, closeShift, isLoading } = useShift();
-
-  // 🌟 ดึงข้อมูลพนักงานปัจจุบัน และ employeeId
   const { currentEmployee, employeeId } = useEmployee();
-
-  // 🌟 2. ดึงค่า settings และ formatCurrency จาก OrganizationSettingsContext
   const { settings, formatCurrency } = useOrgSettings();
+
+  // 🌟 ดึง salesSummary (ยอดขายแยกประเภท) มาให้ครบ
+  const { salesSummary, isLoadingRevenue, refreshRevenue } = useShiftRevenue();
+
   const currencyCode = settings?.currencyCode || "LAK";
 
   // Form States
@@ -23,11 +24,8 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
   const [endingCash, setEndingCash] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-  // State ควบคุมการแสดง Confirm Modal
   const [showCloseConfirm, setShowCloseConfirm] = useState<boolean>(false);
 
-  // State สำหรับควบคุม ToastAlert
   const [toast, setToast] = useState<{
     isOpen: boolean;
     message: string;
@@ -38,15 +36,10 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     type: "success",
   });
 
-  const showToast = (message: string, type: "success" | "error" | "info") => {
+  const showToast = (message: string, type: "success" | "error" | "info") =>
     setToast({ isOpen: true, message, type });
-  };
+  const hideToast = () => setToast((prev) => ({ ...prev, isOpen: false }));
 
-  const hideToast = () => {
-    setToast((prev) => ({ ...prev, isOpen: false }));
-  };
-
-  // รีเซ็ตค่าเมื่อ Modal เปิด/ปิด
   useEffect(() => {
     if (isOpen) {
       setStartingCash("0");
@@ -54,17 +47,27 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
       setNote("");
       setShowCloseConfirm(false);
       hideToast();
-    }
-  }, [isOpen]);
 
-  // คำนวณสรุปยอดเบื้องต้นในหน้าปิดกะ
+      // สั่งรีเฟรชข้อมูลยอดเงินแบบ Real-time เมื่อเปิด Modal ปิดกะ
+      if (activeShift) {
+        refreshRevenue();
+      }
+    }
+  }, [isOpen, activeShift, refreshRevenue]);
+
+  // 🌟 คำนวณสรุปยอด
+  // ยอดที่ควรมีในเก๊ะ = เงินตั้งต้น + ยอดขาย "เงินสด" เท่านั้น
+  const startingCashAmount = activeShift?.startingCash || 0;
+
+  // ป้องกัน error ถ้า salesSummary ยังโหลดไม่เสร็จ
+  const currentCashSales = salesSummary?.cashSales || 0;
   const expectedCashCalculated = activeShift
-    ? (activeShift.startingCash || 0) + (activeShift.cashSales || 0)
+    ? startingCashAmount + currentCashSales
     : 0;
+
   const numEndingCash = Number(endingCash) || 0;
   const cashDiff = numEndingCash - expectedCashCalculated;
 
-  // จัดการการเปิดกะ
   const handleOpenShift = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -72,7 +75,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     setIsSubmitting(true);
     try {
       const openerId = String(employeeId || "0");
-
       const res = await openShift(Number(startingCash) || 0, openerId);
       if (res.success) {
         showToast("เปิดกะการทำงานเรียบร้อยแล้ว", "success");
@@ -88,7 +90,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     }
   };
 
-  // เมื่อกด Submit ในฟอร์มปิดกะ ให้เปิด ConfirmDeleteModal
   const handlePreCloseShift = (e: React.FormEvent) => {
     e.preventDefault();
     if (!endingCash) {
@@ -98,14 +99,17 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     setShowCloseConfirm(true);
   };
 
-  // ฟังก์ชันปิดกะจริงที่จะเรียกใช้เมื่อกด Confirm
   const handleExecuteCloseShift = async () => {
     setShowCloseConfirm(false);
     setIsSubmitting(true);
     try {
       const closerId = String(employeeId || "0");
+      const finalNote =
+        cashDiff !== 0 && !note
+          ? `ปิดกะด้วยส่วนต่าง ${cashDiff > 0 ? "+" : ""}${cashDiff} ${currencyCode}`
+          : note;
 
-      const res = await closeShift(numEndingCash, closerId, note);
+      const res = await closeShift(numEndingCash, closerId, finalNote);
       if (res.success) {
         showToast("ปิดกะการทำงานเรียบร้อยแล้ว", "success");
         onClose();
@@ -124,7 +128,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
     <>
       {isOpen && !showCloseConfirm && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[100] transition-opacity animate-fade-in"
             onClick={() => !isSubmitting && onClose()}
@@ -167,7 +170,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
 
               {/* Form Content */}
               {!activeShift ? (
-                /* ฟอร์มสำหรับเปิดกะ */
+                /* ----------------- เปิดกะ (เหมือนเดิม) ----------------- */
                 <form
                   onSubmit={handleOpenShift}
                   className="p-4 space-y-4 overflow-y-auto custom-scroll"
@@ -227,11 +230,20 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   </div>
                 </form>
               ) : (
-                /* ฟอร์มสำหรับปิดกะ */
+                /* ----------------- ปิดกะ (อัปเดตใหม่) ----------------- */
                 <form
                   onSubmit={handlePreCloseShift}
-                  className="p-4 space-y-3.5 overflow-y-auto custom-scroll"
+                  className="p-4 space-y-3.5 overflow-y-auto custom-scroll relative"
                 >
+                  {/* Loading Overlay */}
+                  {isLoadingRevenue && (
+                    <div className="absolute inset-0 z-10 bg-pos-surface/50 backdrop-blur-[1px] flex items-center justify-center rounded-b-3xl">
+                      <span className="text-sm font-bold text-sky-500 animate-pulse bg-pos-surface px-4 py-2 rounded-full shadow-lg border border-pos-border">
+                        กำลังอัปเดตยอดเงินล่าสุด...
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center px-1 text-xs font-semibold text-pos-text/60">
                     <span>ผู้ทำรายการ:</span>
                     <span className="text-pos-text font-bold">
@@ -240,40 +252,46 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   </div>
 
                   <div className="p-3 bg-pos-bg rounded-2xl border border-pos-border space-y-2 text-xs">
+                    {/* เงินทอนตั้งต้น */}
                     <div className="flex justify-between items-center pb-2 border-b border-pos-border/60 font-bold">
                       <span className="text-pos-text/70">
                         เงินสดตั้งต้น (เริ่มต้นกะ):
                       </span>
                       <span className="font-mono text-pos-text">
-                        {formatCurrency(activeShift.startingCash || 0)}
+                        {formatCurrency(startingCashAmount)}
                       </span>
                     </div>
 
+                    {/* รายละเอียดแยกตามประเภท (รับค่ามาจาก Provider) */}
                     <div className="space-y-1 font-mono text-[11px]">
                       <div className="flex justify-between text-pos-text/70">
                         <span>💵 ยอดขายเงินสด:</span>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          +{formatCurrency(activeShift.cashSales || 0)}
+                          +{formatCurrency(salesSummary?.cashSales || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>📱 ยอดสแกน QR / โอน:</span>
-                        <span>{formatCurrency(activeShift.qrSales || 0)}</span>
+                        <span>
+                          {formatCurrency(salesSummary?.qrSales || 0)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>💳 ยอดบัตรเครดิต:</span>
                         <span>
-                          {formatCurrency(activeShift.cardSales || 0)}
+                          {formatCurrency(salesSummary?.cardSales || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-pos-text/70">
                         <span>👑 ยอดตัดกระเป๋าสมาชิก:</span>
                         <span>
-                          {formatCurrency(activeShift.memberSales || 0)}
+                          {formatCurrency(salesSummary?.memberSales || 0)}
                         </span>
                       </div>
+                      {/* ❌ ลบเงื่อนไข Delivery ออกไปเลยครับ */}
                     </div>
 
+                    {/* สรุปเงินสดสุทธิที่ควรมีในลิ้นชัก */}
                     <div className="flex justify-between items-baseline pt-2 border-t border-pos-border/60">
                       <span className="font-bold text-pos-text">
                         เงินสดที่ควรมีในลิ้นชัก:
@@ -284,6 +302,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                     </div>
                   </div>
 
+                  {/* ช่องกรอกเงินสดจริง */}
                   <div>
                     <label className="block text-xs font-bold text-pos-text mb-1">
                       ยอดเงินสดนับได้จริงในลิ้นชัก{" "}
@@ -295,7 +314,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                         min="0"
                         step="any"
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isLoadingRevenue}
                         value={endingCash}
                         onChange={(e) => setEndingCash(e.target.value)}
                         placeholder="ระบุจำนวนเงินสดที่นับได้..."
@@ -307,6 +326,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                     </div>
                   </div>
 
+                  {/* แสดงส่วนต่าง (ถ้ามีกรอก) */}
                   {endingCash !== "" && (
                     <div
                       className={`p-2.5 rounded-xl border flex justify-between items-center text-xs font-bold ${
@@ -326,13 +346,14 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                     </div>
                   )}
 
+                  {/* หมายเหตุ */}
                   <div>
                     <label className="block text-xs font-bold text-pos-text mb-1">
                       หมายเหตุปิดกะ (ถ้ามี):
                     </label>
                     <input
                       type="text"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingRevenue}
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       placeholder="เช่น เงินทอนไม่พอ, ทอนเงินผิด..."
@@ -343,7 +364,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={isSubmitting || isLoading}
+                      disabled={isSubmitting || isLoading || isLoadingRevenue}
                       className="w-full py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-98 text-white font-black text-sm shadow-lg shadow-rose-500/20 transition disabled:opacity-50"
                     >
                       {isSubmitting
@@ -358,7 +379,7 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
         </>
       )}
 
-      {/* ConfirmDeleteModal จะแสดงแยกเดี่ยวๆ โดยไม่ซ้อนกับ ShiftModal */}
+      {/* Confirm Modal แยกเดี่ยว */}
       {showCloseConfirm && (
         <ConfirmDeleteModal
           isOpen={showCloseConfirm}
@@ -371,7 +392,6 @@ export default function ShiftModal({ isOpen, onClose }: ShiftModalProps) {
         />
       )}
 
-      {/* ToastAlert แสดงแจ้งเตือนมุมขวาบน */}
       <ToastAlert
         isOpen={toast.isOpen}
         message={toast.message}
