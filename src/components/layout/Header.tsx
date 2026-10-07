@@ -106,9 +106,6 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                 <span className="hidden xs:inline">ออนไลน์</span>
               </span>
             </div>
-            <p className="text-[10px] tracking-wide text-slate-400 font-medium hidden md:block uppercase">
-              สาขาหลัก • เครื่อง 01
-            </p>
           </div>
         </div>
 
