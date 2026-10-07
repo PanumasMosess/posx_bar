@@ -73,3 +73,22 @@ export interface ReceiptSlipProps {
   order: any;
   payment?: any | null;
 }
+
+export interface AdjustStockModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: any;
+  isPending: boolean;
+  onSave: (data: {
+    type: "IN" | "OUT";
+    quantity: number;
+    note: string;
+  }) => void;
+}
+
+export interface StockTableProps {
+  products: any[];
+  isPending: boolean;
+  onToggleTrack: (id: number, status: boolean) => void;
+  onOpenAdjustModal: (product: any) => void;
+}

@@ -63,21 +63,23 @@ model organizations {
   categories          categories[]
   shifts              shifts[]
   employees           employees[]
-  paymentSettings       payments_settings[]
+  paymentSettings     payments_settings[]
   organizationSetting organizations_settings?
+  stockMovements      StockMovement[]
 }
 
 model products {
-  id       Int     @id @default(autoincrement())
-  code     String? @unique
-  name     String
-  price    Float
-  cost     Float
-  image    String?
-  stock    Int?    @default(0)
-  isActive Boolean @default(true)
-  detail   String?
-  barcode  String?
+  id           Int     @id @default(autoincrement())
+  code         String? @unique
+  name         String
+  price        Float
+  cost         Float
+  image        String?
+  stock        Int?    @default(0)
+  isActive     Boolean @default(true)
+  detail       String?
+  barcode      String?
+  isTrackStock Boolean @default(false)
 
   // ความสัมพันธ์
   organizationId Int
@@ -86,8 +88,9 @@ model products {
   categoryId Int?
   category   categories? @relation(fields: [categoryId], references: [id])
 
-  orderItems   orderitems[]
-  optionGroups optiongroups[]
+  orderItems     orderitems[]
+  optionGroups   optiongroups[]
+  stockMovements StockMovement[]
 
   createdBy String?
 
@@ -268,19 +271,19 @@ model shifts {
 }
 
 model organizations_settings {
-  id             Int           @id @default(autoincrement())
-  currencyCode   String        @default("THB")
-  openTime       String?
-  closeTime      String?
-  isManualOpenClose     Boolean       @default(false) // เก็บค่าสวิตช์โหมดเปิด-ปิดร้าน (true = เปิดโหมด, false = ปิดโหมด)
-  phone          String? 
-  address        String? 
-  receiptFooter  String? 
-  taxId          String?
-  organizationId Int           @unique
-  organization   organizations @relation(fields: [organizationId], references: [id])
+  id                Int           @id @default(autoincrement())
+  currencyCode      String        @default("THB")
+  openTime          String?
+  closeTime         String?
+  isManualOpenClose Boolean       @default(false) // เก็บค่าสวิตช์โหมดเปิด-ปิดร้าน (true = เปิดโหมด, false = ปิดโหมด)
+  phone             String?
+  address           String?
+  receiptFooter     String?
+  taxId             String?
+  organizationId    Int           @unique
+  organization      organizations @relation(fields: [organizationId], references: [id])
 
-  updatedAt      DateTime      @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model employees {
@@ -311,12 +314,33 @@ model employee_permissions {
 
 model payments_settings {
   id              Int           @id @default(autoincrement())
-  promptPayName   String?  // ชื่อบัญชี หรือ ชื่อกำกับที่จะแสดงใต้ QR
-  promptPayNumber String?  // เลขพร้อมเพย์ (เบอร์โทร/เลขบัตรปชช.) สำหรับเอาไปสร้าง QR อัตโนมัติ
-  qrImageUrl      String?  // ลิงก์รูปภาพ QR Code (กรณีที่ร้านอัปโหลดรูปเอง ไม่ได้ให้ระบบ Gen)
-  creditCardFee   Float?   // ค่าธรรมเนียม (ถ้าเป็น null แปลว่าร้านนี้ไม่รับบัตรเครดิต ไม่ต้องแสดงปุ่ม)
+  promptPayName   String? // ชื่อบัญชี หรือ ชื่อกำกับที่จะแสดงใต้ QR
+  promptPayNumber String? // เลขพร้อมเพย์ (เบอร์โทร/เลขบัตรปชช.) สำหรับเอาไปสร้าง QR อัตโนมัติ
+  qrImageUrl      String? // ลิงก์รูปภาพ QR Code (กรณีที่ร้านอัปโหลดรูปเอง ไม่ได้ให้ระบบ Gen)
+  creditCardFee   Float? // ค่าธรรมเนียม (ถ้าเป็น null แปลว่าร้านนี้ไม่รับบัตรเครดิต ไม่ต้องแสดงปุ่ม)
   organizationId  Int           @unique
   organization    organizations @relation(fields: [organizationId], references: [id])
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+}
+
+model StockMovement {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type          String
+  quantity      Int
+  balanceBefore Int
+  balanceAfter  Int
+
+  referenceNo String?
+  note        String?
+
+  organizationId Int
+  organization   organizations @relation(fields: [organizationId], references: [id])
+
+  createdBy String?
+  createdAt DateTime @default(now())
 }
