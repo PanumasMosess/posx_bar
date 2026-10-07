@@ -415,6 +415,7 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // 1. สร้าง Payment
       const payment = await tx.payments.create({
         data: {
           amount: payload.amount,
@@ -438,7 +439,47 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
         },
       });
 
-      // 3. อัปเดตสถานะรายการสินค้าย่อยใน orderitems เป็น COMPLETED
+      // 🌟 3. ดึงรายการสินค้าทั้งหมดในบิลนี้ เพื่อนำไปตัดสต๊อก
+      const orderItems = await tx.orderitems.findMany({
+        where: { orderId: payload.orderId },
+      });
+
+      // 🌟 4. วนลูปตัดสต๊อก (เฉพาะสินค้าที่เปิด isTrackStock = true)
+      for (const item of orderItems) {
+        const currentProduct = await tx.products.findUnique({
+          where: { id: item.productId },
+        });
+
+        // ถ้าเจอสินค้า และสินค้านั้นถูกตั้งค่าให้นับสต๊อก
+        if (currentProduct && currentProduct.isTrackStock) {
+          const qtyToDeduct = -item.quantity; // ใส่ค่าติดลบเพื่อนำไปลดสต๊อก
+
+          // 4.1 หักจำนวนสต๊อกในฐานข้อมูล
+          const updatedProduct = await tx.products.update({
+            where: { id: item.productId },
+            data: {
+              stock: { increment: qtyToDeduct },
+            },
+          });
+
+          // 4.2 บันทึกประวัติการเคลือนไหวลง StockMovement
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              organizationId: payload.organizationId,
+              type: "OUT",
+              quantity: qtyToDeduct,
+              balanceBefore: currentProduct.stock || 0, // ยอดก่อนตัด
+              balanceAfter: updatedProduct.stock || 0, // ยอดหลังตัด
+              referenceNo: updatedOrder.orderNumber, // ใช้อ้างอิงเป็นเลขบิล
+              note: "ขายสินค้าหน้าร้าน (POS)",
+              createdBy: payload.createdBy || "cashier",
+            },
+          });
+        }
+      }
+
+      // 5. อัปเดตสถานะรายการสินค้าย่อยใน orderitems เป็น COMPLETED
       await tx.orderitems.updateMany({
         where: { orderId: payload.orderId },
         data: {
