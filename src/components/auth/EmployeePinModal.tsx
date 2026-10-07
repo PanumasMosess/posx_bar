@@ -57,7 +57,7 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
       if (res.success && res.employee) {
         // 🌟 บันทึก Session พร้อม Timestamp 1 ชม.
         setEmployeeSession(res.employee);
-        router.push("/pos");
+        router.refresh();
       } else {
         setErrorMessage(res.message || "รหัส PIN ไม่ถูกต้อง");
         setPin("");

@@ -29,6 +29,8 @@ export default async function InventoryPage({
         isTrackStock: true,
         isActive: true,
         organizationId: true,
+        cost: true,
+        price: true,
       },
     }),
 
