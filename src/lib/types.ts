@@ -2,6 +2,7 @@ export type ModalView = "ADD_PRODUCT" | "ADD_CATEGORY" | "ADD_OPTION";
 
 export type SettingsSection =
   | "shop-team"
+  | "member"
   | "payment"
   | "misc"
   | "vat"
@@ -92,3 +93,57 @@ export interface StockTableProps {
   onToggleTrack: (id: number, status: boolean) => void;
   onOpenAdjustModal: (product: any) => void;
 }
+
+// ------------------------------------------------------
+// ระบบสมาชิก (Member System) Interfaces
+// ------------------------------------------------------
+export type MemberTransactionType = "EARN" | "REDEEM" | "TOPUP" | "SPEND" | "REFUND";
+export type MemberWalletType = "POINT" | "CREDIT";
+
+export interface MemberTier {
+  id: number;
+  organizationId: number;
+  name: string;
+  minSpending: number;
+  pointMultiplier: number;
+  discountPercent: number;
+  _count?: {
+    members: number;
+  };
+}
+
+export interface MemberTransaction {
+  id: number;
+  organizationId: number;
+  type: MemberTransactionType;
+  walletType: MemberWalletType;
+  amount: number;
+  balanceAfter: number;
+  note: string | null;
+  createdAt: string | Date;
+  referenceTxId?: number | null;
+  paymentGroupId?: string | null;
+  memberId: number;
+  createdById?: number | null;
+  employee?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+export interface Member {
+  id: number;
+  organizationId: number;
+  phone: string;
+  firstName: string;
+  lastName: string | null;
+  points: number;
+  creditBalance: number;
+  tierId: number | null;
+  status: string; // ACTIVE, INACTIVE, BANNED
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  tier?: MemberTier | null;
+  transactions?: MemberTransaction[];
+}
+
