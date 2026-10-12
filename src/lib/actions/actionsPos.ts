@@ -400,7 +400,7 @@ export async function createTableInDB(
   }
 }
 
-export async function processPaymentDB(payload: ProcessPaymentPayload) {
+export async function processPaymentDB(payload: any) {
   try {
     let paymentMethodString: "CASH" | "QR" | "CARD" | "MEMBER" = "CASH";
 
@@ -439,22 +439,20 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
         },
       });
 
-      // 🌟 3. ดึงรายการสินค้าทั้งหมดในบิลนี้ เพื่อนำไปตัดสต๊อก
+      // 3. ดึงรายการสินค้าทั้งหมดในบิลนี้ เพื่อนำไปตัดสต๊อก
       const orderItems = await tx.orderitems.findMany({
         where: { orderId: payload.orderId },
       });
 
-      // 🌟 4. วนลูปตัดสต๊อก (เฉพาะสินค้าที่เปิด isTrackStock = true)
+      // 4. วนลูปตัดสต๊อก (เฉพาะสินค้าที่เปิด isTrackStock = true)
       for (const item of orderItems) {
         const currentProduct = await tx.products.findUnique({
           where: { id: item.productId },
         });
 
-        // ถ้าเจอสินค้า และสินค้านั้นถูกตั้งค่าให้นับสต๊อก
         if (currentProduct && currentProduct.isTrackStock) {
-          const qtyToDeduct = -item.quantity; // ใส่ค่าติดลบเพื่อนำไปลดสต๊อก
+          const qtyToDeduct = -item.quantity;
 
-          // 4.1 หักจำนวนสต๊อกในฐานข้อมูล
           const updatedProduct = await tx.products.update({
             where: { id: item.productId },
             data: {
@@ -462,16 +460,15 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
             },
           });
 
-          // 4.2 บันทึกประวัติการเคลือนไหวลง StockMovement
           await tx.stockMovement.create({
             data: {
               productId: item.productId,
               organizationId: payload.organizationId,
               type: "OUT",
               quantity: qtyToDeduct,
-              balanceBefore: currentProduct.stock || 0, // ยอดก่อนตัด
-              balanceAfter: updatedProduct.stock || 0, // ยอดหลังตัด
-              referenceNo: updatedOrder.orderNumber, // ใช้อ้างอิงเป็นเลขบิล
+              balanceBefore: currentProduct.stock || 0,
+              balanceAfter: updatedProduct.stock || 0,
+              referenceNo: updatedOrder.orderNumber,
               note: "ขายสินค้าหน้าร้าน (POS)",
               createdBy: payload.createdBy || "cashier",
             },
@@ -486,6 +483,83 @@ export async function processPaymentDB(payload: ProcessPaymentPayload) {
           status: "COMPLETED" as any,
         },
       });
+
+      // 🌟 6. จัดการระบบสมาชิก (หักเครดิต และ สะสมแต้ม)
+      if (payload.memberId) {
+        const member = await tx.member.findUnique({
+          where: { id: payload.memberId },
+        });
+
+        if (member) {
+          let newCreditBalance = member.creditBalance;
+          let newPoints = member.points;
+
+          // 6.1 ถ้าจ่ายด้วยกระเป๋าสมาชิก (MEMBER) -> ตัดเงินเครดิต
+          if (paymentMethodString === "MEMBER") {
+            if (member.creditBalance < payload.amount) {
+              throw new Error("ยอดเงินเครดิตในกระเป๋าสมาชิกไม่เพียงพอ");
+            }
+            newCreditBalance -= payload.amount;
+
+            // หักเงินคงเหลือของ Member
+            await tx.member.update({
+              where: { id: member.id },
+              data: { creditBalance: newCreditBalance },
+            });
+
+            // บันทึกประวัติกระเป๋าเงิน (SPEND CREDIT)
+            await tx.membertransaction.create({
+              data: {
+                organizationId: payload.organizationId,
+                type: "SPEND" as any,
+                walletType: "CREDIT" as any,
+                amount: -payload.amount, // ติดลบเพราะถูกหัก
+                balanceAfter: newCreditBalance,
+                note: `ชำระค่าสินค้า (บิล #${updatedOrder.orderNumber})`,
+                memberId: member.id,
+                orderId: payload.orderId,
+                createdById: payload.createdBy
+                  ? Number(payload.createdBy)
+                  : null,
+                date: new Date(),
+              },
+            });
+          }
+
+          // 6.2 คำนวณและสะสมแต้ม (สมมติสูตร: ทุกๆ 100 BATH = 1 แต้ม)
+          // สามารถแก้ตัวเลข 100 ด้านล่างให้เป็นตามโปรโมชั่นของร้านได้เลยครับ
+          const pointsRate = 100;
+          const earnedPoints = Math.floor(payload.amount / pointsRate);
+
+          if (earnedPoints > 0) {
+            newPoints += earnedPoints;
+
+            // เพิ่มแต้มให้ Member
+            await tx.member.update({
+              where: { id: member.id },
+              data: { points: newPoints },
+            });
+
+            // บันทึกประวัติแต้ม (EARN POINT)
+            await tx.membertransaction.create({
+              data: {
+                organizationId: payload.organizationId,
+                type: "EARN" as any,
+                walletType: "POINT" as any,
+                amount: earnedPoints, 
+                balanceAfter: newPoints,
+                note: `สะสมแต้มจากบิล #${updatedOrder.orderNumber}`,
+                memberId: member.id,
+                orderId: payload.orderId,
+                createdById: payload.createdBy
+                  ? Number(payload.createdBy)
+                  : null,
+                date: new Date(),
+              },
+            });
+          }
+        }
+      }
 
       return { payment, updatedOrder };
     });
