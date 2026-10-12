@@ -26,7 +26,12 @@ export async function getMembersAction(params: {
   } = params;
 
   if (!organizationId) {
-    return { success: false, message: "ไม่พบรหัสร้านค้า (Organization ID)", data: [], total: 0 };
+    return {
+      success: false,
+      message: "ไม่พบรหัสร้านค้า (Organization ID)",
+      data: [],
+      total: 0,
+    };
   }
 
   try {
@@ -73,7 +78,12 @@ export async function getMembersAction(params: {
     };
   } catch (error: any) {
     console.error("Error fetching members:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลสมาชิก", data: [], total: 0 };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการดึงข้อมูลสมาชิก",
+      data: [],
+      total: 0,
+    };
   }
 }
 
@@ -178,7 +188,10 @@ export async function createMemberAction(data: {
     });
 
     if (existing) {
-      return { success: false, message: `เบอร์โทรศัพท์ ${cleanPhone} นี้เป็นสมาชิกอยู่แล้ว` };
+      return {
+        success: false,
+        message: `เบอร์โทรศัพท์ ${cleanPhone} นี้เป็นสมาชิกอยู่แล้ว`,
+      };
     }
 
     // สร้างข้อมูลสมาชิกและบันทึก Transaction เริ่มต้นใน $transaction
@@ -238,7 +251,10 @@ export async function createMemberAction(data: {
     return { success: true, message: "เพิ่มสมาชิกใหม่สำเร็จ", data: result };
   } catch (error: any) {
     console.error("Error creating member:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการสร้างสมาชิก" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการสร้างสมาชิก",
+    };
   }
 }
 
@@ -295,7 +311,10 @@ export async function updateMemberAction(data: {
     });
 
     if (existing) {
-      return { success: false, message: `เบอร์โทรศัพท์ ${cleanPhone} นี้ถูกใช้งานโดยสมาชิกท่านอื่นแล้ว` };
+      return {
+        success: false,
+        message: `เบอร์โทรศัพท์ ${cleanPhone} นี้ถูกใช้งานโดยสมาชิกท่านอื่นแล้ว`,
+      };
     }
 
     const updateData: any = {
@@ -326,10 +345,17 @@ export async function updateMemberAction(data: {
     });
 
     revalidatePath("/settings");
-    return { success: true, message: "อัปเดตข้อมูลสมาชิกสำเร็จ", data: updated };
+    return {
+      success: true,
+      message: "อัปเดตข้อมูลสมาชิกสำเร็จ",
+      data: updated,
+    };
   } catch (error: any) {
     console.error("Error updating member:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูลสมาชิก" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูลสมาชิก",
+    };
   }
 }
 
@@ -373,7 +399,11 @@ export async function deleteMemberAction(id: number, organizationId: number) {
     return { success: true, message: "ลบสมาชิกสำเร็จ" };
   } catch (error: any) {
     console.error("Error deleting member:", error);
-    return { success: false, message: error.message || "ไม่สามารถลบสมาชิกได้เนื่องจากมีข้อมูลที่เกี่ยวข้อง" };
+    return {
+      success: false,
+      message:
+        error.message || "ไม่สามารถลบสมาชิกได้เนื่องจากมีข้อมูลที่เกี่ยวข้อง",
+    };
   }
 }
 
@@ -385,7 +415,7 @@ export async function adjustMemberWalletAction(data: {
   memberId: number;
   organizationId: number;
   walletType: MemberWalletType; // "POINT" | "CREDIT"
-  action: "ADD" | "DEDUCT";     // เพิ่ม หรือ ลด
+  action: "ADD" | "DEDUCT"; // เพิ่ม หรือ ลด
   amount: number;
   note?: string;
   createdById?: number | null;
@@ -423,7 +453,10 @@ export async function adjustMemberWalletAction(data: {
           throw new Error(`แต้มสะสมมีไม่พอ (ปัจจุบันมี ${member.points} แต้ม)`);
         }
 
-        newBalance = action === "ADD" ? member.points + changePoints : member.points - changePoints;
+        newBalance =
+          action === "ADD"
+            ? member.points + changePoints
+            : member.points - changePoints;
         txType = action === "ADD" ? "EARN" : "REDEEM";
 
         await tx.member.update({
@@ -439,7 +472,11 @@ export async function adjustMemberWalletAction(data: {
             walletType: "POINT",
             amount: action === "ADD" ? changePoints : -changePoints,
             balanceAfter: newBalance,
-            note: note || (action === "ADD" ? "ปรับเพิ่มแต้มโดยผู้ดูแล" : "ปรับลดแต้มโดยผู้ดูแล"),
+            note:
+              note ||
+              (action === "ADD"
+                ? "ปรับเพิ่มแต้มโดยผู้ดูแล"
+                : "ปรับลดแต้มโดยผู้ดูแล"),
             createdById: createdById || null,
           },
         });
@@ -447,10 +484,15 @@ export async function adjustMemberWalletAction(data: {
         // CREDIT
         const changeCredit = Number(amount);
         if (action === "DEDUCT" && member.creditBalance < changeCredit) {
-          throw new Error(`เครดิตเงินสดมีไม่พอ (ปัจจุบันมี ฿${member.creditBalance})`);
+          throw new Error(
+            `เครดิตเงินสดมีไม่พอ (ปัจจุบันมี ฿${member.creditBalance})`,
+          );
         }
 
-        newBalance = action === "ADD" ? member.creditBalance + changeCredit : member.creditBalance - changeCredit;
+        newBalance =
+          action === "ADD"
+            ? member.creditBalance + changeCredit
+            : member.creditBalance - changeCredit;
         txType = action === "ADD" ? "TOPUP" : "SPEND";
 
         await tx.member.update({
@@ -466,7 +508,9 @@ export async function adjustMemberWalletAction(data: {
             walletType: "CREDIT",
             amount: action === "ADD" ? changeCredit : -changeCredit,
             balanceAfter: newBalance,
-            note: note || (action === "ADD" ? "เติมเครดิตเงินสด" : "หักเครดิตเงินสด"),
+            note:
+              note ||
+              (action === "ADD" ? "เติมเครดิตเงินสด" : "หักเครดิตเงินสด"),
             createdById: createdById || null,
           },
         });
@@ -483,7 +527,10 @@ export async function adjustMemberWalletAction(data: {
     };
   } catch (error: any) {
     console.error("Error adjusting member wallet:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการปรับยอด" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการปรับยอด",
+    };
   }
 }
 
@@ -545,7 +592,10 @@ export async function createMemberTierAction(data: {
     return { success: true, message: "สร้างระดับสมาชิกสำเร็จ", data: newTier };
   } catch (error: any) {
     console.error("Error creating member tier:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการสร้างระดับสมาชิก" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการสร้างระดับสมาชิก",
+    };
   }
 }
 
@@ -585,11 +635,17 @@ export async function updateMemberTierAction(data: {
     return { success: true, message: "อัปเดตระดับสมาชิกสำเร็จ", data: updated };
   } catch (error: any) {
     console.error("Error updating member tier:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการอัปเดตระดับสมาชิก" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการอัปเดตระดับสมาชิก",
+    };
   }
 }
 
-export async function deleteMemberTierAction(id: number, organizationId: number) {
+export async function deleteMemberTierAction(
+  id: number,
+  organizationId: number,
+) {
   if (!id || !organizationId) {
     return { success: false, message: "ข้อมูลไม่ครบถ้วน" };
   }
@@ -616,7 +672,10 @@ export async function deleteMemberTierAction(id: number, organizationId: number)
     return { success: true, message: "ลบระดับสมาชิกสำเร็จ" };
   } catch (error: any) {
     console.error("Error deleting member tier:", error);
-    return { success: false, message: error.message || "ไม่สามารถลบระดับสมาชิกได้" };
+    return {
+      success: false,
+      message: error.message || "ไม่สามารถลบระดับสมาชิกได้",
+    };
   }
 }
 
@@ -624,7 +683,10 @@ export async function deleteMemberTierAction(id: number, organizationId: number)
 // 7. ดึงประวัติธุรกรรมสมาชิก (Member Transactions History)
 // =========================================================================
 
-export async function getMemberTransactionsAction(memberId: number, organizationId: number) {
+export async function getMemberTransactionsAction(
+  memberId: number,
+  organizationId: number,
+) {
   if (!memberId || !organizationId) return [];
 
   try {
@@ -649,7 +711,10 @@ export async function getMemberTransactionsAction(memberId: number, organization
 // 8. ค้นหาสมาชิกด้วยเบอร์โทรศัพท์ (Search Member by Phone)
 // =========================================================================
 
-export async function searchMemberByPhoneAction(organizationId: number, phone: string) {
+export async function searchMemberByPhoneAction(
+  organizationId: number,
+  phone: string,
+) {
   if (!organizationId || !phone?.trim()) {
     return { success: false, message: "กรุณาระบุเบอร์โทรศัพท์", data: null };
   }
@@ -700,7 +765,53 @@ export async function searchMemberByPhoneAction(organizationId: number, phone: s
     };
   } catch (error: any) {
     console.error("Error searching member by phone:", error);
-    return { success: false, message: error.message || "เกิดข้อผิดพลาดในการค้นหา", data: null };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการค้นหา",
+      data: null,
+    };
+  }
+}
+
+export async function searchMemberDB(query: string, organizationId: number) {
+  try {
+    if (!query || !query.trim()) {
+      return { success: false, message: "กรุณาระบุข้อมูลสำหรับค้นหา" };
+    }
+
+    const searchTerm = query.trim();
+
+    const member = await prisma.member.findFirst({
+      where: {
+        organizationId: organizationId,
+        OR: [
+          { phone: { contains: searchTerm } },
+          { firstName: { contains: searchTerm } },
+          { lastName: { contains: searchTerm } },
+        ],
+      },
+      include: {
+        tier: true,
+      },
+    });
+
+    if (!member) {
+      return { success: false, message: "ไม่พบข้อมูลสมาชิก" };
+    }
+
+    const mappedData = {
+      id: String(member.id),
+      name: `${member.firstName} ${member.lastName || ""}`.trim(),
+      phone: member.phone,
+      points: member.points || 0,
+      balance: member.creditBalance || 0,
+      discountPercent: (member.tier as any)?.discountPercent || 0,
+    };
+
+    return { success: true, data: mappedData };
+  } catch (error: any) {
+    console.error("Search Member Error:", error);
+    return { success: false, message: error.message };
   }
 }
 

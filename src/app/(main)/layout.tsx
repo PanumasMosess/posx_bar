@@ -13,6 +13,7 @@ import { getSessionAction } from "@/lib/actions/authActions";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import EmployeePinModal from "@/components/auth/EmployeePinModal";
 import { ShiftRevenueProvider } from "@/components/providers/ShiftRevenueContext";
+import { MemberProvider } from "@/components/providers/MemberContext";
 
 export default function MainLayout({
   children,
@@ -80,32 +81,34 @@ export default function MainLayout({
         /* 🌟 ครอบ OrganizationSettingsProvider โดยส่ง currentOrgId เข้าไป */
         <OrganizationSettingsProvider organizationId={currentOrgId}>
           <CartProvider>
-            <ShiftProvider>
-              <ShiftRevenueProvider>
-                <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
-                  <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
+            <MemberProvider>
+              <ShiftProvider>
+                <ShiftRevenueProvider>
+                  <div className="flex flex-col h-[100dvh] w-full bg-pos-bg text-pos-text overflow-hidden selection:bg-sky-500/30">
+                    <Header onToggleCart={isPosPage ? toggleCart : () => {}} />
 
-                  <div className="flex-1 flex overflow-hidden relative">
-                    <Sidebar />
+                    <div className="flex-1 flex overflow-hidden relative">
+                      <Sidebar />
 
-                    <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
-                      <div className="flex-1 overflow-y-auto">{children}</div>
-                      <MobileNav
-                        onToggleCart={isPosPage ? toggleCart : () => {}}
-                      />
-                    </main>
+                      <main className="flex-1 flex flex-col min-w-0 bg-pos-bg overflow-hidden relative">
+                        <div className="flex-1 overflow-y-auto">{children}</div>
+                        <MobileNav
+                          onToggleCart={isPosPage ? toggleCart : () => {}}
+                        />
+                      </main>
 
-                    {isPosPage && (
-                      <CartDrawer
-                        isOpen={isCartOpen}
-                        onClose={closeCart}
-                        onOpen={openCart}
-                      />
-                    )}
+                      {isPosPage && (
+                        <CartDrawer
+                          isOpen={isCartOpen}
+                          onClose={closeCart}
+                          onOpen={openCart}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </ShiftRevenueProvider>
-            </ShiftProvider>
+                </ShiftRevenueProvider>
+              </ShiftProvider>
+            </MemberProvider>
           </CartProvider>
         </OrganizationSettingsProvider>
       )}

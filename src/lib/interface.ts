@@ -157,6 +157,7 @@ export interface PaymentModalProps {
 
 export interface ProcessPaymentPayload {
   orderId: number;
+  memberId?: number;
   amount: number;
   receivedAmount?: number;
   changeAmount?: number;
