@@ -53,10 +53,17 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   if (!payingBill && !isPaymentSuccess) return null;
 
   const baseTotal = payingBill?.totalPrice || 0;
-  const discountAmount = selectedMember
-    ? (baseTotal * (selectedMember.discountPercent || 0)) / 100
-    : 0;
+
+  // 🌟 ส่วนลดจะคิดเฉพาะตอนเลือกจ่ายแบบ MEMBER และมีข้อมูลสมาชิกเท่านั้น
+  const discountAmount =
+    selectedMember && paymentMethod === "MEMBER"
+      ? (baseTotal * (selectedMember.discountPercent || 0)) / 100
+      : 0;
   const netTotal = Math.max(0, baseTotal - discountAmount);
+
+  // คำนวณแต้มที่จะได้รับ (100 LAK = 1 แต้ม)
+  const POINTS_RATE = 100;
+  const earnedPoints = Math.floor(netTotal / POINTS_RATE);
 
   const numReceived = Number(receivedAmount) || 0;
   const changeAmount =
@@ -64,6 +71,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
 
   const isCashSufficient =
     paymentMethod === "CASH" ? numReceived >= netTotal : true;
+
+  // 🌟 เช็คยอดเงินเฉพาะตอนจ่ายแบบ MEMBER
   const isMemberWalletSufficient =
     paymentMethod === "MEMBER"
       ? selectedMember
@@ -132,8 +141,15 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
         changeAmount: paymentMethod === "CASH" ? changeAmount : 0,
         shiftId: activeShift.id,
         method: paymentMethod,
-        referenceNo: selectedMember ? `MEMBER-${selectedMember.id}` : undefined,
-        memberId: selectedMember ? Number(selectedMember.id) : undefined,
+        // ส่งรหัสสมาชิกไปบันทึกเฉพาะตอนจ่ายด้วย MEMBER
+        referenceNo:
+          selectedMember && paymentMethod === "MEMBER"
+            ? `MEMBER-${selectedMember.id}`
+            : undefined,
+        memberId:
+          selectedMember && paymentMethod === "MEMBER"
+            ? Number(selectedMember.id)
+            : undefined,
         organizationId: organizationId,
         createdBy: String(employeeId),
       });
@@ -392,16 +408,29 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                 shiftNumber={activeShift?.shiftNumber}
                 onClose={onClose}
               />
-              <MemberSelector
-                selectedMember={selectedMember}
-                showInput={showMemberInput}
-                searchQuery={memberSearch}
-                onSearchChange={setMemberSearch}
-                onSearchSubmit={handleSearchMember}
-                onToggleInput={setShowMemberInput}
-                onClearMember={clearSelectedMember}
-              />
+
+              {/* 🌟 แสดงช่องค้นหาและสะสมแต้ม "เฉพาะตอนกดแท็บ MEMBER" เท่านั้น */}
+              {paymentMethod === "MEMBER" && (
+                <>
+                  <MemberSelector
+                    selectedMember={selectedMember}
+                    showInput={showMemberInput}
+                    searchQuery={memberSearch}
+                    onSearchChange={setMemberSearch}
+                    onSearchSubmit={handleSearchMember}
+                    onToggleInput={setShowMemberInput}
+                    onClearMember={clearSelectedMember}
+                  />
+                  {selectedMember && earnedPoints > 0 && (
+                    <div className="bg-emerald-500/10 px-4 py-2 border-b border-pos-border text-xs font-bold text-emerald-600 flex justify-between items-center">
+                      <span>✨ จะได้รับแต้มสะสมจากบิลนี้:</span>
+                      <span>+{earnedPoints} แต้ม</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
+
             <div className="flex-1 flex flex-col min-h-0 bg-pos-bg/30">
               <PaymentItemsList
                 items={payingBill?.items || []}
@@ -425,6 +454,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                   currentMethod={paymentMethod}
                   onChange={setPaymentMethod}
                 />
+
                 {paymentMethod === "CASH" && (
                   <CashNumpad
                     numReceived={numReceived}
@@ -433,6 +463,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                     onNumpadPress={handleNumpadPress}
                   />
                 )}
+
                 {paymentMethod === "MEMBER" && (
                   <MemberWalletView
                     selectedMember={selectedMember}
@@ -440,6 +471,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                     onOpenSearch={() => setShowMemberInput(true)}
                   />
                 )}
+
                 {(paymentMethod === "QR" || paymentMethod === "CARD") && (
                   <div className="flex-1 flex flex-col items-center justify-center p-4 bg-pos-bg rounded-2xl border border-pos-border text-center gap-2">
                     <span className="text-3xl">
