@@ -220,24 +220,28 @@ export async function updateQRCodeAction(
 
 export async function getOrganizationSettingsDB(organizationId: number) {
   try {
-    let settings = await prisma.organizations_settings.findUnique({
-      where: { organizationId },
-    });
+    const [orgSettings, paymentSettings] = await Promise.all([
+      prisma.organizations_settings.findFirst({
+        where: { organizationId },
+      }),
+      prisma.payments_settings.findUnique({
+        where: { organizationId },
+      }),
+    ]);
 
-    if (!settings) {
-      settings = await prisma.organizations_settings.create({
-        data: {
-          organizationId,
-          currencyCode: "THB", 
-          isManualOpenClose: false,
-        },
-      });
+    if (!orgSettings) {
+      return { success: false, message: "ไม่พบข้อมูลตั้งค่าของร้านค้านี้" };
     }
 
-    return { success: true, data: settings };
-  } catch (error) {
-    console.error("Error fetching settings:", error);
-    return { success: false, data: null };
+    const combinedData = {
+      ...orgSettings,
+      payments_settings: paymentSettings || null,
+    };
+
+    return { success: true, data: combinedData };
+  } catch (error: any) {
+    console.error("Get Organization Settings Error:", error);
+    return { success: false, message: error.message };
   }
 }
 
@@ -376,4 +380,3 @@ export async function savePaymentSettingsAction(payload: {
     };
   }
 }
-

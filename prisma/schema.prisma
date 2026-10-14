@@ -69,6 +69,7 @@ model organizations {
   members             member[]
   memberTiers         membertier[]
   memberTransactions  membertransaction[]
+  qrPaymentIntents    qr_payment_intents[]
 }
 
 model products {
@@ -178,9 +179,10 @@ model orders {
   shifts    shifts?  @relation(fields: [shiftsId], references: [id])
   shiftsId  Int?
 
-  memberId       Int?
-  member         member?  @relation(fields: [memberId], references: [id])
+  memberId           Int?
+  member             member?              @relation(fields: [memberId], references: [id])
   memberTransactions membertransaction[]
+  qrPaymentIntents   qr_payment_intents[]
 }
 
 model orderitems {
@@ -294,18 +296,18 @@ model organizations_settings {
 }
 
 model employees {
-  id             Int                   @id @default(autoincrement())
-  name           String // ชื่อพนักงาน
-  role           String                @default("พนักงาน") // ตำแหน่ง/หน้าที่
-  pin            String                @unique // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
-  img            String? // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
-  isActive       Boolean               @default(true) // สถานะ เปิด/ปิด การใช้งาน
-  organizationId Int
-  organization   organizations         @relation(fields: [organizationId], references: [id])
-  permission     employee_permissions?
-  createdBy      String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  id                 Int                   @id @default(autoincrement())
+  name               String // ชื่อพนักงาน
+  role               String                @default("พนักงาน") // ตำแหน่ง/หน้าที่
+  pin                String                @unique // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
+  img                String? // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
+  isActive           Boolean               @default(true) // สถานะ เปิด/ปิด การใช้งาน
+  organizationId     Int
+  organization       organizations         @relation(fields: [organizationId], references: [id])
+  permission         employee_permissions?
+  createdBy          String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
   memberTransactions membertransaction[]
 }
 
@@ -358,78 +360,98 @@ model StockMovement {
 // ------------------------------------------------------
 
 model member {
-  id             Int      @id @default(autoincrement())
-  organizationId Int      // ผูกกับสาขาหรือร้านค้า
-  phone          String   // เบอร์โทรศัพท์ (ใช้ค้นหา/ล็อกอิน)
-  firstName      String   // ชื่อ
-  lastName       String?  // นามสกุล
+  id             Int     @id @default(autoincrement())
+  organizationId Int // ผูกกับสาขาหรือร้านค้า
+  phone          String // เบอร์โทรศัพท์ (ใช้ค้นหา/ล็อกอิน)
+  firstName      String // ชื่อ
+  lastName       String? // นามสกุล
 
   // ยอดคงเหลือต่างๆ
-  points         Int      @default(0)   // แต้มสะสม
-  creditBalance  Float    @default(0.0) // เครดิตร้านค้า (เงินที่เติมไว้)
+  points        Int   @default(0) // แต้มสะสม
+  creditBalance Float @default(0.0) // เครดิตร้านค้า (เงินที่เติมไว้)
 
   // สถานะและระดับ
-  tierId         Int?     // ระดับสมาชิก 
-  status         String   @default("ACTIVE") // ACTIVE, INACTIVE, BANNED
+  tierId Int? // ระดับสมาชิก 
+  status String @default("ACTIVE") // ACTIVE, INACTIVE, BANNED
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // ความสัมพันธ์
-  organization   organizations       @relation(fields: [organizationId], references: [id])
-  tier           membertier?         @relation(fields: [tierId], references: [id])
-  transactions   membertransaction[] 
-  orders         orders[]            // ผูกบิลเข้ากับสมาชิก (ถ้าต้องการ)
+  organization organizations       @relation(fields: [organizationId], references: [id])
+  tier         membertier?         @relation(fields: [tierId], references: [id])
+  transactions membertransaction[]
+  orders       orders[] // ผูกบิลเข้ากับสมาชิก (ถ้าต้องการ)
 
   @@unique([phone, organizationId])
 }
 
 model membertier {
-  id              Int      @id @default(autoincrement())
+  id              Int    @id @default(autoincrement())
   organizationId  Int
-  name            String   // ชื่อระดับ (เช่น "Gold Member")
-  minSpending     Float    @default(0) // ยอดใช้จ่ายขั้นต่ำเพื่อเลื่อนระดับ
-  pointMultiplier Float    @default(1.0) // ตัวคูณแต้ม 
-  discountPercent Float    @default(0.0) // ส่วนลดพื้นฐานของระดับนี้ (%)
+  name            String // ชื่อระดับ (เช่น "Gold Member")
+  minSpending     Float  @default(0) // ยอดใช้จ่ายขั้นต่ำเพื่อเลื่อนระดับ
+  pointMultiplier Float  @default(1.0) // ตัวคูณแต้ม 
+  discountPercent Float  @default(0.0) // ส่วนลดพื้นฐานของระดับนี้ (%)
 
-  organization    organizations @relation(fields: [organizationId], references: [id])
-  members         member[]
+  organization organizations @relation(fields: [organizationId], references: [id])
+  members      member[]
 }
 
 model membertransaction {
   id             Int             @id @default(autoincrement())
   organizationId Int
-  type           transactiontype 
-  walletType     wallettype      
-  amount         Float           // จำนวน (ติดลบ=ใช้ไป, บวก=ได้รับ)
-  balanceAfter   Float           // ยอดคงเหลือหลังทำรายการ
-  note           String?         
+  type           transactiontype
+  walletType     wallettype
+  amount         Float // จำนวน (ติดลบ=ใช้ไป, บวก=ได้รับ)
+  balanceAfter   Float // ยอดคงเหลือหลังทำรายการ
+  note           String?
   createdAt      DateTime        @default(now())
-  referenceTxId  Int?            // ระบุว่าจ่ายให้ transaction(SPEND) ID ไหน
-  paymentGroupId String?         
+  referenceTxId  Int? // ระบุว่าจ่ายให้ transaction(SPEND) ID ไหน
+  paymentGroupId String?
 
-  date           DateTime?
-  memberId       Int
-  member         member          @relation(fields: [memberId], references: [id])
+  date     DateTime?
+  memberId Int
+  member   member    @relation(fields: [memberId], references: [id])
 
-  orderId        Int? 
-  order          orders?         @relation(fields: [orderId], references: [id]) // อ้างอิง orders ระบบใหม่
+  orderId Int?
+  order   orders? @relation(fields: [orderId], references: [id]) // อ้างอิง orders ระบบใหม่
 
-  createdById    Int? 
-  employee       employees?      @relation(fields: [createdById], references: [id]) // อ้างอิง employees ระบบใหม่
-  
-  organization   organizations   @relation(fields: [organizationId], references: [id])
+  createdById Int?
+  employee    employees? @relation(fields: [createdById], references: [id]) // อ้างอิง employees ระบบใหม่
+
+  organization organizations @relation(fields: [organizationId], references: [id])
 }
 
 enum transactiontype {
-  EARN    // ได้รับ 
-  REDEEM  // แลกใช้ 
-  TOPUP   // เติมเงิน 
-  SPEND   // จ่ายเงิน 
-  REFUND  // คืนเงิน/คืนแต้ม
+  EARN // ได้รับ 
+  REDEEM // แลกใช้ 
+  TOPUP // เติมเงิน 
+  SPEND // จ่ายเงิน 
+  REFUND // คืนเงิน/คืนแต้ม
 }
 
 enum wallettype {
-  POINT   // แต้มสะสม
-  CREDIT  // เครดิตร้านค้า (เงินสด)
+  POINT // แต้มสะสม
+  CREDIT // เครดิตร้านค้า (เงินสด)
+}
+
+model qr_payment_intents {
+  id             Int    @id @default(autoincrement())
+  organizationId Int
+  orderId        Int
+  expectedAmount Float
+  status         String @default("PENDING")
+
+  shiftId    Int?
+  employeeId Int?
+  memberId   Int?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  order        orders        @relation(fields: [orderId], references: [id])
+  organization organizations @relation(fields: [organizationId], references: [id])
+
+  @@index([expectedAmount, status])
 }
