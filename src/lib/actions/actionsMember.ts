@@ -686,24 +686,39 @@ export async function deleteMemberTierAction(
 export async function getMemberTransactionsAction(
   memberId: number,
   organizationId: number,
+  limit: number = 10,
+  offset: number = 0,
 ) {
-  if (!memberId || !organizationId) return [];
+  if (!memberId || !organizationId) {
+    return { transactions: [], total: 0, hasMore: false };
+  }
 
   try {
-    const transactions = await prisma.membertransaction.findMany({
-      where: { memberId, organizationId },
-      include: {
-        employee: {
-          select: { id: true, name: true },
+    const [transactions, total] = await Promise.all([
+      prisma.membertransaction.findMany({
+        where: { memberId, organizationId },
+        include: {
+          employee: {
+            select: { id: true, name: true },
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-    return transactions;
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.membertransaction.count({
+        where: { memberId, organizationId },
+      }),
+    ]);
+
+    return {
+      transactions,
+      total,
+      hasMore: offset + transactions.length < total,
+    };
   } catch (error) {
     console.error("Error fetching member transactions:", error);
-    return [];
+    return { transactions: [], total: 0, hasMore: false };
   }
 }
 

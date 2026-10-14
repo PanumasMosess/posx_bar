@@ -124,6 +124,7 @@ export interface MemberTransaction {
   referenceTxId?: number | null;
   paymentGroupId?: string | null;
   memberId: number;
+  orderId?: number | null;
   createdById?: number | null;
   employee?: {
     id: number;
