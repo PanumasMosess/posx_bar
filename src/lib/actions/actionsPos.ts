@@ -546,7 +546,7 @@ export async function processPaymentDB(payload: any) {
                 organizationId: payload.organizationId,
                 type: "EARN" as any,
                 walletType: "POINT" as any,
-                amount: earnedPoints, 
+                amount: earnedPoints,
                 balanceAfter: newPoints,
                 note: `สะสมแต้มจากบิล #${updatedOrder.orderNumber}`,
                 memberId: member.id,
@@ -741,5 +741,75 @@ export async function closeShiftDB(data: {
       success: false,
       message: error.message || "เกิดข้อผิดพลาดในการปิดกะ",
     };
+  }
+}
+
+export async function createQrIntentDB(payload: {
+  organizationId: number;
+  orderId: number;
+  expectedAmount: number;
+  shiftId?: number;
+  employeeId?: number;
+  memberId?: number;
+}) {
+  try {
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    const existingIntent = await prisma.qr_payment_intents.findFirst({
+      where: {
+        orderId: payload.orderId,
+        status: "PENDING",
+      },
+    });
+
+    let intent;
+
+    if (existingIntent) {
+      intent = await prisma.qr_payment_intents.update({
+        where: { id: existingIntent.id },
+        data: {
+          expectedAmount: payload.expectedAmount,
+          expiresAt: expiresAt,
+          shiftId: payload.shiftId,
+          employeeId: payload.employeeId,
+          memberId: payload.memberId,
+        },
+      });
+    } else {
+      intent = await prisma.qr_payment_intents.create({
+        data: {
+          organizationId: payload.organizationId,
+          orderId: payload.orderId,
+          expectedAmount: payload.expectedAmount,
+          shiftId: payload.shiftId,
+          employeeId: payload.employeeId,
+          memberId: payload.memberId,
+          status: "PENDING",
+          expiresAt: expiresAt,
+        },
+      });
+    }
+
+    return { success: true, data: intent };
+  } catch (error: any) {
+    console.error("Create/Update QR Intent Error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function checkQrPaymentStatusDB(orderId: number, expectedAmount: number) {
+  try {
+    const intent = await prisma.qr_payment_intents.findFirst({
+      where: {
+        orderId: orderId,
+        expectedAmount: expectedAmount,
+        status: "PAID",
+      },
+    });
+    
+    return { success: true, isPaid: !!intent };
+  } catch (error: any) {
+    console.error("Check QR Payment Status Error:", error);
+    return { success: false, isPaid: false, message: error.message };
   }
 }

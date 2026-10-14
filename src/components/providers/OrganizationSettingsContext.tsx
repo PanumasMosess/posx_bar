@@ -1,7 +1,22 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { getOrganizationSettingsDB } from "@/lib/actions/actionsSettings";
+
+export interface PaymentSettings {
+  id: number;
+  promptPayName?: string | null;
+  promptPayNumber?: string | null;
+  qrImageUrl?: string | null;
+  creditCardFee?: number | null;
+  organizationId: number;
+}
 
 export interface OrganizationSettings {
   id?: number;
@@ -14,6 +29,7 @@ export interface OrganizationSettings {
   receiptFooter?: string | null;
   taxId?: string | null;
   organizationId: number;
+  payments_settings?: PaymentSettings | null;
 }
 
 interface OrgSettingsContextType {
@@ -23,7 +39,9 @@ interface OrgSettingsContextType {
   formatCurrency: (amount: number) => string;
 }
 
-const OrganizationSettingsContext = createContext<OrgSettingsContextType | undefined>(undefined);
+const OrganizationSettingsContext = createContext<
+  OrgSettingsContextType | undefined
+>(undefined);
 
 export function OrganizationSettingsProvider({
   children,
@@ -54,7 +72,6 @@ export function OrganizationSettingsProvider({
     fetchSettings();
   }, [organizationId]);
 
-  // Helper สำหรับจัดฟอร์แมตตัวเลขเงินตาม สกุลเงินของร้านค้า
   const formatCurrency = (amount: number) => {
     const code = settings?.currencyCode || "LAK";
     return `${amount.toLocaleString()} ${code}`;
@@ -74,11 +91,12 @@ export function OrganizationSettingsProvider({
   );
 }
 
-// Hook สำหรับดึงไปใช้งานง่ายๆ
 export function useOrgSettings() {
   const context = useContext(OrganizationSettingsContext);
   if (!context) {
-    throw new Error("useOrgSettings must be used within an OrganizationSettingsProvider");
+    throw new Error(
+      "useOrgSettings must be used within an OrganizationSettingsProvider",
+    );
   }
   return context;
 }
