@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   getMembersAction,
   getMemberStatsAction,
@@ -16,6 +16,8 @@ import {
 } from '@/lib/actions/actionsMember';
 import { useEmployee } from '@/components/providers/EmployeeContext';
 import { Member, MemberTier, MemberTransaction } from '@/lib/types';
+import { getShopProfileSettings } from '@/lib/actions/actionsSettings';
+import { ALL_CURRENCIES } from './CurrencySetting';
 
 /* ==================== SVG Icons ==================== */
 function UserGroupIcon({ className = 'w-5 h-5' }: { className?: string }) {
@@ -98,6 +100,30 @@ function ChevronDownIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+function PhoneIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+    </svg>
+  );
+}
+
+function CardViewIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+
+function TableViewIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
+    </svg>
+  );
+}
+
 /* ==================== Main Component ==================== */
 export default function MemberSetting({ organizationId: propOrgId }: { organizationId?: number }) {
   const { organizationId: contextOrgId, employeeId } = useEmployee();
@@ -105,6 +131,34 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
   // Active sub-tab: 'members' | 'tiers'
   const [activeTab, setActiveTab] = useState<'members' | 'tiers'>('members');
+
+  // View Mode: 'card' | 'table' (Auto-detected on desktop, or toggled by user)
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+
+  // Currency symbol from organizations_settings (defaults to '฿' if THB or not found)
+  const [currencySymbol, setCurrencySymbol] = useState('฿');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setViewMode('table');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!orgId) return;
+    const loadCurrency = async () => {
+      try {
+        const profile = await getShopProfileSettings(orgId);
+        if (profile?.currencyCode) {
+          const found = ALL_CURRENCIES.find((c) => c.code === profile.currencyCode);
+          setCurrencySymbol(found ? found.symbol : profile.currencyCode);
+        }
+      } catch (err) {
+        console.error('Error fetching currency setting:', err);
+      }
+    };
+    loadCurrency();
+  }, [orgId]);
 
   // Loading States
   const [isLoading, setIsLoading] = useState(true);
@@ -176,7 +230,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyMember, setHistoryMember] = useState<Member | null>(null);
   const [transactions, setTransactions] = useState<MemberTransaction[]>([]);
+  const [totalHistoryCount, setTotalHistoryCount] = useState(0);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const historyOffsetRef = useRef(0);
+  const historyScrollContainerRef = useRef<HTMLDivElement>(null);
+  const historySentinelRef = useRef<HTMLDivElement>(null);
 
   // Toast feedback
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -510,15 +570,28 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
   };
 
   // ----------------------------------------------------
-  // Handlers: Member Transaction History
+  // Handlers: Member Transaction History (Infinite Scroll - 10 per batch)
   // ----------------------------------------------------
+  const HISTORY_PAGE_SIZE = 10;
+
   const handleOpenHistory = async (member: Member) => {
+    // Reset everything before opening
     setHistoryMember(member);
-    setIsHistoryModalOpen(true);
+    setTransactions([]);
+    setTotalHistoryCount(0);
     setIsLoadingHistory(true);
+    setIsLoadingMoreHistory(false);
+    setHasMoreHistory(false);
+    historyOffsetRef.current = 0;
+    setIsHistoryModalOpen(true);
+
     try {
-      const txs = await getMemberTransactionsAction(member.id, orgId);
-      setTransactions(txs as MemberTransaction[]);
+      const res = await getMemberTransactionsAction(member.id, orgId, HISTORY_PAGE_SIZE, 0);
+      const list = (res.transactions as MemberTransaction[]) ?? [];
+      setTransactions(list);
+      setTotalHistoryCount(res.total ?? 0);
+      historyOffsetRef.current = list.length;
+      setHasMoreHistory(res.hasMore ?? false);
     } catch (err) {
       console.error(err);
       showToast('เกิดข้อผิดพลาดในการโหลดประวัติ', 'error');
@@ -527,16 +600,79 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
     }
   };
 
+  const handleLoadMoreHistory = useCallback(async () => {
+    if (!historyMember || isLoadingHistory || isLoadingMoreHistory || !hasMoreHistory) return;
+    setIsLoadingMoreHistory(true);
+    try {
+      const offset = historyOffsetRef.current;
+      const res = await getMemberTransactionsAction(historyMember.id, orgId, HISTORY_PAGE_SIZE, offset);
+      const list = (res.transactions as MemberTransaction[]) ?? [];
+      if (list.length > 0) {
+        setTransactions((prev) => {
+          const existingIds = new Set(prev.map((t) => t.id));
+          const newUnique = list.filter((t) => !existingIds.has(t.id));
+          return [...prev, ...newUnique];
+        });
+        historyOffsetRef.current = offset + list.length;
+      }
+      setTotalHistoryCount(res.total ?? 0);
+      setHasMoreHistory(res.hasMore ?? false);
+    } catch (err) {
+      console.error('Error loading more history:', err);
+    } finally {
+      setIsLoadingMoreHistory(false);
+    }
+  }, [historyMember, isLoadingHistory, isLoadingMoreHistory, hasMoreHistory, orgId]);
+
+  const handleHistoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    // เมื่อเลื่อนลงมาใกล้ท้าย (เหลือ 120px) ให้โหลดเพิ่มอัตโนมัติ
+    if (scrollHeight - scrollTop - clientHeight < 120) {
+      handleLoadMoreHistory();
+    }
+  };
+
+  // IntersectionObserver ช่วยตรวจจับเมื่อเลื่อนลงมาถึงจุดสิ้นสุดของรายการ (ทำงานลื่นไหลทุกอุปกรณ์ทั้ง iOS, iPadOS, Android, PC)
+  useEffect(() => {
+    if (!isHistoryModalOpen || !hasMoreHistory || isLoadingHistory || isLoadingMoreHistory) {
+      return;
+    }
+
+    const target = historySentinelRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          handleLoadMoreHistory();
+        }
+      },
+      {
+        root: historyScrollContainerRef.current,
+        rootMargin: '120px',
+        threshold: 0.05,
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isHistoryModalOpen, hasMoreHistory, isLoadingHistory, isLoadingMoreHistory, handleLoadMoreHistory]);
+
+
   return (
     <div className="space-y-4 sm:space-y-5 animate-fadeIn">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-fadeIn">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] animate-fadeIn pointer-events-none">
           <div
-            className={`px-4 py-2.5 rounded-full shadow-lg border text-xs sm:text-sm font-bold flex items-center gap-2 ${toast.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-200'
-                : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950 dark:border-rose-800 dark:text-rose-200'
-              }`}
+            className={`pointer-events-auto px-4 py-2.5 rounded-full shadow-xl border text-xs sm:text-sm font-bold flex items-center gap-2 backdrop-blur-md ${
+              toast.type === 'success'
+                ? 'bg-emerald-500/95 text-white border-emerald-400'
+                : 'bg-rose-500/95 text-white border-rose-400'
+            }`}
           >
             <span>{toast.type === 'success' ? '✅' : '❌'}</span>
             <span>{toast.message}</span>
@@ -545,30 +681,60 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       )}
 
       {/* 1. Header Banner & Actions */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-pos-surface border border-pos-border shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0">
-            <UserGroupIcon className="w-6 h-6" />
+      <div className="p-3 sm:p-4 rounded-2xl bg-pos-surface border border-pos-border shadow-xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0">
+            <UserGroupIcon className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-pos-text flex items-center gap-2">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base font-bold text-pos-text flex items-center gap-2 truncate">
               <span>ระบบสมาชิก</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
                 {stats.totalMembers} คน
               </span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              จัดการรายชื่อสมาชิก ยอดแต้มสะสม และเครดิตเงินสดสำหรับซื้อสินค้า
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
+              จัดการสมาชิก แต้มสะสม และเครดิตเงินสด
             </p>
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Buttons: Add Member + View Mode Toggle */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* View Mode Toggle (on Tablet/Desktop) */}
+          <div className="hidden md:flex items-center p-0.5 rounded-xl bg-pos-bg border border-pos-border">
+            <button
+              type="button"
+              onClick={() => setViewMode('card')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
+                viewMode === 'card'
+                  ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
+                  : 'text-slate-400 hover:text-pos-text'
+              }`}
+              title="มุมมองการ์ด (เหมาะกับแท็บเล็ต/มือถือ)"
+            >
+              <CardViewIcon className="w-3.5 h-3.5" />
+              <span>การ์ด</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
+                  : 'text-slate-400 hover:text-pos-text'
+              }`}
+              title="มุมมองตาราง (เหมาะกับหน้าจอคอม)"
+            >
+              <TableViewIcon className="w-3.5 h-3.5" />
+              <span>ตาราง</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={handleOpenAddMember}
-            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-98 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-98 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer shrink-0"
           >
             <PlusIcon className="w-4 h-4" />
             <span>เพิ่มสมาชิกใหม่</span>
@@ -576,58 +742,58 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         </div>
       </div>
 
-      {/* 2. Stats Dashboard Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* 2. Compact Stats Bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
         {/* Total Members */}
-        <div className="p-3.5 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">สมาชิกทั้งหมด</span>
-            <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-              <UserGroupIcon className="w-4 h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">สมาชิกทั้งหมด</span>
+            <div className="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <UserGroupIcon className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-pos-text mt-1">{stats.totalMembers.toLocaleString()}</p>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+          <p className="text-base sm:text-xl font-black text-pos-text mt-0.5">{stats.totalMembers.toLocaleString()}</p>
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
             ใช้งานปกติ {stats.activeMembers} คน
           </p>
         </div>
 
         {/* Total Tiers */}
-        <div className="p-3.5 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ระดับสมาชิก</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <StarIcon className="w-4 h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">ระดับสมาชิก</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <StarIcon className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-pos-text mt-1">{tiers.length}</p>
-          <p className="text-[11px] text-slate-400 font-medium mt-0.5">ระดับที่มีในร้าน</p>
+          <p className="text-base sm:text-xl font-black text-pos-text mt-0.5">{tiers.length} ระดับ</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">สิทธิประโยชน์สมาชิก</p>
         </div>
 
         {/* Total Points */}
-        <div className="p-3.5 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">แต้มสะสมรวม</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <span className="text-xs font-bold">PT</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">แต้มสะสมรวม</span>
+            <div className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold">PT</span>
             </div>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-pos-text mt-1">{stats.totalPoints.toLocaleString()}</p>
-          <p className="text-[11px] text-slate-400 font-medium mt-0.5">แต้มที่สมาชิกรวมถืออยู่</p>
+          <p className="text-base sm:text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{stats.totalPoints.toLocaleString()}</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">แต้มที่ถืออยู่</p>
         </div>
 
         {/* Total Credit Balance */}
-        <div className="p-3.5 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">เครดิตกระเป๋ารวม</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <WalletIcon className="w-4 h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">เครดิตกระเป๋ารวม</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <WalletIcon className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-            ฿{stats.totalCreditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+          <p className="text-base sm:text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+            {currencySymbol}{stats.totalCreditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 font-medium mt-0.5">เงินที่เติมไว้ในระบบ</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">เงินที่เติมไว้ในระบบ</p>
         </div>
       </div>
 
@@ -637,24 +803,26 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           <button
             type="button"
             onClick={() => setActiveTab('members')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'members'
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'members'
                 ? 'bg-sky-500 text-white shadow-xs'
                 : 'text-slate-500 hover:text-pos-text'
-              }`}
+            }`}
           >
             <UserGroupIcon className="w-4 h-4" />
-            <span>รายชื่อสมาชิก</span>
+            <span>รายชื่อสมาชิก ({stats.totalMembers})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('tiers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'tiers'
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'tiers'
                 ? 'bg-sky-500 text-white shadow-xs'
                 : 'text-slate-500 hover:text-pos-text'
-              }`}
+            }`}
           >
             <StarIcon className="w-4 h-4" />
-            <span>ระดับสมาชิก (Tiers)</span>
+            <span>ระดับสมาชิก ({tiers.length})</span>
           </button>
         </div>
       </div>
@@ -665,10 +833,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       {activeTab === 'members' && (
         <div className="space-y-3.5">
           {/* Filters Bar */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="p-2.5 sm:p-3 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
             {/* Search Input */}
             <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <SearchIcon className="w-4 h-4" />
               </div>
               <input
@@ -678,8 +846,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="ค้นหาด้วย เบอร์โทร หรือ ชื่อสมาชิก..."
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text placeholder-slate-400 focus:outline-none focus:border-sky-500 transition"
+                placeholder="ค้นหาเบอร์โทร หรือ ชื่อสมาชิก..."
+                className="w-full pl-9 pr-9 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text placeholder-slate-400 focus:outline-none focus:border-sky-500 transition"
               />
               {searchQuery && (
                 <button
@@ -695,36 +863,38 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               )}
             </div>
 
-            {/* Filter Dropdowns - Grid 2 cols on mobile, flex on iPad / Desktop */}
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+            {/* Filter Dropdowns */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
               {/* Status Filter */}
-              <div className="relative min-w-0 sm:min-w-[140px]">
+              <div className="relative min-w-0 sm:min-w-[130px]">
                 <select
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="appearance-none w-full pl-3 pr-8 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none bg-none w-full pl-2.5 pr-7 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
                 >
                   <option value="ALL">สถานะทั้งหมด</option>
-                  <option value="ACTIVE">ใช้งานปกติ (Active)</option>
-                  <option value="INACTIVE">ระงับการใช้ (Inactive)</option>
+                  <option value="ACTIVE">ใช้งานปกติ</option>
+                  <option value="INACTIVE">ระงับการใช้</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400">
                   <ChevronDownIcon className="w-3.5 h-3.5" />
                 </div>
               </div>
 
               {/* Tier Filter */}
-              <div className="relative min-w-0 sm:min-w-[140px]">
+              <div className="relative min-w-0 sm:min-w-[130px]">
                 <select
                   value={tierFilter}
                   onChange={(e) => {
                     setTierFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="appearance-none w-full pl-3 pr-8 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
+                  style={{ backgroundImage: 'none' }}
+                  className="appearance-none bg-none w-full pl-2.5 pr-7 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
                 >
                   <option value="ALL">ระดับทั้งหมด</option>
                   {tiers.map((t) => (
@@ -733,151 +903,178 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400">
                   <ChevronDownIcon className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Members Content Container (Card View on Mobile + Table View on Tablet/Desktop) */}
-          <div className="rounded-2xl bg-pos-surface border border-pos-border shadow-xs overflow-hidden">
-            {isLoading ? (
-              <div className="py-16 text-center text-slate-400 text-sm">กำลังโหลดข้อมูลสมาชิก...</div>
-            ) : members.length === 0 ? (
-              <div className="py-16 text-center px-4">
-                <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
-                  <UserGroupIcon className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-semibold text-pos-text">ไม่พบข้อมูลสมาชิก</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {searchQuery ? 'ลองเปลี่ยนคำค้นหา หรือล้างตัวกรอง' : 'กดปุ่ม "เพิ่มสมาชิกใหม่" ด้านบนเพื่อเริ่มสร้างสมาชิกคนแรก'}
-                </p>
+          {/* Members Content Container */}
+          {isLoading ? (
+            <div className="py-16 text-center text-slate-400 text-sm rounded-2xl bg-pos-surface border border-pos-border">
+              กำลังโหลดข้อมูลสมาชิก...
+            </div>
+          ) : members.length === 0 ? (
+            <div className="py-16 text-center px-4 rounded-2xl bg-pos-surface border border-pos-border">
+              <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
+                <UserGroupIcon className="w-6 h-6" />
               </div>
-            ) : (
-              <>
-                {/* 1. Mobile Cards View (Phones: block md:hidden) */}
-                <div className="block md:hidden divide-y divide-pos-border">
+              <p className="text-sm font-semibold text-pos-text">ไม่พบข้อมูลสมาชิก</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {searchQuery ? 'ลองเปลี่ยนคำค้นหา หรือล้างตัวกรอง' : 'กดปุ่ม "เพิ่มสมาชิกใหม่" ด้านบนเพื่อเริ่มสร้างสมาชิกคนแรก'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Card View: Always shown on mobile (<768px), or on tablet/PC when viewMode === 'card' */}
+              <div className={`${viewMode === 'card' ? 'block' : 'block md:hidden'} space-y-2.5`}>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
                   {members.map((member) => {
                     const initial = member.firstName ? member.firstName.charAt(0) : '?';
                     const isInactive = member.status === 'INACTIVE' || member.status === 'BANNED';
 
                     return (
-                      <div key={member.id} className="p-3.5 space-y-3">
+                      <div
+                        key={member.id}
+                        className="p-3.5 sm:p-4 rounded-2xl bg-pos-surface border border-pos-border shadow-xs hover:border-sky-500/30 transition space-y-3"
+                      >
                         {/* Member Header */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 text-sky-600 dark:text-sky-400 font-bold flex items-center justify-center border border-sky-500/20 shrink-0 text-sm">
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500/20 via-blue-500/15 to-indigo-500/20 text-sky-600 dark:text-sky-400 font-bold flex items-center justify-center border border-sky-500/20 shrink-0 text-base shadow-2xs">
                               {initial}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-sm text-pos-text truncate">
+                              <h3 className="font-bold text-sm sm:text-base text-pos-text truncate">
                                 {member.firstName} {member.lastName || ''}
-                              </p>
-                              <p className="text-xs text-slate-500 font-mono">
-                                {member.phone}
-                              </p>
+                              </h3>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-mono mt-0.5">
+                                <PhoneIcon className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                                <span className="font-semibold text-pos-text tracking-wide">{member.phone}</span>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {member.tier && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                {member.tier.name}
+                          {/* Badges: Tier & Status */}
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {member.tier ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                <StarIcon className="w-3 h-3" />
+                                <span>{member.tier.name}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+                                ทั่วไป
                               </span>
                             )}
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isInactive
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                                isInactive
                                   ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                                   : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                }`}
+                              }`}
                             >
-                              {member.status || 'ACTIVE'}
+                              <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                              <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
                             </span>
                           </div>
                         </div>
 
-                        {/* Points & Credit Stats Grid */}
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <div className="p-2 rounded-xl bg-pos-bg/80 border border-pos-border/70 flex items-center justify-between">
-                            <div className="min-w-0 pr-1">
-                              <span className="block text-[10px] text-slate-400 font-semibold truncate">แต้มสะสม</span>
-                              <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono">
-                                {member.points.toLocaleString()} PT
+                        {/* Points & Credit Grid */}
+                        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                          {/* Points */}
+                          <div className="p-2.5 rounded-xl bg-indigo-500/5 dark:bg-indigo-950/20 border border-indigo-500/15 flex items-center justify-between gap-1.5">
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-indigo-600/70 dark:text-indigo-400/70 font-semibold block truncate">
+                                แต้มสะสม
+                              </span>
+                              <span className="text-xs sm:text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                                {member.points.toLocaleString()} <span className="text-[10px] font-bold">PT</span>
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleOpenAdjust(member, 'POINT')}
-                              className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs hover:bg-indigo-500/20 transition cursor-pointer shrink-0"
-                              title="ปรับแต้ม"
+                              className="px-2 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer transition shrink-0"
+                              title="ปรับแต้มสะสม"
                             >
-                              ＋
+                              <span>＋</span>
+                              <span>ปรับ</span>
                             </button>
                           </div>
 
-                          <div className="p-2 rounded-xl bg-pos-bg/80 border border-pos-border/70 flex items-center justify-between">
-                            <div className="min-w-0 pr-1">
-                              <span className="block text-[10px] text-slate-400 font-semibold truncate">เครดิตเงินสด</span>
-                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                                ฿{member.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          {/* Credit */}
+                          <div className="p-2.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/15 flex items-center justify-between gap-1.5">
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-semibold block truncate">
+                                เครดิตร้านค้า
+                              </span>
+                              <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                {currencySymbol}{member.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleOpenAdjust(member, 'CREDIT')}
-                              className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-xs hover:bg-emerald-500/20 transition cursor-pointer shrink-0"
+                              className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer transition shrink-0"
                               title="เติม/หักเครดิต"
                             >
-                              ＋
+                              <span>＋</span>
+                              <span>เติม</span>
                             </button>
                           </div>
                         </div>
 
-                        {/* Mobile Actions Footer */}
-                        <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-pos-border/40">
+                        {/* Card Actions Footer */}
+                        <div className="flex items-center justify-between pt-2 border-t border-pos-border/50 text-xs">
                           <button
                             type="button"
                             onClick={() => handleOpenHistory(member)}
-                            className="px-2.5 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover text-slate-600 dark:text-slate-300 text-xs font-semibold flex items-center gap-1 cursor-pointer transition"
+                            className="px-3 py-1.5 rounded-xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
                           >
-                            <HistoryIcon className="w-3.5 h-3.5" />
+                            <HistoryIcon className="w-3.5 h-3.5 text-sky-500" />
                             <span>ประวัติ</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditMember(member)}
-                            className="px-2.5 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            <EditIcon className="w-3.5 h-3.5" />
-                            <span>แก้ไข</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDelete(member)}
-                            className="px-2.5 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            <TrashIcon className="w-3.5 h-3.5" />
-                            <span>ลบ</span>
-                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditMember(member)}
+                              className="px-3 py-1.5 rounded-xl bg-pos-bg hover:bg-amber-500/10 border border-pos-border hover:border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
+                            >
+                              <EditIcon className="w-3.5 h-3.5" />
+                              <span>แก้ไข</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDelete(member)}
+                              className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
+                            >
+                              <TrashIcon className="w-3.5 h-3.5" />
+                              <span>ลบ</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+              </div>
 
-                {/* 2. Desktop / iPad Table View (Tablet/Desktop: hidden md:block) */}
-                <div className="hidden md:block overflow-x-auto custom-scroll">
-                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              {/* Table View: Shown when viewMode === 'table' on desktop/tablet */}
+              <div className={`${viewMode === 'table' ? 'hidden md:block' : 'hidden'} rounded-2xl bg-pos-surface border border-pos-border shadow-xs overflow-hidden`}>
+                <div className="overflow-x-auto custom-scroll">
+                  <table className="min-w-[760px] w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
-                      <tr className="border-b border-pos-border bg-pos-bg/60 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
-                        <th className="py-3 px-4">สมาชิก</th>
-                        <th className="py-3 px-3">เบอร์โทรศัพท์</th>
-                        <th className="py-3 px-3">ระดับ</th>
-                        <th className="py-3 px-3 text-right">แต้มสะสม</th>
-                        <th className="py-3 px-3 text-right">เครดิตคงเหลือ</th>
-                        <th className="py-3 px-3 text-center">สถานะ</th>
-                        <th className="py-3 px-4 text-center">จัดการ</th>
+                      <tr className="border-b border-pos-border bg-pos-bg/70 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
+                        <th className="py-3 px-4 whitespace-nowrap">สมาชิก</th>
+                        <th className="py-3 px-3 whitespace-nowrap">เบอร์โทรศัพท์</th>
+                        <th className="py-3 px-3 whitespace-nowrap">ระดับ</th>
+                        <th className="py-3 px-3 text-right whitespace-nowrap">แต้มสะสม</th>
+                        <th className="py-3 px-3 text-right whitespace-nowrap">เครดิตคงเหลือ</th>
+                        <th className="py-3 px-3 text-center whitespace-nowrap">สถานะ</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-pos-border">
@@ -890,90 +1087,84 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                             key={member.id}
                             className="hover:bg-pos-hover/60 transition group text-pos-text"
                           >
-                            {/* Member Name */}
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 text-sky-600 dark:text-sky-400 font-bold flex items-center justify-center border border-sky-500/20 shrink-0">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 text-sky-600 dark:text-sky-400 font-bold flex items-center justify-center border border-sky-500/20 shrink-0 text-sm">
                                   {initial}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="font-bold text-xs sm:text-sm text-pos-text truncate">
                                     {member.firstName} {member.lastName || ''}
                                   </p>
-                                  <p className="text-[10px] text-slate-400 font-mono">
-                                    ID: #{member.id}
-                                  </p>
                                 </div>
                               </div>
                             </td>
 
-                            {/* Phone */}
-                            <td className="py-3 px-3 font-mono font-medium text-xs sm:text-sm">
-                              {member.phone}
+                            <td className="py-3 px-3 font-mono font-medium text-xs sm:text-sm whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                                <PhoneIcon className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                                <span>{member.phone}</span>
+                              </div>
                             </td>
 
-                            {/* Tier */}
-                            <td className="py-3 px-3">
+                            <td className="py-3 px-3 whitespace-nowrap">
                               {member.tier ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                   <StarIcon className="w-3 h-3" />
                                   {member.tier.name}
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-xs">ทั่วไป</span>
+                                <span className="text-slate-400 text-xs px-2 py-0.5 rounded-full bg-slate-500/10 border border-slate-500/20">ทั่วไป</span>
                               )}
                             </td>
 
-                            {/* Points */}
-                            <td className="py-3 px-3 text-right font-mono">
+                            <td className="py-3 px-3 text-right font-mono whitespace-nowrap">
                               <div className="inline-flex items-center justify-end gap-1.5">
                                 <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                                  {member.points.toLocaleString()}
+                                  {member.points.toLocaleString()} PT
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAdjust(member, 'POINT')}
-                                  title="ปรับแต้ม"
-                                  className="w-5 h-5 rounded-md text-indigo-500 hover:bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold cursor-pointer transition"
+                                  title="ปรับแต้มสะสม"
+                                  className="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 flex items-center justify-center text-[11px] font-bold cursor-pointer transition"
                                 >
                                   ＋
                                 </button>
                               </div>
                             </td>
 
-                            {/* Credit Balance */}
-                            <td className="py-3 px-3 text-right font-mono">
+                            <td className="py-3 px-3 text-right font-mono whitespace-nowrap">
                               <div className="inline-flex items-center justify-end gap-1.5">
                                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                                  ฿{member.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                  {currencySymbol}{member.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAdjust(member, 'CREDIT')}
                                   title="เติม/หักเครดิต"
-                                  className="w-5 h-5 rounded-md text-emerald-600 hover:bg-emerald-500/10 flex items-center justify-center text-[10px] font-bold cursor-pointer transition"
+                                  className="w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-[11px] font-bold cursor-pointer transition"
                                 >
                                   ＋
                                 </button>
                               </div>
                             </td>
 
-                            {/* Status */}
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
                               <span
-                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${isInactive
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isInactive
                                     ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                                     : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                  }`}
+                                }`}
                               >
-                                {member.status || 'ACTIVE'}
+                                <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
                               </span>
                             </td>
 
-                            {/* Actions */}
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-4 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center gap-1">
-                                {/* History */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenHistory(member)}
@@ -982,8 +1173,6 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 >
                                   <HistoryIcon className="w-4 h-4" />
                                 </button>
-
-                                {/* Edit */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditMember(member)}
@@ -992,8 +1181,6 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 >
                                   <EditIcon className="w-4 h-4" />
                                 </button>
-
-                                {/* Delete */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDelete(member)}
@@ -1010,24 +1197,20 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     </tbody>
                   </table>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
 
-          {/* 3. Pagination Bar (ใช้ได้ทุกจอ: โทรศัพท์, ไอแพท, คอม) */}
+          {/* 3. Pagination Bar */}
           {totalCount > 0 && (
-            <div className="p-3 sm:p-4 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-pos-surface border border-pos-border shadow-2xs flex flex-col xl:flex-row items-center justify-between gap-2.5 sm:gap-3 text-xs">
               {/* Left: Summary & Page Size */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-slate-500 dark:text-slate-400">
-                <span>
-                  แสดง{' '}
-                  <strong className="text-pos-text font-bold">
-                    {Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}
-                  </strong>{' '}
-                  จากทั้งหมด <strong className="text-pos-text font-bold">{totalCount}</strong> คน
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-slate-500 dark:text-slate-400">
+                <span className="whitespace-nowrap">
+                  แสดง <strong className="text-pos-text font-bold">{Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}</strong> จาก <strong className="text-pos-text font-bold">{totalCount}</strong> คน
                 </span>
-                <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
-                <div className="flex items-center gap-1.5">
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <span>ต่อหน้า:</span>
                   <div className="relative">
                     <select
@@ -1036,8 +1219,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                         setPageSize(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      style={{ backgroundImage: 'none' }} // เพิ่มบรรทัดนี้เพื่อตัดรูปศรพื้นหลังของเบราว์เซอร์ทิ้ง
-                      className="appearance-none bg-none pl-2.5 pr-6 py-1 rounded-lg bg-pos-bg border border-pos-border font-bold text-pos-text cursor-pointer focus:outline-none focus:border-sky-500"
+                      style={{ backgroundImage: 'none' }}
+                      className="appearance-none bg-none pl-2 pr-6 py-1 rounded-lg bg-pos-bg border border-pos-border font-bold text-pos-text cursor-pointer focus:outline-none focus:border-sky-500 text-xs"
                     >
                       <option value={10}>10</option>
                       <option value={20}>20</option>
@@ -1052,12 +1235,12 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               </div>
 
               {/* Right: Page Navigation Buttons */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage(1)}
-                  className="px-2 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition"
+                  className="w-8 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center shrink-0"
                   title="หน้าแรก"
                 >
                   «
@@ -1066,28 +1249,30 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   type="button"
                   disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="px-2.5 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition"
+                  className="px-2.5 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
                   title="ก่อนหน้า"
                 >
-                  ‹ ก่อนหน้า
+                  <span>‹</span>
+                  <span className="hidden sm:inline">ก่อนหน้า</span>
                 </button>
-                <div className="px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-bold whitespace-nowrap">
+                <div className="px-2.5 sm:px-3 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-bold whitespace-nowrap flex items-center justify-center text-xs">
                   หน้า {currentPage} / {Math.max(1, totalPages)}
                 </div>
                 <button
                   type="button"
                   disabled={currentPage >= totalPages || isLoading}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-2.5 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition"
+                  className="px-2.5 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
                   title="ถัดไป"
                 >
-                  ถัดไป ›
+                  <span className="hidden sm:inline">ถัดไป</span>
+                  <span>›</span>
                 </button>
                 <button
                   type="button"
                   disabled={currentPage >= totalPages || isLoading}
                   onClick={() => setCurrentPage(totalPages)}
-                  className="px-2 py-1.5 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition"
+                  className="w-8 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center shrink-0"
                   title="หน้าสุดท้าย"
                 >
                   »
@@ -1164,7 +1349,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-pos-border/60 text-center">
                     <div className="p-2 rounded-xl bg-pos-bg">
                       <span className="block text-[10px] text-slate-400 font-semibold">ยอดใช้สะสม</span>
-                      <span className="text-xs font-black text-pos-text">฿{tier.minSpending.toLocaleString()}</span>
+                      <span className="text-xs font-black text-pos-text">{currencySymbol}{tier.minSpending.toLocaleString()}</span>
                     </div>
                     <div className="p-2 rounded-xl bg-pos-bg">
                       <span className="block text-[10px] text-slate-400 font-semibold">ตัวคูณแต้ม</span>
@@ -1262,7 +1447,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   <select
                     value={memberForm.tierId}
                     onChange={(e) => setMemberForm({ ...memberForm, tierId: e.target.value })}
-                    className="appearance-none w-full pl-3.5 pr-9 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer"
+                    style={{ backgroundImage: 'none' }}
+                    className="appearance-none bg-none w-full pl-3.5 pr-9 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer"
                   >
                     <option value="">สมาชิกทั่วไป (ไม่มีระดับ)</option>
                     {tiers.map((t) => (
@@ -1295,7 +1481,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                      เครดิตเริ่มต้น (฿)
+                      เครดิตเริ่มต้น ({currencySymbol})
                     </label>
                     <input
                       type="number"
@@ -1418,14 +1604,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 <span className="text-lg font-black text-pos-text">
                   {adjustForm.walletType === 'POINT'
                     ? `${adjustTargetMember.points.toLocaleString()} แต้ม`
-                    : `฿${adjustTargetMember.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                    : `${currencySymbol}${adjustTargetMember.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                 </span>
               </div>
 
               {/* Amount */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  จำนวน {adjustForm.walletType === 'POINT' ? 'แต้ม' : 'เงิน (฿)'} <span className="text-rose-500">*</span>
+                  จำนวน {adjustForm.walletType === 'POINT' ? 'แต้ม' : `เงิน (${currencySymbol})`} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -1437,6 +1623,19 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   placeholder="0.00"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-base text-pos-text font-black focus:outline-none focus:border-sky-500"
                 />
+                {/* Quick Amount Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                  {(adjustForm.walletType === 'POINT' ? [10, 50, 100, 500] : [50, 100, 500, 1000]).map((quickVal) => (
+                    <button
+                      key={quickVal}
+                      type="button"
+                      onClick={() => setAdjustForm({ ...adjustForm, amount: String(quickVal) })}
+                      className="px-2.5 py-1 rounded-lg bg-pos-bg hover:bg-pos-hover border border-pos-border text-xs font-semibold text-pos-text cursor-pointer transition active:scale-95"
+                    >
+                      +{quickVal.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Note */}
@@ -1511,7 +1710,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  ยอดใช้จ่ายสะสมขั้นต่ำ (฿)
+                  ยอดใช้จ่ายสะสมขั้นต่ำ ({currencySymbol})
                 </label>
                 <input
                   type="number"
@@ -1625,82 +1824,198 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       {/* MODAL 5: TRANSACTION HISTORY */}
       {/* ========================================================================= */}
       {isHistoryModalOpen && historyMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-          <div className="w-full max-w-lg bg-pos-surface rounded-3xl shadow-2xl border border-pos-border overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-4 sm:p-5 border-b border-pos-border flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-                  <HistoryIcon className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl bg-pos-surface rounded-3xl shadow-2xl border border-pos-border overflow-hidden flex flex-col h-[88vh] sm:h-[650px] max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="p-3.5 sm:p-5 border-b border-pos-border flex items-center justify-between shrink-0 bg-pos-surface">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <HistoryIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-base text-pos-text">
-                    ประวัติธุรกรรมสมาชิก
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    {historyMember.firstName} {historyMember.lastName || ''} ({historyMember.phone})
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm sm:text-base text-pos-text truncate">
+                      ประวัติธุรกรรมสมาชิก
+                    </h3>
+                    {totalHistoryCount > 0 && (
+                      <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 whitespace-nowrap">
+                        ทั้งหมด {totalHistoryCount} รายการ
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    <span className="font-semibold text-pos-text">{historyMember.firstName} {historyMember.lastName || ''}</span>
+                    <span className="mx-1.5 opacity-40">|</span>
+                    <span className="font-mono">{historyMember.phone}</span>
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="w-8 h-8 rounded-full text-slate-400 hover:text-pos-text hover:bg-pos-hover flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-pos-text hover:bg-pos-hover flex items-center justify-center cursor-pointer transition shrink-0 ml-2"
+                title="ปิดหน้าต่าง"
               >
                 <CloseIcon className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto custom-scroll flex-1 space-y-2.5">
-              {isLoadingHistory ? (
-                <div className="py-12 text-center text-xs text-slate-400">กำลังโหลดประวัติ...</div>
-              ) : transactions.length === 0 ? (
-                <div className="py-12 text-center text-xs text-slate-400">ยังไม่มีประวัติรายการ</div>
-              ) : (
-                transactions.map((tx) => {
-                  const isPositive = tx.amount >= 0;
-                  const isPoint = tx.walletType === 'POINT';
+            {/* Current Balance Bar */}
+            <div className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-pos-bg/60 border-b border-pos-border/70 flex items-center justify-between text-xs shrink-0 flex-wrap gap-2">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 text-[11px]">แต้มปัจจุบัน:</span>
+                  <strong className="text-indigo-600 dark:text-indigo-400 font-mono font-bold text-xs sm:text-sm">
+                    {historyMember.points.toLocaleString()} แต้ม
+                  </strong>
+                </div>
+                <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 text-[11px]">เครดิตคงเหลือ:</span>
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs sm:text-sm">
+                    {currencySymbol}{historyMember.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-400 font-medium">
+                {transactions.length > 0 && (
+                  <span>แสดง <strong className="text-pos-text">{transactions.length}</strong> / {totalHistoryCount} รายการ</span>
+                )}
+              </div>
+            </div>
 
-                  return (
-                    <div
-                      key={tx.id}
-                      className="p-3 rounded-2xl bg-pos-bg/80 border border-pos-border/70 flex items-center justify-between text-xs"
-                    >
-                      <div className="min-w-0 pr-2">
-                        <div className="flex items-center gap-2">
+            {/* Scrollable Transactions List (Scroll to reload 10 items per batch) */}
+            <div
+              ref={historyScrollContainerRef}
+              onScroll={handleHistoryScroll}
+              className="p-3 sm:p-4 overflow-y-auto flex-1 space-y-2.5 custom-scroll"
+            >
+              {isLoadingHistory ? (
+                <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="font-medium text-slate-500 dark:text-slate-400">กำลังโหลด 10 รายการแรก...</span>
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-1">
+                    <HistoryIcon className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-sm text-pos-text">ยังไม่มีประวัติการทำรายการ</p>
+                  <p className="text-[11px] text-slate-400">เมื่อมีการให้แต้ม ตัดแต้ม หรือเติมเครดิต ประวัติจะแสดงที่นี่</p>
+                </div>
+              ) : (
+                <>
+                  {transactions.map((tx) => {
+                    const isPositive = tx.amount >= 0;
+                    const isPoint = tx.walletType === 'POINT';
+
+                    // กำหนดป้ายสถานะภาษาไทยตามประเภทรายการ
+                    // กำหนดป้ายสถานะภาษาไทยตามประเภทรายการ
+                    let typeLabel: string = tx.type;
+                    let typeBg = 'bg-slate-500/15 text-slate-600 dark:text-slate-400';
+                    if (tx.type === 'EARN') {
+                      typeLabel = 'ได้รับแต้ม';
+                      typeBg = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400';
+                    } else if (tx.type === 'REDEEM') {
+                      typeLabel = 'แลกแต้ม';
+                      typeBg = 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
+                    } else if (tx.type === 'TOPUP') {
+                      typeLabel = 'เติมเครดิต';
+                      typeBg = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+                    } else if (tx.type === 'SPEND') {
+                      typeLabel = isPoint ? 'ใช้แต้ม' : 'ชำระเงิน';
+                      typeBg = 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
+                    } else if (tx.type === 'REFUND') {
+                      typeLabel = 'คืนเงิน/คืนแต้ม';
+                      typeBg = 'bg-sky-500/15 text-sky-600 dark:text-sky-400';
+                    }
+
+                    return (
+                      <div
+                        key={tx.id}
+                        className="p-3 sm:p-3.5 rounded-2xl bg-pos-bg/80 hover:bg-pos-bg border border-pos-border/70 flex items-center justify-between text-xs transition gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${typeBg}`}>
+                              {typeLabel}
+                            </span>
+                            <span className="font-bold text-pos-text truncate">
+                              {tx.note || (isPoint ? 'ปรับปรุงแต้ม' : 'ปรับปรุงเครดิต')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>{new Date(tx.createdAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                            {tx.employee?.name && (
+                              <>
+                                <span>·</span>
+                                <span>โดย {tx.employee.name}</span>
+                              </>
+                            )}
+                            {tx.orderId && (
+                              <>
+                                <span>·</span>
+                                <span className="font-mono">บิล #{tx.orderId}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
                           <span
-                            className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${tx.type === 'EARN' || tx.type === 'TOPUP'
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                              }`}
+                            className={`font-black font-mono text-sm sm:text-base ${
+                              isPositive
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                            }`}
                           >
-                            {tx.type}
+                            {isPositive ? '+' : ''}
+                            {isPoint
+                              ? `${Math.floor(tx.amount)} แต้ม`
+                              : `${currencySymbol}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                           </span>
-                          <span className="font-bold text-pos-text truncate">
-                            {tx.note || (isPoint ? 'ปรับปรุงแต้ม' : 'ปรับปรุงเครดิต')}
+                          <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
+                            คงเหลือ: {isPoint ? `${Math.floor(tx.balanceAfter)} แต้ม` : `${currencySymbol}${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          {new Date(tx.createdAt).toLocaleString('th-TH')} {tx.employee?.name ? `· โดย ${tx.employee.name}` : ''}
-                        </p>
                       </div>
+                    );
+                  })}
 
-                      <div className="text-right shrink-0">
-                        <span
-                          className={`font-black font-mono text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                            }`}
-                        >
-                          {isPositive ? '+' : ''}
-                          {isPoint
-                            ? `${Math.floor(tx.amount)} แต้ม`
-                            : `฿${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                        </span>
-                        <span className="block text-[10px] text-slate-400 font-mono">
-                          คงเหลือ: {isPoint ? `${Math.floor(tx.balanceAfter)} แต้ม` : `฿${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                        </span>
-                      </div>
+                  {/* Sentinel element for IntersectionObserver to trigger auto-load */}
+                  <div ref={historySentinelRef} className="h-2 w-full pointer-events-none" />
+
+                  {/* Loading More Spinner */}
+                  {isLoadingMoreHistory && (
+                    <div className="py-3.5 px-4 rounded-2xl bg-sky-500/5 border border-sky-500/15 flex items-center justify-center gap-2.5 text-xs text-sky-600 dark:text-sky-400 font-semibold animate-fadeIn">
+                      <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                      <span>กำลังโหลดเพิ่มอีก 10 รายการ... ({transactions.length}/{totalHistoryCount})</span>
                     </div>
-                  );
-                })
+                  )}
+
+                  {/* Clickable Load More Button (acts as fallback if scroll hasn't triggered or user wants to tap) */}
+                  {!isLoadingMoreHistory && hasMoreHistory && (
+                    <div className="pt-1 pb-1">
+                      <button
+                        type="button"
+                        onClick={handleLoadMoreHistory}
+                        className="w-full py-3 px-4 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-2xs"
+                      >
+                        <span>⬇ เลื่อนลง หรือแตะที่นี่เพื่อโหลดเพิ่มอีก 10 รายการ</span>
+                        <span className="text-[11px] font-normal text-slate-400">
+                          ({transactions.length}/{totalHistoryCount})
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* End of List */}
+                  {!hasMoreHistory && transactions.length > 0 && !isLoadingMoreHistory && (
+                    <div className="py-3 text-center text-xs text-slate-400 font-medium border-t border-pos-border/40 mt-2">
+                      ✓ แสดงครบทุกรายการแล้ว ({transactions.length} จากทั้งหมด {totalHistoryCount} รายการ)
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
