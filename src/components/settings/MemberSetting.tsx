@@ -139,9 +139,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
   const [currencySymbol, setCurrencySymbol] = useState('฿');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setViewMode('table');
-    }
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+        setViewMode('table');
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -286,7 +290,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
   }, [orgId, searchQuery, statusFilter, tierFilter, currentPage, pageSize]);
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   // ----------------------------------------------------
@@ -668,11 +676,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] animate-fadeIn pointer-events-none">
           <div
-            className={`pointer-events-auto px-4 py-2.5 rounded-full shadow-xl border text-xs sm:text-sm font-bold flex items-center gap-2 backdrop-blur-md ${
-              toast.type === 'success'
-                ? 'bg-emerald-500/95 text-white border-emerald-400'
-                : 'bg-rose-500/95 text-white border-rose-400'
-            }`}
+            className={`pointer-events-auto px-4 py-2.5 rounded-full shadow-xl border text-xs sm:text-sm font-bold flex items-center gap-2 backdrop-blur-md ${toast.type === 'success'
+              ? 'bg-emerald-500/95 text-white border-emerald-400'
+              : 'bg-rose-500/95 text-white border-rose-400'
+              }`}
           >
             <span>{toast.type === 'success' ? '✅' : '❌'}</span>
             <span>{toast.message}</span>
@@ -706,11 +713,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             <button
               type="button"
               onClick={() => setViewMode('card')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
-                viewMode === 'card'
-                  ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
-                  : 'text-slate-400 hover:text-pos-text'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${viewMode === 'card'
+                ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
+                : 'text-slate-400 hover:text-pos-text'
+                }`}
               title="มุมมองการ์ด (เหมาะกับแท็บเล็ต/มือถือ)"
             >
               <CardViewIcon className="w-3.5 h-3.5" />
@@ -719,11 +725,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             <button
               type="button"
               onClick={() => setViewMode('table')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
-                viewMode === 'table'
-                  ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
-                  : 'text-slate-400 hover:text-pos-text'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${viewMode === 'table'
+                ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
+                : 'text-slate-400 hover:text-pos-text'
+                }`}
               title="มุมมองตาราง (เหมาะกับหน้าจอคอม)"
             >
               <TableViewIcon className="w-3.5 h-3.5" />
@@ -803,11 +808,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           <button
             type="button"
             onClick={() => setActiveTab('members')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'members'
-                ? 'bg-sky-500 text-white shadow-xs'
-                : 'text-slate-500 hover:text-pos-text'
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'members'
+              ? 'bg-sky-500 text-white shadow-xs'
+              : 'text-slate-500 hover:text-pos-text'
+              }`}
           >
             <UserGroupIcon className="w-4 h-4" />
             <span>รายชื่อสมาชิก ({stats.totalMembers})</span>
@@ -815,11 +819,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           <button
             type="button"
             onClick={() => setActiveTab('tiers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'tiers'
-                ? 'bg-sky-500 text-white shadow-xs'
-                : 'text-slate-500 hover:text-pos-text'
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-1.5 ${activeTab === 'tiers'
+              ? 'bg-sky-500 text-white shadow-xs'
+              : 'text-slate-500 hover:text-pos-text'
+              }`}
           >
             <StarIcon className="w-4 h-4" />
             <span>ระดับสมาชิก ({tiers.length})</span>
@@ -969,11 +972,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               </span>
                             )}
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
-                                isInactive
-                                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                              }`}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${isInactive
+                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                               <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
@@ -1152,11 +1154,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
                             <td className="py-3 px-3 text-center whitespace-nowrap">
                               <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  isInactive
-                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                }`}
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${isInactive
+                                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                  }`}
                               >
                                 <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                 <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
@@ -1310,7 +1311,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               <div className="col-span-full py-12 text-center bg-pos-surface rounded-2xl border border-pos-border">
                 <StarIcon className="w-8 h-8 text-amber-500/50 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-pos-text">ยังไม่มีระดับสมาชิก</p>
-                <p className="text-xs text-slate-400 mt-0.5">กดปุ่ม "เพิ่มระดับ" ด้านบนเพื่อสร้างระดับแรก (เช่น Silver, Gold)</p>
+                <p className="text-xs text-slate-400 mt-0.5">กดปุ่ม &quot;เพิ่มระดับ&quot; ด้านบนเพื่อสร้างระดับแรก (เช่น Silver, Gold)</p>
               </div>
             ) : (
               tiers.map((tier) => (
@@ -1507,8 +1508,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                       type="button"
                       onClick={() => setMemberForm({ ...memberForm, status: 'ACTIVE' })}
                       className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${memberForm.status === 'ACTIVE'
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
-                          : 'bg-pos-bg border-pos-border text-slate-400'
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-pos-bg border-pos-border text-slate-400'
                         }`}
                     >
                       ใช้งานปกติ (ACTIVE)
@@ -1517,8 +1518,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                       type="button"
                       onClick={() => setMemberForm({ ...memberForm, status: 'INACTIVE' })}
                       className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${memberForm.status === 'INACTIVE'
-                          ? 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400'
-                          : 'bg-pos-bg border-pos-border text-slate-400'
+                        ? 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400'
+                        : 'bg-pos-bg border-pos-border text-slate-400'
                         }`}
                     >
                       ระงับการใช้ (INACTIVE)
@@ -1580,8 +1581,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   type="button"
                   onClick={() => setAdjustForm({ ...adjustForm, action: 'ADD' })}
                   className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${adjustForm.action === 'ADD'
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-pos-bg border-pos-border text-slate-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-pos-bg border-pos-border text-slate-400'
                     }`}
                 >
                   ＋ เพิ่ม (Top-up/Earn)
@@ -1590,8 +1591,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   type="button"
                   onClick={() => setAdjustForm({ ...adjustForm, action: 'DEDUCT' })}
                   className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${adjustForm.action === 'DEDUCT'
-                      ? 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400'
-                      : 'bg-pos-bg border-pos-border text-slate-400'
+                    ? 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400'
+                    : 'bg-pos-bg border-pos-border text-slate-400'
                     }`}
                 >
                   － ลด (Deduct/Redeem)
@@ -1787,7 +1788,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 คุณแน่ใจหรือไม่ว่าต้องการลบ{' '}
                 <span className="font-bold text-pos-text">
-                  "{memberToDelete.firstName} {memberToDelete.lastName || ''}"
+                  &quot;{memberToDelete.firstName} {memberToDelete.lastName || ''}&quot;
                 </span>{' '}
                 ({memberToDelete.phone}) ?
               </p>
@@ -1963,11 +1964,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
                         <div className="text-right shrink-0">
                           <span
-                            className={`font-black font-mono text-sm sm:text-base ${
-                              isPositive
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-rose-600 dark:text-rose-400'
-                            }`}
+                            className={`font-black font-mono text-sm sm:text-base ${isPositive
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400'
+                              }`}
                           >
                             {isPositive ? '+' : ''}
                             {isPoint
