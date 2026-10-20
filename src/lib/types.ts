@@ -148,3 +148,265 @@ export interface Member {
   transactions?: MemberTransaction[];
 }
 
+// ------------------------------------------------------
+// ระบบรายงาน (Reports System) Interfaces
+// ------------------------------------------------------
+export type ReportPeriod = "today" | "week" | "month" | "custom";
+export type PeriodType = ReportPeriod;
+export type ReportTabKey = "total" | "product" | "employee" | "bills";
+
+export interface DateFilterInput {
+  period: ReportPeriod;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface ReportDateSelectorProps {
+  period: PeriodType;
+  onPeriodChange: (p: PeriodType) => void;
+  customStartDate: string;
+  customEndDate: string;
+  onCustomDateChange: (start: string, end: string) => void;
+}
+
+export interface ReportSidebarProps {
+  activeTab: ReportTabKey;
+  onSelectTab: (tab: ReportTabKey) => void;
+  period: PeriodType;
+  onPeriodChange: (p: PeriodType) => void;
+  customStartDate: string;
+  customEndDate: string;
+  onCustomDateChange: (start: string, end: string) => void;
+  className?: string;
+}
+
+export interface ReportPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  reportType: ReportTabKey;
+  data: any;
+  onDownload: () => void;
+}
+
+export interface ReceiptDetailModalProps {
+  orderId: number | null;
+  onClose: () => void;
+}
+
+// 1. Total Sales Report
+export interface ReportDailyItem {
+  day: number;
+  label: string;
+  dayText: string;
+  amount: number;
+  count: number;
+}
+export type DailyItem = ReportDailyItem;
+
+export interface ReportDailyStats {
+  daysCount?: number;
+  daysText?: string;
+  bestDay?: { dayText: string; amount: number };
+  worstDay?: { dayText: string; amount: number };
+  averagePerDay?: number;
+  activeDaysCount?: number;
+}
+
+export interface ReportPaymentSplit {
+  cashAmount?: number;
+  cashCount?: number;
+  transferAmount?: number;
+  transferCount?: number;
+  otherAmount?: number;
+}
+
+export interface ReportHourlyItem {
+  hour: number;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface ReportHourlyStats {
+  rangeText?: string;
+  peakHourText?: string;
+  peakAmount?: number;
+  worstHourText?: string;
+  worstAmount?: number;
+  averageHourText?: string;
+  averageAmount?: number;
+  averagePerHour?: number;
+  activeHoursCount?: number;
+}
+
+export interface TotalSalesReportData {
+  dateRangeText?: string;
+  totalSales?: number;
+  completedBills?: number;
+  averageBill?: number;
+  cancelledBills?: number;
+  totalItemsSold?: number;
+  categoryBreakdown?: { categoryName: string; quantity: number }[];
+  isMultiDay?: boolean;
+  dailySales?: ReportDailyItem[];
+  dailyStats?: ReportDailyStats;
+  paymentSplit?: ReportPaymentSplit;
+  hourlyChartData?: ReportHourlyItem[];
+  hourlyStats?: ReportHourlyStats;
+  billsList?: any[];
+}
+
+export interface TotalSalesReportViewProps {
+  data: TotalSalesReportData;
+}
+
+// 2. Product Sales Report
+export interface ProductReportItem {
+  productId: number;
+  name: string;
+  image: string | null;
+  categoryName: string;
+  price: number;
+  cost: number;
+  quantity: number;
+  sales: number;
+  profit: number;
+}
+export type ProductItem = ProductReportItem;
+
+export interface ProductSalesReportData {
+  dateRangeText: string;
+  dateRangeCode?: string;
+  totalSales: number;
+  allProducts: ProductReportItem[];
+  best: {
+    quantity: ProductReportItem[];
+    sales: ProductReportItem[];
+    profit: ProductReportItem[];
+  };
+  worst: {
+    quantity: ProductReportItem[];
+    sales: ProductReportItem[];
+    profit: ProductReportItem[];
+  };
+  productsList?: any[];
+  productBillsList?: any[];
+  shopName?: string;
+  currency?: string;
+  productFilterMode?: "best" | "worst";
+}
+
+export interface ProductSalesReportViewProps {
+  data: ProductSalesReportData;
+  filterMode?: "best" | "worst";
+  onFilterModeChange?: (mode: "best" | "worst") => void;
+}
+
+// 3. Employee Sales Report
+export interface EmployeeOrderItem {
+  id: number;
+  orderNumber: string;
+  createdAt: string;
+  formattedTime?: string;
+  paymentMethodLabel?: string;
+  tableName?: string;
+  netAmount: number;
+  itemsCount: number;
+  itemsSummary: string;
+}
+export type OrderItem = EmployeeOrderItem;
+
+export interface EmployeeReportItem {
+  employeeId: number | string;
+  name: string;
+  role: string;
+  img: string | null;
+  totalSales: number;
+  percentage: number;
+  completedBills: number;
+  averageBill: number;
+  cancelledBills: number;
+  cashSales: number;
+  transferSales: number;
+  totalItemsSold: number;
+  categoryBreakdown: { categoryName: string; quantity: number }[];
+  soldProducts: {
+    productId: number;
+    productName: string;
+    productCode?: string;
+    categoryName?: string;
+    image: string | null;
+    quantity: number;
+    totalAmount: number;
+  }[];
+  orders: EmployeeOrderItem[];
+  shifts?: any[];
+}
+
+export interface EmployeeSalesReportData {
+  dateRangeText: string;
+  dateRangeCode?: string;
+  totalSales: number;
+  employees: EmployeeReportItem[];
+  staffList?: any[];
+  staffBillsList?: any[];
+  staffItemsList?: any[];
+  shopName?: string;
+  currency?: string;
+}
+
+export interface EmployeeSalesReportViewProps {
+  data: EmployeeSalesReportData;
+}
+
+// 4. Bills & Receipts Report
+export interface BillReportItem {
+  id: number;
+  orderNumber: string;
+  createdAt: string;
+  formattedTime: string;
+  paymentMethod: string;
+  paymentMethodLabel: string;
+  tableName: string;
+  itemsSummary: string;
+  cashierName: string;
+  netAmount: number;
+}
+export type BillItem = BillReportItem;
+
+export interface BillDateGroup {
+  dateKey: string;
+  dateTitleThai: string;
+  bills: BillReportItem[];
+}
+export type DateGroup = BillDateGroup;
+
+export interface BillsReceiptsReportData {
+  dateRangeText: string;
+  dateRangeCode?: string;
+  totalSales: number;
+  counts: {
+    all: number;
+    cash: number;
+    qr: number;
+  };
+  dateGroups: BillDateGroup[];
+  billsExportList?: any[];
+  billItemsExportList?: any[];
+  shopName?: string;
+  currency?: string;
+}
+
+export interface BillsReceiptsReportViewProps {
+  data: BillsReceiptsReportData;
+  search: string;
+  onSearchChange: (q: string) => void;
+  paymentMethodFilter: "ALL" | "CASH" | "QR";
+  onPaymentMethodFilterChange: (method: "ALL" | "CASH" | "QR") => void;
+}
+
+export interface OrderData {
+  payments?: any[];
+  [key: string]: any;
+}
