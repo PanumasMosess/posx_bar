@@ -1,6 +1,7 @@
 "use client";
 
 import { CashNumpadProps } from "@/lib/interface";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
 
 export default function CashNumpad({
   numReceived = 0,
@@ -8,6 +9,9 @@ export default function CashNumpad({
   onPreset,
   onNumpadPress,
 }: CashNumpadProps) {
+  const { settings } = useOrgSettings();
+  const currencyCode = settings?.currencyCode || "THB";
+
   const presets = [1000, 5000, 50000, 100000, 500000];
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "DEL"];
 
@@ -20,7 +24,8 @@ export default function CashNumpad({
           </span>
           <span className="text-lg font-black font-mono text-sky-600 dark:text-sky-400">
             {numReceived > 0 ? numReceived.toLocaleString() : "0"}{" "}
-            <span className="text-xs font-normal">LAK</span>
+            {/* 🌟 เปลี่ยนมาใช้ตัวแปรสกุลเงิน */}
+            <span className="text-xs font-normal">{currencyCode}</span>
           </span>
         </div>
         <div className="flex justify-between items-center pt-1 border-t border-pos-border/50">
@@ -33,7 +38,8 @@ export default function CashNumpad({
             }`}
           >
             {changeAmount.toLocaleString()}{" "}
-            <span className="text-xs font-normal">LAK</span>
+            {/* 🌟 เปลี่ยนมาใช้ตัวแปรสกุลเงิน */}
+            <span className="text-xs font-normal">{currencyCode}</span>
           </span>
         </div>
       </div>
