@@ -365,15 +365,34 @@ export async function getHeldOrdersFromDB(organizationId: number) {
 
 export async function deleteHeldOrderFromDB(orderId: number) {
   try {
-    await prisma.orders.delete({
-      where: { id: orderId },
+
+    await prisma.$transaction(async (tx) => {
+
+      await tx.qr_payment_intents.deleteMany({
+        where: { orderId: orderId },
+      });
+
+      await tx.payments.deleteMany({
+        where: { orderId: orderId },
+      });
+
+      await tx.orderitems.deleteMany({
+        where: { orderId: orderId },
+      });
+
+      await tx.orders.delete({
+        where: { id: orderId },
+      });
     });
 
     revalidatePath("/pos");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Delete Held Order Error:", error);
-    return { success: false, message: "เกิดข้อผิดพลาดในการลบบิล" };
+    return {
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาดในการลบบิล",
+    };
   }
 }
 
@@ -797,7 +816,10 @@ export async function createQrIntentDB(payload: {
   }
 }
 
-export async function checkQrPaymentStatusDB(orderId: number, expectedAmount: number) {
+export async function checkQrPaymentStatusDB(
+  orderId: number,
+  expectedAmount: number,
+) {
   try {
     const intent = await prisma.qr_payment_intents.findFirst({
       where: {
@@ -806,7 +828,7 @@ export async function checkQrPaymentStatusDB(orderId: number, expectedAmount: nu
         status: "PAID",
       },
     });
-    
+
     return { success: true, isPaid: !!intent };
   } catch (error: any) {
     console.error("Check QR Payment Status Error:", error);
