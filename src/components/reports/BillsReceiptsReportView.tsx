@@ -12,6 +12,7 @@ export default function BillsReceiptsReportView({
   onSearchChange,
   paymentMethodFilter,
   onPaymentMethodFilterChange,
+  isMobile = false,
 }: BillsReceiptsReportViewProps) {
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
@@ -21,7 +22,8 @@ export default function BillsReceiptsReportView({
   return (
     <div className="space-y-5 pb-6">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-pos-surface border border-pos-border p-4 sm:p-5 rounded-2xl shadow-xs">
+      {!isMobile && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-pos-surface border border-pos-border p-4 sm:p-5 rounded-2xl shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-800">
             <svg
@@ -62,6 +64,7 @@ export default function BillsReceiptsReportView({
           )}
         </div>
       </div>
+      )}
 
       {/* Main Content Area */}
       <div className="space-y-4">

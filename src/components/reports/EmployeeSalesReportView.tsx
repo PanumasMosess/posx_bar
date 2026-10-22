@@ -8,6 +8,7 @@ import { EmployeeSalesReportViewProps } from "@/lib/types";
 
 export default function EmployeeSalesReportView({
   data,
+  isMobile = false,
 }: EmployeeSalesReportViewProps) {
   const employees = (data?.employees || []).filter(
     (emp) => emp.completedBills > 0 || emp.totalSales > 0
@@ -44,7 +45,8 @@ export default function EmployeeSalesReportView({
 
   return (
     <div className="space-y-4 pb-6 select-none">
-      <div className="pb-3 flex items-center justify-between">
+      {!isMobile && (
+        <div className="pb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-800">
             <svg
@@ -80,6 +82,7 @@ export default function EmployeeSalesReportView({
           </span>
         </div>
       </div>
+      )}
 
       {/* 📦 Staff Cards List */}
       <div className="space-y-4">
