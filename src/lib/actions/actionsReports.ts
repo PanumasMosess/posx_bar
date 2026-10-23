@@ -55,6 +55,8 @@ export async function getTotalSalesReportAction(params: {
     let transferSales = 0;
     let transferBillsCount = 0;
     let otherSales = 0;
+    let totalCost = 0;
+    const activeEmployeesSet = new Set<string>();
 
     // ยอดขายรายชั่วโมง (0 - 23)
     const hourlyMap: { [hour: number]: { amount: number; count: number } } = {};
@@ -67,6 +69,7 @@ export async function getTotalSalesReportAction(params: {
     completedOrders.forEach((ord) => {
       const net = ord.netAmount || 0;
       totalSales += net;
+      if (ord.createdBy) { activeEmployeesSet.add(String(ord.createdBy)); }
 
       // จัดชั่วโมง
       const ordHour = new Date(ord.createdAt).getHours();
@@ -78,6 +81,8 @@ export async function getTotalSalesReportAction(params: {
         const qty = item.quantity || 1;
         totalItemsSold += qty;
         const catName = item.product?.category?.name || "ทั่วไป";
+        const cost = Number(item.product?.cost ?? 0);
+        totalCost += qty * cost;
         categoryMap[catName] = (categoryMap[catName] || 0) + qty;
       });
 
@@ -102,8 +107,13 @@ export async function getTotalSalesReportAction(params: {
     });
 
     const completedBills = completedOrders.length;
-    const averageBill = completedBills > 0 ? Math.round(totalSales / completedBills) : 0;
+    const averageBill = completedBills > 0 ? Number((totalSales / completedBills).toFixed(2)) : 0;
     const cancelledBills = cancelledOrders.length;
+    const grossProfit = Math.max(0, totalSales - totalCost);
+    const costPercentage = totalSales > 0 ? Math.round((totalCost / totalSales) * 100) : 0;
+    const profitPercentage = totalSales > 0 ? Math.max(0, 100 - costPercentage) : 0;
+    const activeEmployeesCount = activeEmployeesSet.size || (completedOrders.length > 0 ? 1 : 0);
+    const categoryCount = Object.keys(categoryMap).length;
 
     // คำนวณยอดขายรายวัน (Daily Sales) สำหรับสัปดาห์นี้ / เดือนนี้ / กำหนดเอง
     const thaiMonthsShort = [
@@ -213,7 +223,7 @@ export async function getTotalSalesReportAction(params: {
       worstHourAmount = 0;
     }
 
-    const averagePerHour = activeHoursCount > 0 ? Math.round(sumHourlyAmounts / activeHoursCount) : 0;
+    const averagePerHour = activeHoursCount > 0 ? Number((sumHourlyAmounts / activeHoursCount).toFixed(2)) : 0;
 
     // Category breakdown list
     const categoryBreakdown = Object.entries(categoryMap).map(([categoryName, quantity]) => ({
@@ -249,6 +259,12 @@ export async function getTotalSalesReportAction(params: {
         totalSales,
         completedBills,
         averageBill,
+        totalCost,
+        grossProfit,
+        costPercentage,
+        profitPercentage,
+        activeEmployeesCount,
+        categoryCount,
         cancelledBills,
         totalItemsSold,
         categoryBreakdown,

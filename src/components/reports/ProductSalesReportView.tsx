@@ -9,6 +9,7 @@ export default function ProductSalesReportView({
   data,
   filterMode: controlledFilterMode,
   onFilterModeChange,
+  isMobile = false,
 }: ProductSalesReportViewProps) {
   const [internalFilterMode, setInternalFilterMode] = useState<"best" | "worst">("best");
   const filterMode = controlledFilterMode ?? internalFilterMode;
@@ -43,7 +44,8 @@ export default function ProductSalesReportView({
   return (
     <div className="w-full space-y-4 pb-6 select-none">
       {/* 🏷️ 1. Top Header */}
-      <div className="pb-3 flex items-center justify-between">
+      {!isMobile && (
+        <div className="pb-3 flex items-center justify-between">
         {/* Left: Icon & Title & Date */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-800">
@@ -80,6 +82,7 @@ export default function ProductSalesReportView({
           </span>
         </div>
       </div>
+      )}
 
       <div className="bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-full flex items-center w-full text-xs">
         <button

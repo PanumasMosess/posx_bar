@@ -245,6 +245,12 @@ export interface TotalSalesReportData {
   totalSales?: number;
   completedBills?: number;
   averageBill?: number;
+  totalCost?: number;
+  grossProfit?: number;
+  costPercentage?: number;
+  profitPercentage?: number;
+  activeEmployeesCount?: number;
+  categoryCount?: number;
   cancelledBills?: number;
   totalItemsSold?: number;
   categoryBreakdown?: { categoryName: string; quantity: number }[];
@@ -259,6 +265,7 @@ export interface TotalSalesReportData {
 
 export interface TotalSalesReportViewProps {
   data: TotalSalesReportData;
+  isMobile?: boolean;
 }
 
 // 2. Product Sales Report
@@ -301,6 +308,7 @@ export interface ProductSalesReportViewProps {
   data: ProductSalesReportData;
   filterMode?: "best" | "worst";
   onFilterModeChange?: (mode: "best" | "worst") => void;
+  isMobile?: boolean;
 }
 
 // 3. Employee Sales Report
@@ -358,6 +366,7 @@ export interface EmployeeSalesReportData {
 
 export interface EmployeeSalesReportViewProps {
   data: EmployeeSalesReportData;
+  isMobile?: boolean;
 }
 
 // 4. Bills & Receipts Report
@@ -404,6 +413,7 @@ export interface BillsReceiptsReportViewProps {
   onSearchChange: (q: string) => void;
   paymentMethodFilter: "ALL" | "CASH" | "QR";
   onPaymentMethodFilterChange: (method: "ALL" | "CASH" | "QR") => void;
+  isMobile?: boolean;
 }
 
 export interface OrderData {
