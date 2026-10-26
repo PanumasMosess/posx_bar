@@ -1,7 +1,13 @@
+"use client"; // 🌟 ต้องเติมคำนี้เพราะมีการเรียกใช้ Hook (Context)
+
 import { ReceiptSlipProps } from "@/lib/types";
 import { renderOptionsText } from "./renderOptionsText";
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; 
 
 export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
+  const { settings } = useOrgSettings();
+  const currency = settings?.currencyCode || "LAK";
+
   return (
     <div className="bg-white w-full max-w-[340px] rounded-sm shadow-xl relative overflow-hidden pb-6">
       {/* ขอบใบเสร็จหยักๆ ด้านบน */}
@@ -80,20 +86,25 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
           <div className="flex justify-between items-center">
             <span className="text-slate-500">ยอดรวม</span>
             <span className="font-bold text-slate-800">
-              {order.totalAmount.toLocaleString()} LAK
+              {order.totalAmount.toLocaleString()} {currency}{" "}
             </span>
           </div>
 
           {order.discount > 0 && (
             <div className="flex justify-between items-center text-slate-600">
               <span>ส่วนลด</span>
-              <span>- {order.discount.toLocaleString()} LAK</span>
+              <span>
+                -{order.discount.toLocaleString()} {currency}{" "}
+              </span>
             </div>
           )}
 
           <div className="flex justify-between items-center font-black text-[15px] text-slate-900 pt-2">
             <span>ยอดชำระสุทธิ</span>
-            <span>{order.netAmount.toLocaleString()} LAK</span>
+            <span>
+              {order.netAmount.toLocaleString()} {currency}
+            </span>{" "}
+            {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
           </div>
         </div>
 
@@ -103,12 +114,15 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
               <span>รับชำระ ({payment.method})</span>
               <span>
                 {(payment.receivedAmount || payment.amount).toLocaleString()}{" "}
-                LAK
+                {currency} {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
               </span>
             </div>
             <div className="flex justify-between font-bold text-slate-900">
               <span>เงินทอน</span>
-              <span>{(payment.changeAmount || 0).toLocaleString()} LAK</span>
+              <span>
+                {(payment.changeAmount || 0).toLocaleString()} {currency}
+              </span>{" "}
+              {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
             </div>
           </div>
         )}
