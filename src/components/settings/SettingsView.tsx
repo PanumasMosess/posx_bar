@@ -13,6 +13,7 @@ import VatSetting from './VatSetting';
 import MiscSetting from './MiscSetting';
 import RestaurantModeSetting from './RestaurantModeSetting';
 import MemberSetting from './MemberSetting';
+import AccountingSetting from './AccountingSetting';
 
 import { getShopProfileSettings, updateShopNameAction } from '@/lib/actions/actionsSettings';
 import { SettingsSection } from '@/lib/types';
@@ -188,6 +189,7 @@ export default function SettingsView() {
   const sectionTitle: Record<Exclude<SettingsSection, null>, string> = {
     'shop-team': 'ร้านและทีม',
     member: 'ระบบสมาชิก',
+    accounting: 'บัญชีและการเงิน',
     payment: 'ช่องทางการชำระเงิน',
     misc: 'ข้อมูลอื่น ๆ',
     vat: 'ภาษีมูลค่าเพิ่ม (VAT)',
@@ -252,6 +254,17 @@ export default function SettingsView() {
   };
 
   const menuShopItems = [
+    {
+      section: 'accounting' as const,
+      label: 'บัญชีและการเงิน',
+      sub: 'จัดการบัญชี · หมวดหมู่ · ประวัติธุรกรรม',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.5M4.5 21V10.5M2.25 21h19.5" />
+        </svg>
+      ),
+    },
+
     {
       section: 'shop-team' as const,
       label: 'ร้านและทีม',
@@ -330,6 +343,7 @@ export default function SettingsView() {
     switch (activeSection) {
       case 'shop-team': return <EmployeeSetting organizationId={orgId} />;
       case 'member': return <MemberSetting organizationId={orgId} />;
+      case 'accounting': return <AccountingSetting organizationId={orgId} />;
       case 'scan': return <ScanSetting />;
       case 'restaurant-mode': return <RestaurantModeSetting />;
       case 'currency': return <CurrencySetting organizationId={orgId} currentCurrency="THB" onSelectCurrency={handleSelectCurrency} />;
