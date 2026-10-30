@@ -39,8 +39,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
     searchError,
   } = useMember();
 
-  // 🌟 ปิดระบบสมาชิกแบบถาวรในหน้านี้ (เปลี่ยนเป็น true ถ้าอยากให้กลับมาแสดง)
-  const isEnableMemberSystem = false;
+  // 🌟 เปิดระบบสมาชิกในหน้านี้แล้ว
+  const isEnableMemberSystem = true;
 
   // 🌟 สวิตช์ เปิด-ปิด ระบบ Webhook (ให้พนักงานกดเปิด/ปิดใน UI ได้)
   const [isEnableWebhook, setIsEnableWebhook] = useState(true);
@@ -65,7 +65,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const [randomSatang, setRandomSatang] = useState(0);
   const [lastIntentAmount, setLastIntentAmount] = useState<number>(0);
 
-
   useEffect(() => {
     if (billId) {
       const randomDec = Math.floor(Math.random() * 60) + 1;
@@ -76,8 +75,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
       setReceiptData(null);
       setReceiptUrl("");
       setIsSubmitting(false);
-      setReceivedAmount(""); 
-      setPaymentMethod("CASH"); 
+      setReceivedAmount("");
+      setPaymentMethod("CASH");
     }
   }, [billId]);
 
@@ -115,9 +114,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
             memberId: selectedMember ? Number(selectedMember.id) : undefined,
           });
           setLastIntentAmount(qrAmount); // บันทึกยอดไว้ จะได้ไม่ยิงซ้ำ
-          console.log(
-            `✅ สร้าง/อัปเดต QR Payment Intent สำเร็จ ยอด: ${qrAmount}`,
-          );
         } catch (error) {
           console.error("Failed to create QR intent", error);
         }
@@ -165,7 +161,6 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
           qrAmount,
         );
         if (res.success && res.isPaid) {
-          console.log("✅ ลูกค้าโอนเงินเรียบร้อยแล้ว ระบบกำลังปิดบิล...");
           clearInterval(intervalId); // หยุดเช็ค
           if (checkoutRef.current) checkoutRef.current(); // เรียก Checkout อัตโนมัติ
         }
