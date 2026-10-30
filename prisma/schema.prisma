@@ -70,6 +70,9 @@ model organizations {
   memberTiers         membertier[]
   memberTransactions  membertransaction[]
   qrPaymentIntents    qr_payment_intents[]
+  accounts            account[]
+  accountCategories   account_category[]
+  accountTransactions account_transaction[]
 }
 
 model products {
@@ -183,6 +186,7 @@ model orders {
   member             member?              @relation(fields: [memberId], references: [id])
   memberTransactions membertransaction[]
   qrPaymentIntents   qr_payment_intents[]
+  accountTransactions account_transaction[]
 }
 
 model orderitems {
@@ -274,6 +278,7 @@ model shifts {
 
   payments payments[] // ประวัติการชำระเงินทั้งหมดในกะนี้
   orders   orders[] // ออเดอร์ทั้งหมดที่เกิดขึ้นในกะนี้
+  accountTransactions account_transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -309,6 +314,7 @@ model employees {
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   memberTransactions membertransaction[]
+  createdTransactions account_transaction[]
 }
 
 model employee_permissions {
@@ -454,4 +460,80 @@ model qr_payment_intents {
   organization organizations @relation(fields: [organizationId], references: [id])
 
   @@index([expectedAmount, status])
+}
+
+enum account_tx_type {
+  SALES // รายรับอัตโนมัติจาก POS (ผูกบิล)
+  INCOME // รายรับอื่นๆ (กรอกมือ)
+  EXPENSE // รายจ่าย (กรอกมือ)
+  TRANSFER_OUT // โอนเงินออกไปยังบัญชีอื่น
+  TRANSFER_IN // รับเงินโอนมาจากบัญชีอื่น
+  ADJUSTMENT_UP // ปรับยอดเงินเพิ่มขึ้น (กรอกมือ/แอดมิน)
+  ADJUSTMENT_DOWN // ปรับยอดเงินลดลง (กรอกมือ/แอดมิน)
+  OVERRIDE_BALANCE // แก้ไขเลขยอดเงินในบัญชีตรงๆ (ระบบบันทึกส่วนต่างให้)
+  AR_PAYMENT // รับชำระหนี้ (ลูกค้าจ่ายยอดที่เซ็นติดไว้)
+}
+
+model account {
+  id             Int      @id @default(autoincrement())
+  organizationId Int?
+  accountName    String // ชื่อบัญชี เช่น "เงินสดในลิ้นชัก", "ธนาคารกสิกรไทย"
+  balance        Float    @default(0.00) // ยอดเงินคงเหลือปัจจุบัน
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE
+  accPosPayment  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization organizations?        @relation(fields: [organizationId], references: [id])
+  transactions account_transaction[]
+}
+
+model account_category {
+  id             Int      @id @default(autoincrement())
+  organizationId Int?
+  name           String // ชื่อหมวดหมู่ เช่น "ค่าวัตถุดิบ", "รายได้เบ็ดเตล็ด"
+  type           String // "INCOME" หรือ "EXPENSE" (เอาไว้กรองตอนให้ User เลือกหมวด)
+  note           String?
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization organizations?        @relation(fields: [organizationId], references: [id])
+  transactions account_transaction[]
+}
+
+model account_transaction {
+  id             Int  @id @default(autoincrement())
+  organizationId Int?
+  accountId      Int
+  categoryId     Int?
+
+  type           account_tx_type
+  amount         Float // จำนวนเงินในรายการนั้นๆ
+  accountBalance Float // ยอดเงินคงเหลือในบัญชี ณ ตอนที่ทำรายการ (Running Balance)
+
+  docNumber String? // เลขที่เอกสาร (ถ้ามี)
+  title     String // หัวข้อรายการ/รายละเอียด
+  note      String? // หมายเหตุเพิ่มเติม
+  docFile   String? // URL ไฟล์แนบ หรือรูปใบเสร็จ
+
+  paymentOrderId Int? // ผูกกับบิลหน้าร้าน (สำหรับ type: SALES)
+  shiftId        Int? // ผูกกับกะการทำงาน
+  createdById    Int // พนักงานผู้ทำรายการ
+
+  transferPairId Int? // กรณีโอนเงิน: ผูก ID ของรายการโอนฝั่งตรงข้าม
+
+  date DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+
+  organization organizations?     @relation(fields: [organizationId], references: [id])
+  account      account            @relation(fields: [accountId], references: [id])
+  category     account_category?  @relation(fields: [categoryId], references: [id])
+  order        orders?            @relation(fields: [paymentOrderId], references: [id])
+  shift        shifts?            @relation(fields: [shiftId], references: [id])
+  creator      employees          @relation(fields: [createdById], references: [id])
 }

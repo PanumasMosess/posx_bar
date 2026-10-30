@@ -3,6 +3,7 @@ export type ModalView = "ADD_PRODUCT" | "ADD_CATEGORY" | "ADD_OPTION";
 export type SettingsSection =
   | "shop-team"
   | "member"
+  | "accounting"
   | "payment"
   | "misc"
   | "vat"
@@ -121,6 +122,7 @@ export interface MemberTransaction {
   balanceAfter: number;
   note: string | null;
   createdAt: string | Date;
+  date?: string | Date | null;
   referenceTxId?: number | null;
   paymentGroupId?: string | null;
   memberId: number;
@@ -419,4 +421,279 @@ export interface BillsReceiptsReportViewProps {
 export interface OrderData {
   payments?: any[];
   [key: string]: any;
+}
+
+
+// ==========================================
+// ระบบบัญชีและการเงิน (Accounting & Finance Types)
+// ==========================================
+
+export type AccountTxType =
+  | "SALES"
+  | "INCOME"
+  | "EXPENSE"
+  | "TRANSFER_OUT"
+  | "TRANSFER_IN"
+  | "ADJUSTMENT_UP"
+  | "ADJUSTMENT_DOWN"
+  | "OVERRIDE_BALANCE"
+  | "AR_PAYMENT";
+
+export interface AccountItem {
+  id: number;
+  organizationId?: number | null;
+  accountName: string;
+  balance: number;
+  status: "ACTIVE" | "INACTIVE" | string;
+  accPosPayment: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface AccountCategoryItem {
+  id: number;
+  organizationId?: number | null;
+  name: string;
+  type: "INCOME" | "EXPENSE" | string;
+  note?: string | null;
+  status: "ACTIVE" | "INACTIVE" | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface AccountTransactionItem {
+  id: number;
+  organizationId?: number | null;
+  accountId: number;
+  categoryId?: number | null;
+  type: AccountTxType | string;
+  amount: number;
+  accountBalance: number;
+  docNumber?: string | null;
+  title: string;
+  note?: string | null;
+  docFile?: string | null;
+  paymentOrderId?: number | null;
+  shiftId?: number | null;
+  createdById: number;
+  transferPairId?: number | null;
+  date?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  account?: {
+    accountName: string;
+  } | null;
+  category?: {
+    name: string;
+  } | null;
+  creator?: {
+    name: string;
+  } | null;
+}
+
+
+// ==========================================
+// ระบบบัญชี — Page & Component Props
+// ==========================================
+
+export type AccountingTabKey =
+  | "member_payment"
+  | "history"
+  | "profit_loss"
+  | "report";
+
+export interface AccountingReportData {
+  summary: {
+    totalIncome: number;
+    totalExpense: number;
+    netProfit: number;
+    totalARPayment: number;
+    totalOutstandingAR: number;
+  };
+  dailyChartData: { date: string; income: number; expense: number }[];
+  expenseCategoryData: { name: string; value: number }[];
+  accounts: { accountName: string; balance: number }[];
+  transactions: {
+    id: number;
+    date: string;
+    type: string;
+    categoryName: string;
+    title: string;
+    accountName: string;
+    amount: number;
+  }[];
+}
+
+export interface AccountingHubViewProps {
+  initialMembers: (Member & { transactions?: MemberTransaction[] })[];
+  accounts: AccountItem[];
+  txLogs: AccountTransactionItem[];
+  reportData: AccountingReportData | null;
+  userId: number;
+  organizationId: number;
+  initialStartDate: string;
+  initialEndDate: string;
+  defaultTab?: AccountingTabKey;
+}
+
+export interface AccountingReportPageProps {
+  organizationId: number;
+  initialStartDate: string;
+  initialEndDate: string;
+  initialData: AccountingReportData | null;
+}
+
+export interface AccountingHistoryPageProps {
+  accounts: AccountItem[];
+  defaultTxLogs: AccountTransactionItem[];
+  organizationId: number;
+  initialStartDate: string;
+  initialEndDate: string;
+}
+
+export interface ProfitLossPageProps {
+  accounts: AccountItem[];
+  defaultTxLogs: AccountTransactionItem[];
+  organizationId: number;
+  initialStartDate: string;
+  initialEndDate: string;
+}
+
+export type SortField =
+  | "name"
+  | "bucket30"
+  | "bucket60"
+  | "bucket90"
+  | "bucketOver90"
+  | "currentDebt";
+export type SortOrder = "asc" | "desc";
+
+export interface BillCalculation {
+  id: number;
+  orderId?: number | null;
+  amount: number;
+  createdAt: string | Date;
+  date?: string | Date | null;
+  originalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+}
+
+export interface GroupedHistoryItem {
+  id: number;
+  amount: number;
+  note?: string | null;
+  createdAt: string | Date;
+  date?: string | Date | null;
+  paymentGroupId?: string | null;
+  isGrouped?: boolean;
+  clearedBills?: { id: number; amountPaid: number }[];
+}
+
+export interface MemberWithDebtInfo extends Member {
+  currentDebt: number;
+  aging: {
+    bucket30: number;
+    bucket60: number;
+    bucket90: number;
+    bucketOver90: number;
+  };
+}
+
+export interface MemberPaymentPageProps {
+  initialMembers: (Member & { transactions?: MemberTransaction[] })[];
+  shopAccounts: AccountItem[];
+  userId: number;
+  organizationId: number;
+}
+
+export interface ExpenseItem {
+  id: number;
+  title: string;
+  categoryName: string;
+  amount: number;
+  type: string;
+  accountName: string;
+  note: string | null;
+  dateStr: string;
+  isMonthly?: boolean;
+}
+
+export interface MonthlyExpenseItem extends ExpenseItem {
+  monthlyAmount: number;
+  dailyShare: number;
+}
+
+export interface CalendarData {
+  todayIncome: number;
+  todayExpense: number;
+  todayNet: number;
+  monthIncome: number;
+  monthExpense: number;
+  monthNet: number;
+  yearIncome: number;
+  yearExpense: number;
+  yearNet: number;
+  avgDailyIncome: number;
+  avgDailyExpense: number;
+  avgMonthlyIncome: number;
+  avgMonthlyExpense: number;
+  daysInMonth: number;
+  dailyExpensesMap: Record<
+    number,
+    {
+      totalExpense: number;
+      totalIncome: number;
+      net: number;
+      dailyItems: ExpenseItem[];
+      monthlyItems: MonthlyExpenseItem[];
+    }
+  >;
+  monthlyExpenseItems: MonthlyExpenseItem[];
+  totalMonthlyExpense: number;
+  monthAllIncomes: ExpenseItem[];
+  monthAllDailyExpenses: ExpenseItem[];
+  yearlyMonthsData: {
+    month: number;
+    monthName: string;
+    income: number;
+    expense: number;
+    net: number;
+    hasData: boolean;
+  }[];
+  accounts: { id: number; accountName: string; balance: number }[];
+  categories: { id: number; name: string; type: string }[];
+}
+
+export interface ExpenseCalendarPageProps {
+  organizationId: number;
+  userId: number;
+  initialData?: CalendarData | null;
+}
+
+export interface DataTableSettingAccountProps {
+  data: AccountItem[];
+  userId: number;
+  organizationId: number;
+  onUpdateStatus: (id: number, status: string) => void;
+  onUpdateName: (id: number, name: string) => void;
+  showToast: (message: string, type?: "success" | "error") => void;
+  onRefresh?: () => Promise<void> | void;
+  viewMode?: "split" | "tabs";
+}
+
+export interface DataTableSettingCategoryProps {
+  data: AccountCategoryItem[];
+  userId?: number;
+  organizationId: number;
+  onUpdateStatus: (id: number, status: string) => void;
+  onUpdateName: (id: number, name: string) => void;
+  showToast: (message: string, type?: "success" | "error") => void;
+  onRefresh?: () => Promise<void> | void;
+}
+
+export interface DataTableSettingTxlogProps {
+  data: AccountTransactionItem[];
+  title?: string;
+  subtitle?: string;
 }
