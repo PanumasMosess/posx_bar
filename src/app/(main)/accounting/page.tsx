@@ -44,7 +44,7 @@ export default async function AccountingPage({ searchParams }: PageProps) {
           transactions: {
             where: {
               walletType: "CREDIT",
-              type: { in: ["SPEND", "TOPUP"] },
+              type: { in: ["SPEND", "TOPUP", "REFUND"] },
             },
             orderBy: { createdAt: "desc" },
           },

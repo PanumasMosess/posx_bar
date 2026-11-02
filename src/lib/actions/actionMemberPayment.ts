@@ -34,7 +34,7 @@ export async function executeMemberPayment(data: {
       let currentCreditBalance = member.creditBalance;
       const memberTransactionsToInsert: {
         organizationId: number;
-        type: "TOPUP";
+        type: "REFUND";
         walletType: "CREDIT";
         amount: number;
         balanceAfter: number;
@@ -46,24 +46,65 @@ export async function executeMemberPayment(data: {
         date: Date;
       }[] = [];
 
-      if (data.clearingTransactionIds && data.clearingTransactionIds.length > 0) {
-        const bills = await tx.membertransaction.findMany({
-          where: { id: { in: data.clearingTransactionIds }, type: "SPEND" },
+      if (data.paymentType === "CLEAR_DEBT") {
+        // หาบิลที่ต้องตัดหนี้
+        let billsToProcess = [];
+        if (data.clearingTransactionIds && data.clearingTransactionIds.length > 0) {
+          billsToProcess = await tx.membertransaction.findMany({
+            where: { id: { in: data.clearingTransactionIds }, type: "SPEND" },
+            orderBy: { createdAt: "asc" },
+          });
+        } else {
+          // ตัดยอดอัตโนมัติ (FIFO): ดึงบิล SPEND ทั้งหมดของสมาชิกเรียงตาม createdAt: "asc" (เก่าสุดก่อน)
+          billsToProcess = await tx.membertransaction.findMany({
+            where: { memberId: data.memberId, walletType: "CREDIT", type: "SPEND" },
+            orderBy: { createdAt: "asc" },
+          });
+        }
+
+        // หาประวัติ REFUND ทั้งหมดของสมาชิกนี้เพื่อคำนวณยอดค้างของแต่ละบิล
+        const allMemberRefunds = await tx.membertransaction.findMany({
+          where: { memberId: data.memberId, walletType: "CREDIT", type: "REFUND" },
           orderBy: { createdAt: "asc" },
         });
 
-        const pastPayments = await tx.membertransaction.findMany({
-          where: { referenceTxId: { in: data.clearingTransactionIds }, type: "TOPUP" },
+        const allMemberSpends = await tx.membertransaction.findMany({
+          where: { memberId: data.memberId, walletType: "CREDIT", type: "SPEND" },
+          orderBy: { createdAt: "asc" },
         });
 
-        for (const bill of bills) {
+        // 1. คำนวณยอดที่แต่ละบิลจ่ายไปแล้วจาก REFUND ที่ระบุ referenceTxId
+        const paidMap = new Map<number, number>();
+        allMemberSpends.forEach((b) => paidMap.set(b.id, 0));
+
+        let unreferencedPool = 0;
+        for (const ref of allMemberRefunds) {
+          if (ref.referenceTxId && paidMap.has(ref.referenceTxId)) {
+            paidMap.set(ref.referenceTxId, (paidMap.get(ref.referenceTxId) || 0) + ref.amount);
+          } else {
+            unreferencedPool += ref.amount;
+          }
+        }
+
+        // 2. กระจายยอด unreferenced pool ให้บิลเก่าสุดก่อน (FIFO)
+        for (const bill of allMemberSpends) {
+          if (unreferencedPool <= 0) break;
+          const billAmount = Math.abs(bill.amount);
+          const currentPaid = paidMap.get(bill.id) || 0;
+          const remainingOnBill = billAmount - currentPaid;
+          if (remainingOnBill > 0) {
+            const allocate = Math.min(unreferencedPool, remainingOnBill);
+            paidMap.set(bill.id, currentPaid + allocate);
+            unreferencedPool -= allocate;
+          }
+        }
+
+        // 3. นำเงินที่ชำระรอบนี้ไปตัดยอดบิล
+        for (const bill of billsToProcess) {
           if (remainingMoney <= 0) break;
-
-          const paidAlready = pastPayments
-            .filter((p) => p.referenceTxId === bill.id)
-            .reduce((sum, p) => sum + p.amount, 0);
-
-          const remainingDebt = Math.abs(bill.amount) - paidAlready;
+          const billAmount = Math.abs(bill.amount);
+          const paidAlready = paidMap.get(bill.id) || 0;
+          const remainingDebt = billAmount - paidAlready;
 
           if (remainingDebt > 0) {
             const payAmount = Math.min(remainingMoney, remainingDebt);
@@ -71,11 +112,11 @@ export async function executeMemberPayment(data: {
 
             memberTransactionsToInsert.push({
               organizationId: data.organizationId,
-              type: "TOPUP",
+              type: "REFUND",
               walletType: "CREDIT",
               amount: payAmount,
               balanceAfter: currentCreditBalance,
-              note: data.note || `ชำระหนี้บิล #${bill.orderId || bill.id}`,
+              note: data.note || `รับชำระบิลค้าง #${bill.orderId || bill.id}`,
               memberId: data.memberId,
               createdById: creatorId,
               referenceTxId: bill.id,
@@ -83,6 +124,7 @@ export async function executeMemberPayment(data: {
               date: targetDate,
             });
 
+            paidMap.set(bill.id, paidAlready + payAmount);
             remainingMoney -= payAmount;
           }
         }
@@ -92,14 +134,14 @@ export async function executeMemberPayment(data: {
         currentCreditBalance += remainingMoney;
         memberTransactionsToInsert.push({
           organizationId: data.organizationId,
-          type: "TOPUP",
+          type: "REFUND",
           walletType: "CREDIT",
           amount: remainingMoney,
           balanceAfter: currentCreditBalance,
           note:
             data.note ||
             (data.paymentType === "CLEAR_DEBT"
-              ? "ชำระหนี้ค้างส่ง"
+              ? "ชำระหนี้ค้างส่ง (เงินจ่ายล่วงหน้า/เกิน)"
               : "เติมเงินเครดิตล่วงหน้า"),
           memberId: data.memberId,
           createdById: creatorId,
@@ -142,12 +184,29 @@ export async function executeMemberPayment(data: {
         },
       });
 
-      return { success: true, message: "บันทึกรายการรับชำระเงินเรียบร้อยแล้ว" };
+      const updatedMember = await tx.member.findUnique({
+        where: { id: data.memberId },
+        include: {
+          transactions: {
+            where: {
+              walletType: "CREDIT",
+              type: { in: ["SPEND", "TOPUP", "REFUND"] },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+
+      return {
+        success: true as const,
+        message: "บันทึกรายการรับชำระเงินเรียบร้อยแล้ว",
+        updatedMember,
+      };
     });
   } catch (err: unknown) {
     const error = err as Error;
     return {
-      success: false,
+      success: false as const,
       message: error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
     };
   }
