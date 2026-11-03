@@ -582,6 +582,7 @@ export interface BillCalculation {
 export interface GroupedHistoryItem {
   id: number;
   amount: number;
+  type?: string;
   note?: string | null;
   createdAt: string | Date;
   date?: string | Date | null;

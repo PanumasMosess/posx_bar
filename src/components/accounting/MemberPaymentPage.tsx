@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { executeMemberPayment } from "@/lib/actions/actionMemberPayment";
 import {
@@ -12,6 +12,7 @@ import {
   MemberPaymentPageProps,
 } from "@/lib/types";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import ReceiptDetailModal from "@/components/reports/ReceiptDetailModal";
 
 export default function MemberPaymentPage({
   initialMembers,
@@ -24,7 +25,13 @@ export default function MemberPaymentPage({
   const currency = settings?.currencyCode || "";
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMember, setSelectedMember] = useState<MemberWithDebtInfo | null>(null);
+  const [members, setMembers] = useState(initialMembers);
+
+  useEffect(() => {
+    setMembers(initialMembers);
+  }, [initialMembers]);
+
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   const [selectedShopAccountId, setSelectedShopAccountId] = useState("");
   const [amount, setAmount] = useState("");
@@ -44,6 +51,7 @@ export default function MemberPaymentPage({
 
   const [sortField, setSortField] = useState<SortField>("currentDebt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [viewingOrderId, setViewingOrderId] = useState<number | null>(null);
 
   // Inline Toast state
   const [toast, setToast] = useState<{
@@ -62,28 +70,33 @@ export default function MemberPaymentPage({
   const membersWithDebtInfo = useMemo<MemberWithDebtInfo[]>(() => {
     const now = new Date().getTime();
 
-    return initialMembers.map((member) => {
+    return members.map((member) => {
       const txs = member.transactions || [];
       const spends = [...txs.filter((t) => t.type === "SPEND")].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
       const allTopups = txs.filter((t) => t.type === "TOPUP");
+      // REFUND = การจ่ายคืนหนี้จริง
+      const allRefunds = txs.filter((t) => t.type === "REFUND");
 
       const totalSpent = spends.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      const totalPaid = allTopups.reduce((sum, t) => sum + t.amount, 0);
-      const currentDebt = totalSpent - totalPaid > 0 ? totalSpent - totalPaid : 0;
+      // ยอดที่จ่ายคืนจริง = REFUND เท่านั้น
+      const totalRefunded = allRefunds.reduce((sum, t) => sum + t.amount, 0);
+      const currentDebt = Math.max(0, totalSpent - totalRefunded);
 
       const aging = { bucket30: 0, bucket60: 0, bucket90: 0, bucketOver90: 0 };
 
       if (currentDebt > 0) {
-        let unreferencedMoney = allTopups
-          .filter((t) => t.referenceTxId == null)
-          .reduce((sum, t) => sum + t.amount, 0);
+        // หา unreferenced refunds (ทั้งที่ referenceTxId เป็น null หรือไม่ตรงกับ SPEND ใดเลย)
+        const generalRefunds = allRefunds.filter(
+          (t) => t.referenceTxId == null || !spends.some((s) => s.id === t.referenceTxId)
+        );
+        let unreferencedMoney = generalRefunds.reduce((sum, t) => sum + t.amount, 0);
 
         for (const bill of spends) {
           const billAmount = Math.abs(bill.amount);
-          const explicitlyPaid = allTopups
+          const explicitlyPaid = allRefunds
             .filter((t) => t.referenceTxId === bill.id)
             .reduce((sum, t) => sum + t.amount, 0);
 
@@ -113,7 +126,12 @@ export default function MemberPaymentPage({
         aging,
       };
     });
-  }, [initialMembers]);
+  }, [members]);
+
+  const selectedMember = useMemo(() => {
+    if (!selectedMemberId) return null;
+    return membersWithDebtInfo.find((m) => m.id === selectedMemberId) || null;
+  }, [membersWithDebtInfo, selectedMemberId]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -140,6 +158,7 @@ export default function MemberPaymentPage({
   }, [membersWithDebtInfo]);
 
   const filteredAndSortedDebtors = useMemo(() => {
+    // แสดงสมาชิกที่มียอดค้างชำระ (SPEND > การจ่ายคืนจริง)
     let debtors = membersWithDebtInfo.filter((m) => m.currentDebt > 0);
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
@@ -305,8 +324,8 @@ export default function MemberPaymentPage({
               </thead>
               <tbody>
                 ${filteredAndSortedDebtors
-                  .map(
-                    (m) => `
+        .map(
+          (m) => `
                   <tr>
                     <td><strong>${m.firstName} ${m.lastName || ""}</strong><br><span style="font-size: 10px; color:#71717a;">${m.phone}</span></td>
                     <td class="text-right">${m.aging.bucket30 > 0 ? m.aging.bucket30.toLocaleString() : "-"}</td>
@@ -316,8 +335,8 @@ export default function MemberPaymentPage({
                     <td class="text-right" style="font-weight: bold; background: #fff5f5;">${m.currentDebt.toLocaleString()} ${currency}</td>
                   </tr>
                 `
-                  )
-                  .join("")}
+        )
+        .join("")}
               </tbody>
             </table>
           </div>
@@ -344,10 +363,14 @@ export default function MemberPaymentPage({
     );
 
     const allTopups = txs.filter((t) => t.type === "TOPUP");
+    // REFUND = การจ่ายคืนหนี้จริง
+    const allRefunds = txs.filter((t) => t.type === "REFUND");
 
-    let unreferencedMoney = allTopups
-      .filter((t) => t.referenceTxId == null)
-      .reduce((sum, t) => sum + t.amount, 0);
+    // REFUND ที่ไม่ได้ link กับบิลใด = ตัดยอดทั่วไป (FIFO)
+    const generalRefunds = allRefunds.filter(
+      (t) => t.referenceTxId == null || !spends.some((s) => s.id === t.referenceTxId)
+    );
+    let unreferencedMoney = generalRefunds.reduce((sum, t) => sum + t.amount, 0);
 
     const calculatedActiveBills: BillCalculation[] = [];
     const calculatedSettledBills: BillCalculation[] = [];
@@ -355,7 +378,8 @@ export default function MemberPaymentPage({
 
     for (const bill of spends) {
       const billAmount = Math.abs(bill.amount);
-      const explicitlyPaid = allTopups
+      // เฉพาะ TOPUP ที่ link กับบิลนี้โดยตรง
+      const explicitlyPaid = allRefunds
         .filter((t) => t.referenceTxId === bill.id)
         .reduce((sum, t) => sum + t.amount, 0);
 
@@ -393,38 +417,59 @@ export default function MemberPaymentPage({
     calculatedActiveBills.reverse();
     calculatedSettledBills.reverse();
 
-    const historyMap = new Map<string | number, GroupedHistoryItem>();
-    const sortedTopups = [...allTopups].sort(
+    // ประวัติทั้งหมด: ทั้ง SPEND (เซ็น) และ TOPUP (รับชำระ/เติมวงเงิน)
+    const allTxsSorted = [...txs].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    sortedTopups.forEach((tx) => {
-      const key = tx.paymentGroupId || tx.id;
-      if (historyMap.has(key)) {
-        const existing = historyMap.get(key)!;
-        existing.amount += tx.amount;
-        existing.isGrouped = true;
-        if (tx.referenceTxId) {
-          existing.clearedBills = existing.clearedBills || [];
-          existing.clearedBills.push({ id: tx.referenceTxId, amountPaid: tx.amount });
-        }
-      } else {
-        historyMap.set(key, {
+    const historyMap = new Map<string | number, GroupedHistoryItem>();
+
+    allTxsSorted.forEach((tx) => {
+      if (tx.type === "SPEND") {
+        // บิลที่เซ็น - เพิ่มเป็น history item แยกต่างหาก
+        historyMap.set(`spend-${tx.id}`, {
           id: tx.id,
           amount: tx.amount,
-          note: tx.note,
+          note: tx.note || (tx.orderId ? `เซ็นบิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"),
           createdAt: tx.createdAt,
           date: tx.date,
-          paymentGroupId: tx.paymentGroupId,
+          paymentGroupId: null,
           isGrouped: false,
-          clearedBills: tx.referenceTxId
-            ? [{ id: tx.referenceTxId, amountPaid: tx.amount }]
-            : [],
+          clearedBills: [],
         });
+      } else if (tx.type === "REFUND" || tx.type === "TOPUP") {
+        // REFUND = การจ่ายคืนหนี้, TOPUP = เติมวงเงิน
+        const isRefundTx = tx.type === "REFUND";
+        const key = tx.paymentGroupId || (isRefundTx ? `refund-${tx.id}` : `topup-${tx.id}`);
+        if (historyMap.has(key)) {
+          const existing = historyMap.get(key)!;
+          existing.amount += tx.amount;
+          existing.isGrouped = true;
+          if (tx.referenceTxId) {
+            existing.clearedBills = existing.clearedBills || [];
+            existing.clearedBills.push({ id: tx.referenceTxId, amountPaid: tx.amount });
+          }
+        } else {
+          historyMap.set(key, {
+            id: tx.id,
+            amount: tx.amount,
+            type: tx.type,
+            note: tx.note || (tx.type === "REFUND" ? "รับชำระหนี้คืน" : "เติมวงเงินเครดิต"),
+            createdAt: tx.createdAt,
+            date: tx.date,
+            paymentGroupId: tx.paymentGroupId,
+            isGrouped: false,
+            clearedBills: tx.referenceTxId
+              ? [{ id: tx.referenceTxId, amountPaid: tx.amount }]
+              : [],
+          });
+        }
       }
     });
 
-    const finalHistory = Array.from(historyMap.values());
+    const finalHistory = Array.from(historyMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     return {
       activeBills: calculatedActiveBills,
@@ -435,7 +480,7 @@ export default function MemberPaymentPage({
   }, [selectedMember]);
 
   const handleSelectMember = (member: MemberWithDebtInfo) => {
-    setSelectedMember(member);
+    setSelectedMemberId(member.id);
     setSelectedBillsToPay([]);
     setAmount("");
     setActiveTab("DEBT");
@@ -459,7 +504,7 @@ export default function MemberPaymentPage({
   };
 
   const closeModal = () => {
-    setSelectedMember(null);
+    setSelectedMemberId(null);
     setSelectedBillsToPay([]);
     setAmount("");
     setNote("");
@@ -497,8 +542,15 @@ export default function MemberPaymentPage({
 
     if (res.success) {
       showToast(res.message, "success");
-      closeModal();
-      setSearchQuery("");
+      setAmount("");
+      setSelectedBillsToPay([]);
+      setNote("");
+      if ("updatedMember" in res && res.updatedMember) {
+        const updated = res.updatedMember;
+        setMembers((prev) =>
+          prev.map((m) => (m.id === updated.id ? (updated as any) : m))
+        );
+      }
       router.refresh();
     } else {
       showToast(res.message, "error");
@@ -512,13 +564,12 @@ export default function MemberPaymentPage({
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl border text-sm font-semibold transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
           <div
-            className={`w-2.5 h-2.5 rounded-full ${
-              toast.type === "success"
+            className={`w-2.5 h-2.5 rounded-full ${toast.type === "success"
                 ? "bg-emerald-500"
                 : toast.type === "warning"
-                ? "bg-amber-500"
-                : "bg-rose-500"
-            }`}
+                  ? "bg-amber-500"
+                  : "bg-rose-500"
+              }`}
           />
           <span className="text-slate-800 dark:text-white">{toast.message}</span>
         </div>
@@ -711,11 +762,10 @@ export default function MemberPaymentPage({
                     {currentDebtors.map((debtor, index) => (
                       <tr
                         key={debtor.id}
-                        className={`hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition cursor-pointer group ${
-                          index % 2 === 0
+                        className={`hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition cursor-pointer group ${index % 2 === 0
                             ? "bg-transparent"
                             : "bg-slate-50/30 dark:bg-[#161618]/30"
-                        }`}
+                          }`}
                         onClick={() => handleSelectMember(debtor)}
                       >
                         <td className="px-5 py-3.5">
@@ -902,31 +952,28 @@ export default function MemberPaymentPage({
               <div className="flex items-center gap-1 mb-4 bg-slate-200/60 dark:bg-[#161618] p-1 rounded-xl shrink-0">
                 <button
                   onClick={() => setActiveTab("DEBT")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
-                    activeTab === "DEBT"
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "DEBT"
                       ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   ค้างชำระ ({activeBills.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("PAID")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
-                    activeTab === "PAID"
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "PAID"
                       ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   ชำระแล้ว ({settledBills.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("HISTORY")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
-                    activeTab === "HISTORY"
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "HISTORY"
                       ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   ประวัติ ({groupedHistory.length})
                 </button>
@@ -942,31 +989,39 @@ export default function MemberPaymentPage({
                         <div
                           key={`debt-${idx}`}
                           onClick={() => handleToggleSelectBill(tx)}
-                          className={`p-3.5 rounded-xl border flex flex-col gap-2 transition cursor-pointer relative ${
-                            isSelected
+                          className={`p-3.5 rounded-xl border flex flex-col gap-2 transition cursor-pointer relative ${isSelected
                               ? "bg-sky-50 dark:bg-sky-950/20 border-sky-400 dark:border-sky-500/50 shadow-xs"
                               : "bg-white dark:bg-[#161618] border-slate-200 dark:border-zinc-800/60 hover:border-slate-300"
-                          }`}
+                            }`}
                         >
                           <div
-                            className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSelected
+                            className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected
                                 ? "border-sky-500 bg-sky-500 text-white text-xs font-bold"
                                 : "border-slate-300 dark:border-zinc-600"
-                            }`}
+                              }`}
                           >
                             {isSelected && "✓"}
                           </div>
                           <div className="pr-7">
-                            <p
-                              className={`font-semibold text-xs ${
-                                isSelected
-                                  ? "text-sky-700 dark:text-sky-300"
-                                  : "text-slate-800 dark:text-zinc-200"
-                              }`}
-                            >
-                              🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={`font-semibold text-xs ${isSelected
+                                    ? "text-sky-700 dark:text-sky-300"
+                                    : "text-slate-800 dark:text-zinc-200"
+                                  }`}
+                              >
+                                🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
+                              </p>
+                              {tx.orderId && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setViewingOrderId(tx.orderId!); }}
+                                  className="text-[10px] text-sky-500 hover:text-sky-400 underline shrink-0 cursor-pointer"
+                                >
+                                  🔍 ดูบิล
+                                </button>
+                              )}
+                            </div>
                             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
                               {new Date(tx.date || tx.createdAt).toLocaleDateString(
                                 "th-TH"
@@ -974,9 +1029,14 @@ export default function MemberPaymentPage({
                             </span>
                           </div>
                           <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-zinc-800/40 text-xs">
-                            <span className="text-slate-400 text-[11px]">
-                              ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                              <span>ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}</span>
+                              {tx.paidAmount > 0 && (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                  (ชำระแล้ว {tx.paidAmount.toLocaleString()} {currency})
+                                </span>
+                              )}
+                            </div>
                             <span className="font-bold text-rose-500">
                               ค้าง {tx.remainingAmount.toLocaleString()} {currency}
                             </span>
@@ -999,18 +1059,36 @@ export default function MemberPaymentPage({
                         key={`paid-${idx}`}
                         className="p-3.5 rounded-xl border bg-white dark:bg-[#161618] border-slate-200 dark:border-zinc-800/60 text-xs space-y-1.5"
                       >
-                        <p className="font-semibold text-slate-800 dark:text-zinc-200">
-                          🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-slate-800 dark:text-zinc-200">
+                            🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
+                          </p>
+                          {tx.orderId && (
+                            <button
+                              type="button"
+                              onClick={() => setViewingOrderId(tx.orderId!)}
+                              className="text-[10px] text-sky-500 hover:text-sky-400 underline shrink-0 cursor-pointer"
+                            >
+                              🔍 ดูบิล
+                            </button>
+                          )}
+                        </div>
                         <div className="flex justify-between text-slate-400 text-[11px]">
                           <span>
                             {new Date(tx.date || tx.createdAt).toLocaleDateString(
                               "th-TH"
                             )}
                           </span>
-                          <span className="text-emerald-500 font-bold">
-                            จ่ายแล้ว {tx.paidAmount.toLocaleString()} {currency}
-                          </span>
+                          <div className="text-right">
+                            <div className="text-emerald-500 font-bold">
+                              จ่ายแล้ว {tx.paidAmount.toLocaleString()} {currency}
+                            </div>
+                            {tx.remainingAmount > 0 && (
+                              <div className="text-rose-400">
+                                ค้าง {tx.remainingAmount.toLocaleString()} {currency}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1025,44 +1103,57 @@ export default function MemberPaymentPage({
                 {activeTab === "HISTORY" && (
                   <>
                     {groupedHistory.map((tx, idx) => {
-                      const relatedBills = tx.clearedBills
+                      const isSpend = tx.amount < 0;
+                      const relatedBills = !isSpend && tx.clearedBills
                         ? tx.clearedBills
-                            .map((cb) => {
-                              const b = billsLookupMap.get(cb.id);
-                              return b ? { ...b, paidInThisTx: cb.amountPaid } : null;
-                            })
-                            .filter(Boolean)
+                          .map((cb) => {
+                            const b = billsLookupMap.get(cb.id);
+                            return b ? { ...b, paidInThisTx: cb.amountPaid } : null;
+                          })
+                          .filter(Boolean)
                         : [];
                       return (
                         <div
                           key={`hist-${idx}`}
-                          className="p-3.5 rounded-xl border bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30 text-xs space-y-1.5"
+                          className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${isSpend
+                              ? "bg-rose-50/50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30"
+                              : tx.type === "REFUND"
+                                ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30"
+                                : "bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-900/30"
+                            }`}
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <p className="font-bold text-emerald-700 dark:text-emerald-400">
-                                🏦 {tx.note || "รับชำระเงิน"}
+                              <p className={`font-bold ${isSpend ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                                {isSpend ? "🧾" : tx.type === "REFUND" ? "💰" : "💳"} {tx.note || (isSpend ? "เซ็นบิล" : tx.type === "REFUND" ? "รับชำระหนี้คืน" : "เติมวงเงินเครดิต")}
                               </p>
                               <span className="text-[10px] text-slate-400">
-                                {new Date(tx.date || tx.createdAt).toLocaleString(
-                                  "th-TH"
-                                )}
+                                {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH")}
                               </span>
                             </div>
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                              +{tx.amount.toLocaleString()} {currency}
-                            </span>
+                            <div className="text-right flex items-center gap-2">
+                              <span className={`font-bold text-sm ${isSpend ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                {isSpend ? "" : "+"}{Math.abs(tx.amount).toLocaleString()} {currency}
+                              </span>
+                              {!isSpend && tx.paymentGroupId == null && (
+                                <span className="text-[10px] bg-slate-100 dark:bg-zinc-800 text-slate-500 px-1.5 py-0.5 rounded">วงเงิน</span>
+                              )}
+                            </div>
                           </div>
                           {relatedBills.length > 0 && (
                             <div className="pt-1.5 border-t border-emerald-100 dark:border-emerald-900/30 space-y-1">
                               {relatedBills.map((b, bIdx) => (
                                 <div
                                   key={`rel-${bIdx}`}
-                                  className="flex justify-between text-[11px] text-slate-500 dark:text-zinc-400"
+                                  className="flex justify-between items-center text-[11px] text-slate-500 dark:text-zinc-400"
                                 >
-                                  <span>
-                                    🧾 {b?.orderId ? `บิล #${b.orderId}` : "บิลหน้าร้าน"}
-                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span>🧾 {b?.orderId ? `บิล #${b.orderId}` : "บิลหน้าร้าน"}</span>
+                                    {b?.orderId && (
+                                      <button type="button" onClick={() => setViewingOrderId(b!.orderId!)}
+                                        className="text-sky-500 hover:underline cursor-pointer">🔍</button>
+                                    )}
+                                  </div>
                                   <span className="font-semibold text-emerald-600">
                                     {b?.paidInThisTx.toLocaleString()} {currency}
                                   </span>
@@ -1187,6 +1278,14 @@ export default function MemberPaymentPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ReceiptDetailModal - แสดงรายละเอียดบิล (หน้าสุดเสมอ z-[100]) */}
+      {viewingOrderId && (
+        <ReceiptDetailModal
+          orderId={viewingOrderId}
+          onClose={() => setViewingOrderId(null)}
+        />
       )}
     </div>
   );
