@@ -8,6 +8,7 @@ import {
   sendbase64toS3DataMultifile,
 } from "@/lib/actions";
 import { ProcessPaymentPayload } from "../interface";
+import { getValidCreatorId } from "@/lib/actions/actionAccounting";
 
 export const addProductToDB = async (data: any) => {
   try {
@@ -580,8 +581,77 @@ export async function processPaymentDB(payload: any) {
         }
       }
 
+      // 7. บันทึกบัญชีรายรับหน้าร้าน POS (SALES) และเพิ่มเงินในบัญชี
+      // หมายเหตุ: กรณี MEMBER (เซ็นเครดิต) ไม่เพิ่มเงินเข้าบัญชีหน้าร้าน เพราะยังไม่ได้รับเงินจริง จะไปเพิ่มตอนชำระหนี้ (AR_PAYMENT)
+      if (paymentMethodString !== "MEMBER" && payload.amount > 0) {
+        const orgId = payload.organizationId || updatedOrder.organizationId;
+
+        // 7.1 ค้นหาบัญชีที่ตั้งค่าว่ารับเงิน POS (accPosPayment = true)
+        let targetAccount = await tx.account.findFirst({
+          where: {
+            organizationId: orgId,
+            status: "ACTIVE",
+            accPosPayment: true,
+          },
+        });
+
+        // 7.2 ถ้ามีแต่ยังไม่เลือก ให้เลือกบัญชีเก่าสุดที่ใช้งานอยู่ (status = ACTIVE)
+        if (!targetAccount) {
+          targetAccount = await tx.account.findFirst({
+            where: {
+              organizationId: orgId,
+              status: "ACTIVE",
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          });
+        }
+
+        // 7.3 ถ้าระบบมีบัญชี ให้ทำการเพิ่มเงินและลงรายการรับเงิน (ถ้าระบบยังไม่มีบัญชี ก็ยังไม่ต้องลงข้อมูล)
+        if (targetAccount) {
+          const newAccountBalance = targetAccount.balance + payload.amount;
+
+          await tx.account.update({
+            where: { id: targetAccount.id },
+            data: { balance: newAccountBalance },
+          });
+
+          const creatorId = await getValidCreatorId(
+            tx,
+            payload.createdBy && !isNaN(Number(payload.createdBy))
+              ? Number(payload.createdBy)
+              : null,
+            orgId
+          );
+
+          await tx.account_transaction.create({
+            data: {
+              organizationId: orgId,
+              accountId: targetAccount.id,
+              type: "SALES",
+              amount: payload.amount,
+              accountBalance: newAccountBalance,
+              title: `รับเงินค่าอาหาร (บิล #${updatedOrder.orderNumber})`,
+              note: `วิธีชำระ: ${paymentMethodString}`,
+              docNumber: updatedOrder.orderNumber,
+              paymentOrderId: updatedOrder.id,
+              shiftId: payload.shiftId || null,
+              createdById: creatorId,
+              date: new Date(),
+            },
+          });
+        }
+      }
+
       return { payment, updatedOrder };
     });
+
+    revalidatePath("/accounting");
+    revalidatePath("/accounting/history");
+    revalidatePath("/accounting/report");
+    revalidatePath("/accounting/profit_loss");
+    revalidatePath("/pos");
 
     return { success: true, data: result };
   } catch (error: any) {
