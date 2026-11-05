@@ -89,6 +89,10 @@ export default function ExpenseCalendarPage({
     | "COPY_DAY"
   >("NONE");
 
+  // Target for Day View and Month View modals
+  const [dayViewTarget, setDayViewTarget] = useState<"TODAY" | "SELECTED">("SELECTED");
+  const [monthViewTarget, setMonthViewTarget] = useState<"THIS_MONTH" | "CURRENT_VIEW">("THIS_MONTH");
+
   // In Day View: either showing 3 buttons or the form
   const [dayFormState, setDayFormState] = useState<"BUTTONS" | "FORM">("BUTTONS");
   const [dayTab, setDayTab] = useState<"EXPENSE" | "INCOME">("EXPENSE");
@@ -325,6 +329,7 @@ export default function ExpenseCalendarPage({
   // Open Day View from calendar day click
   const handleDayClick = (dayNum: number) => {
     setSelectedDay(dayNum);
+    setDayViewTarget("SELECTED");
     setDayFormState("BUTTONS");
     setEditingDayItem(null);
     setDayTitle("");
@@ -360,8 +365,33 @@ export default function ExpenseCalendarPage({
     setDayFormState("FORM");
   };
 
+  // Open Today Modal (Card 1: วันนี้) - Always shows Today's data
+  const handleOpenToday = () => {
+    setDayViewTarget("TODAY");
+    setDayFormState("BUTTONS");
+    setActiveModal("DAY_VIEW");
+  };
+
+  // Open This Month Modal (Card 2: เดือนนี้) - Always shows This Month's data
+  const handleOpenThisMonth = () => {
+    setMonthViewTarget("THIS_MONTH");
+    setActiveModal("MONTH_VIEW");
+  };
+
+  // Open Current Viewed Month Modal (from Calendar Header click)
+  const handleOpenCurrentViewedMonth = () => {
+    setMonthViewTarget("CURRENT_VIEW");
+    setActiveModal("MONTH_VIEW");
+  };
+
+  // Open Year View of currently viewed year (Card 3: ปีนี้)
+  const handleOpenThisYear = () => {
+    setActiveModal("YEAR_VIEW");
+  };
+
   // Start editing item inside Day View
   const handleStartEditDayItem = (item: ExpenseItem | MonthlyExpenseItem) => {
+    if (item.isSales) return;
     setEditingDayItem(item);
     setDayTitle(item.title);
     setDayAmount(
@@ -378,6 +408,7 @@ export default function ExpenseCalendarPage({
 
   // Open Dedicated Edit Modal from Month View (without date editing box)
   const handleOpenEditFromMonthView = (item: ExpenseItem | MonthlyExpenseItem) => {
+    if (item.isSales) return;
     setEditItemId(item.id);
     setEditItemTitle(item.title);
     setEditItemAmount(
@@ -664,8 +695,12 @@ export default function ExpenseCalendarPage({
     setIsSubmitting(false);
   };
 
-  const selectedDayExpenses = selectedDayData.dailyItems.filter((i) => i.type === "EXPENSE");
-  const selectedDayIncomes = selectedDayData.dailyItems.filter((i) => i.type === "INCOME");
+  const isViewingToday = dayViewTarget === "TODAY" && !!calendarData?.todayModalData;
+  const currentDayDailyItems = isViewingToday ? calendarData.todayModalData!.dailyItems : selectedDayData.dailyItems;
+  const currentDayMonthlyItems = isViewingToday ? calendarData.todayModalData!.monthlyItems : selectedDayData.monthlyItems;
+
+  const selectedDayExpenses = currentDayDailyItems.filter((i) => i.type === "EXPENSE");
+  const selectedDayIncomes = currentDayDailyItems.filter((i) => i.type === "INCOME");
 
   return (
     <div className="w-full min-h-[calc(100vh-80px)] bg-pos-bg text-pos-text p-2 sm:p-4 font-sans relative selection:bg-[#166675]/20">
@@ -702,9 +737,14 @@ export default function ExpenseCalendarPage({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-xl bg-[#166675]/10 dark:bg-[#166675]/20 text-[#166675] dark:text-[#53b9cc] border border-[#166675]/20 dark:border-[#166675]/40 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={handleOpenCurrentViewedMonth}
+            className="px-3 py-1 rounded-xl bg-[#166675]/10 dark:bg-[#166675]/20 text-[#166675] dark:text-[#53b9cc] border border-[#166675]/20 dark:border-[#166675]/40 text-xs font-semibold hover:bg-[#166675]/20 transition cursor-pointer"
+            title="กดเพื่อดูรายละเอียดประจำเดือน"
+          >
             {monthName} {thaiYear}
-          </span>
+          </button>
         </div>
       </div>
 
@@ -745,13 +785,20 @@ export default function ExpenseCalendarPage({
             </div>
 
             {/* Content Display */}
-            <div className="flex items-center justify-between text-center px-2">
+            <div
+              onClick={() => {
+                if (mobileTab === "TODAY") handleOpenToday();
+                else if (mobileTab === "MONTH") handleOpenThisMonth();
+                else handleOpenThisYear();
+              }}
+              className="flex items-center justify-between text-center px-2 cursor-pointer"
+            >
               <div>
                 <div className="text-[11px] text-white/85 mb-0.5">รายรับ</div>
                 <div className="font-bold text-sm sm:text-base">
                   {mobileTab === "TODAY" && (calendarData?.todayIncome ?? 0).toLocaleString()}
-                  {mobileTab === "MONTH" && (calendarData?.monthIncome ?? 0).toLocaleString()}
-                  {mobileTab === "YEAR" && (calendarData?.yearIncome ?? 0).toLocaleString()}
+                  {mobileTab === "MONTH" && ((calendarData?.thisMonthIncome ?? calendarData?.monthIncome) ?? 0).toLocaleString()}
+                  {mobileTab === "YEAR" && ((calendarData?.thisYearIncome ?? calendarData?.yearIncome) ?? 0).toLocaleString()}
                 </div>
               </div>
               <div className="w-px h-8 bg-white/20" />
@@ -759,21 +806,25 @@ export default function ExpenseCalendarPage({
                 <div className="text-[11px] text-white/85 mb-0.5">รายจ่าย</div>
                 <div className="font-bold text-sm sm:text-base text-[#ffb8b1]">
                   {mobileTab === "TODAY" && (calendarData?.todayExpense ?? 0).toLocaleString()}
-                  {mobileTab === "MONTH" && (calendarData?.monthExpense ?? 0).toLocaleString()}
-                  {mobileTab === "YEAR" && (calendarData?.yearExpense ?? 0).toLocaleString()}
+                  {mobileTab === "MONTH" && ((calendarData?.thisMonthExpense ?? calendarData?.monthExpense) ?? 0).toLocaleString()}
+                  {mobileTab === "YEAR" && ((calendarData?.thisYearExpense ?? calendarData?.yearExpense) ?? 0).toLocaleString()}
                 </div>
               </div>
               <div className="w-px h-8 bg-white/20" />
               <div>
                 <div className="text-[11px] text-white/85 mb-0.5">สุทธิ</div>
                 <div className={`font-black text-sm sm:text-base ${
-                  (mobileTab === "TODAY" ? (calendarData?.todayNet ?? 0) : mobileTab === "MONTH" ? (calendarData?.monthNet ?? 0) : (calendarData?.yearNet ?? 0)) >= 0 
-                  ? "text-[#99f6e4]" 
-                  : "text-[#ffb8b1]"
+                  (mobileTab === "TODAY"
+                    ? (calendarData?.todayNet ?? 0)
+                    : mobileTab === "MONTH"
+                    ? (calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)
+                    : (calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)) >= 0
+                    ? "text-[#99f6e4]"
+                    : "text-[#ffb8b1]"
                 }`}>
                   {mobileTab === "TODAY" && ((calendarData?.todayNet ?? 0) > 0 ? `+${(calendarData?.todayNet ?? 0).toLocaleString()}` : (calendarData?.todayNet ?? 0).toLocaleString())}
-                  {mobileTab === "MONTH" && ((calendarData?.monthNet ?? 0) > 0 ? `+${(calendarData?.monthNet ?? 0).toLocaleString()}` : (calendarData?.monthNet ?? 0).toLocaleString())}
-                  {mobileTab === "YEAR" && ((calendarData?.yearNet ?? 0) > 0 ? `+${(calendarData?.yearNet ?? 0).toLocaleString()}` : (calendarData?.yearNet ?? 0).toLocaleString())}
+                  {mobileTab === "MONTH" && (((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)) > 0 ? `+${((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)).toLocaleString()}` : ((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)).toLocaleString())}
+                  {mobileTab === "YEAR" && (((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)) > 0 ? `+${((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)).toLocaleString()}` : ((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)).toLocaleString())}
                 </div>
               </div>
             </div>
@@ -781,14 +832,14 @@ export default function ExpenseCalendarPage({
             {/* Averages for Month / Year */}
             {mobileTab === "MONTH" && (
               <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-white/90 pt-3 mt-3 border-t border-white/20">
-                <span><span className="opacity-70">เฉลี่ยวันละ:</span> รายรับ <span className="font-bold">{(calendarData?.avgDailyIncome ?? 0).toLocaleString()}</span></span>
-                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.avgDailyExpense ?? 0).toLocaleString()}</span></span>
+                <span><span className="opacity-70">เฉลี่ยวันละ:</span> รายรับ <span className="font-bold">{(calendarData?.thisMonthAvgDailyIncome ?? calendarData?.avgDailyIncome ?? 0).toLocaleString()}</span></span>
+                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisMonthAvgDailyExpense ?? calendarData?.avgDailyExpense ?? 0).toLocaleString()}</span></span>
               </div>
             )}
             {mobileTab === "YEAR" && (
               <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-white/90 pt-3 mt-3 border-t border-white/20">
-                <span><span className="opacity-70">เฉลี่ยเดือนละ:</span> รายรับ <span className="font-bold">{(calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}</span></span>
-                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}</span></span>
+                <span><span className="opacity-70">เฉลี่ยเดือนละ:</span> รายรับ <span className="font-bold">{(calendarData?.thisYearAvgMonthlyIncome ?? calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}</span></span>
+                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisYearAvgMonthlyExpense ?? calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}</span></span>
               </div>
             )}
           </div>
@@ -801,11 +852,7 @@ export default function ExpenseCalendarPage({
           
           {/* Card 1: วันนี้ */}
           <div
-            onClick={() => {
-              setSelectedDay(now.getDate());
-              setDayFormState("BUTTONS");
-              setActiveModal("DAY_VIEW");
-            }}
+            onClick={handleOpenToday}
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
@@ -842,7 +889,7 @@ export default function ExpenseCalendarPage({
 
           {/* Card 2: เดือนนี้ */}
           <div
-            onClick={() => setActiveModal("MONTH_VIEW")}
+            onClick={handleOpenThisMonth}
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
@@ -853,25 +900,25 @@ export default function ExpenseCalendarPage({
               <div className="flex items-center justify-between">
                 <span className="text-white/90">รายรับ</span>
                 <span className="font-semibold text-white">
-                  {(calendarData?.monthIncome ?? 0).toLocaleString()}
+                  {(calendarData?.thisMonthIncome ?? calendarData?.monthIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-white/90">รายจ่าย</span>
                 <span className="font-semibold text-[#ffb8b1]">
-                  {(calendarData?.monthExpense ?? 0).toLocaleString()}
+                  {(calendarData?.thisMonthExpense ?? calendarData?.monthExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
                 <span className="text-white/90">สุทธิ</span>
                 <span
                   className={`font-bold text-[15px] ${
-                    (calendarData?.monthNet ?? 0) >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]"
+                    ((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0) >= 0) ? "text-[#99f6e4]" : "text-[#ffb8b1]"
                   }`}
                 >
-                  {(calendarData?.monthNet ?? 0) > 0
-                    ? `+${(calendarData?.monthNet ?? 0).toLocaleString()}`
-                    : (calendarData?.monthNet ?? 0).toLocaleString()}
+                  {((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0) > 0)
+                    ? `+${((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)).toLocaleString()}`
+                    : ((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0)).toLocaleString()}
                 </span>
               </div>
               
@@ -881,13 +928,13 @@ export default function ExpenseCalendarPage({
                 <div className="flex items-center justify-between">
                   <span className="text-white/90">รายรับ</span>
                   <span className="font-semibold text-white">
-                    {(calendarData?.avgDailyIncome ?? 0).toLocaleString()}
+                    {(calendarData?.thisMonthAvgDailyIncome ?? calendarData?.avgDailyIncome ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-white/90">รายจ่าย</span>
                   <span className="font-semibold text-[#ffb8b1]">
-                    {(calendarData?.avgDailyExpense ?? 0).toLocaleString()}
+                    {(calendarData?.thisMonthAvgDailyExpense ?? calendarData?.avgDailyExpense ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -896,7 +943,7 @@ export default function ExpenseCalendarPage({
 
           {/* Card 3: ปีนี้ */}
           <div
-            onClick={() => setActiveModal("YEAR_VIEW")}
+            onClick={handleOpenThisYear}
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
@@ -907,25 +954,25 @@ export default function ExpenseCalendarPage({
               <div className="flex items-center justify-between">
                 <span className="text-white/90">รายรับ</span>
                 <span className="font-semibold text-white">
-                  {(calendarData?.yearIncome ?? 0).toLocaleString()}
+                  {(calendarData?.thisYearIncome ?? calendarData?.yearIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-white/90">รายจ่าย</span>
                 <span className="font-semibold text-[#ffb8b1]">
-                  {(calendarData?.yearExpense ?? 0).toLocaleString()}
+                  {(calendarData?.thisYearExpense ?? calendarData?.yearExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
                 <span className="text-white/90">สุทธิ</span>
                 <span
                   className={`font-bold text-[15px] ${
-                    (calendarData?.yearNet ?? 0) >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]"
+                    ((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0) >= 0) ? "text-[#99f6e4]" : "text-[#ffb8b1]"
                   }`}
                 >
-                  {(calendarData?.yearNet ?? 0) > 0
-                    ? `+${(calendarData?.yearNet ?? 0).toLocaleString()}`
-                    : (calendarData?.yearNet ?? 0).toLocaleString()}
+                  {((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0) > 0)
+                    ? `+${((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)).toLocaleString()}`
+                    : ((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0)).toLocaleString()}
                 </span>
               </div>
               
@@ -935,13 +982,13 @@ export default function ExpenseCalendarPage({
                 <div className="flex items-center justify-between">
                   <span className="text-white/90">รายรับ</span>
                   <span className="font-semibold text-white">
-                    {(calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}
+                    {(calendarData?.thisYearAvgMonthlyIncome ?? calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-white/90">รายจ่าย</span>
                   <span className="font-semibold text-[#ffb8b1]">
-                    {(calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}
+                    {(calendarData?.thisYearAvgMonthlyExpense ?? calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -959,9 +1006,14 @@ export default function ExpenseCalendarPage({
             >
               &lt;
             </button>
-            <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 tracking-wide">
+            <button
+              type="button"
+              onClick={handleOpenCurrentViewedMonth}
+              className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 tracking-wide hover:text-[#166675] transition cursor-pointer"
+              title="กดเพื่อดูรายละเอียดประจำเดือน"
+            >
               {monthName} {thaiYear}
-            </h2>
+            </button>
             <button
               onClick={handleNextMonth}
               className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-xs transition cursor-pointer"
@@ -1012,8 +1064,6 @@ export default function ExpenseCalendarPage({
                       ? "bg-slate-50/40 dark:bg-slate-900/20 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/40"
                       : isToday
                       ? "border-2 border-rose-500 bg-white dark:bg-slate-900"
-                      : isSelected
-                      ? "border-2 border-[#166675] bg-[#166675]/10 dark:bg-[#166675]/20 shadow-sm"
                       : net > 0
                       ? "bg-[#ebf5ed] hover:bg-[#dff0e2] dark:bg-emerald-950/30 border border-[#d2ead7] dark:border-emerald-900/40"
                       : net < 0
@@ -1085,7 +1135,7 @@ export default function ExpenseCalendarPage({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                รายจ่าย · {selectedDayThaiDate}
+                รายจ่าย · {isViewingToday ? calendarData!.todayModalData!.thaiDate : selectedDayThaiDate}
               </h3>
               <button
                 onClick={() => setActiveModal("NONE")}
@@ -1100,22 +1150,27 @@ export default function ExpenseCalendarPage({
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
                 <span className="text-lg font-black text-white">
-                  {selectedDayData.totalIncome.toLocaleString()}
+                  {(isViewingToday ? calendarData!.todayModalData!.totalIncome : selectedDayData.totalIncome).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
                 <span className="text-lg font-black text-[#ffb8b1]">
-                  {selectedDayData.totalExpense.toLocaleString()}
+                  {(isViewingToday ? calendarData!.todayModalData!.totalExpense : selectedDayData.totalExpense).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
-                <span className={`text-lg font-black ${selectedDayData.net >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]"}`}>
-                  {selectedDayData.net > 0 ? `+${selectedDayData.net.toLocaleString()}` : selectedDayData.net.toLocaleString()}
-                </span>
+                {(() => {
+                  const netVal = isViewingToday ? calendarData!.todayModalData!.net : selectedDayData.net;
+                  return (
+                    <span className={`text-lg font-black ${netVal >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]"}`}>
+                      {netVal > 0 ? `+${netVal.toLocaleString()}` : netVal.toLocaleString()}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1135,9 +1190,9 @@ export default function ExpenseCalendarPage({
               {/* 1. รายรับ */}
               {selectedDayIncomes.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
                     <span>รายรับ</span>
-                    <span className="text-emerald-600 font-bold">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm sm:text-base tabular-nums">
                       {selectedDayIncomes
                         .reduce((sum, item) => sum + item.amount, 0)
                         .toLocaleString()}
@@ -1147,19 +1202,31 @@ export default function ExpenseCalendarPage({
                     <React.Fragment key={item.id}>
                       {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-1" />}
                       <div
-                        onClick={() => handleStartEditDayItem(item)}
-                        className="py-2 px-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between transition cursor-pointer"
+                        onClick={() => {
+                          if (!item.isSales) {
+                            handleStartEditDayItem(item);
+                          }
+                        }}
+                        className={`py-2 px-3 rounded-xl ${
+                          item.isSales
+                            ? "cursor-default"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                        } flex items-center justify-between transition`}
                       >
                         <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
                           {item.title}
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-bold text-sm text-emerald-600">
+                          <span className="font-bold text-sm text-emerald-600 tabular-nums">
                             {item.amount.toLocaleString()}
                           </span>
-                          <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                          </svg>
+                          {item.isSales ? (
+                            <div className="w-4 h-4 shrink-0" />
+                          ) : (
+                            <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                            </svg>
+                          )}
                         </div>
                       </div>
                     </React.Fragment>
@@ -1170,9 +1237,9 @@ export default function ExpenseCalendarPage({
               {/* 2. รายจ่ายทั่วไป */}
               {selectedDayExpenses.length > 0 ? (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl">
+                  <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
                     <span>รายจ่ายทั่วไป</span>
-                    <span className="text-rose-600 font-bold">
+                    <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
                       {selectedDayExpenses
                         .reduce((sum, item) => sum + item.amount, 0)
                         .toLocaleString()}
@@ -1183,7 +1250,7 @@ export default function ExpenseCalendarPage({
                       {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-1" />}
                       <div
                         onClick={() => handleStartEditDayItem(item)}
-                        className="py-2 px-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between transition cursor-pointer"
+                        className="py-2 px-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between transition cursor-pointer"
                       >
                         <div className="flex flex-col">
                           <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
@@ -1194,7 +1261,7 @@ export default function ExpenseCalendarPage({
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-bold text-sm text-rose-600">
+                          <span className="font-bold text-sm text-rose-600 tabular-nums">
                             {item.amount.toLocaleString()}
                           </span>
                           <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1206,7 +1273,7 @@ export default function ExpenseCalendarPage({
                   ))}
                 </div>
               ) : (
-                (selectedDayIncomes.length > 0 || selectedDayData.monthlyItems.length > 0) && (
+                (selectedDayIncomes.length > 0 || currentDayMonthlyItems.length > 0) && (
                   <div className="py-2 text-center text-xs text-slate-400 font-medium">
                     ยังไม่มีรายจ่ายรายวัน
                   </div>
@@ -1214,24 +1281,24 @@ export default function ExpenseCalendarPage({
               )}
 
               {/* 3. รายเดือน เฉลี่ยต่อวัน */}
-              {selectedDayData.monthlyItems.length > 0 && (
+              {currentDayMonthlyItems.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl">
-                    <span className="flex items-center gap-1">
-                      รายเดือน <span className="text-[10px] text-slate-400 font-normal">เฉลี่ยต่อวัน</span>
+                  <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
+                    <span className="flex items-center gap-1.5">
+                      รายเดือน <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">เฉลี่ยต่อวัน</span>
                     </span>
-                    <span className="text-rose-600 font-bold">
-                      {selectedDayData.monthlyItems
+                    <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
+                      {currentDayMonthlyItems
                         .reduce((sum, item) => sum + item.dailyShare, 0)
                         .toLocaleString()}
                     </span>
                   </div>
-                  {selectedDayData.monthlyItems.map((item, idx) => (
+                  {currentDayMonthlyItems.map((item, idx) => (
                     <React.Fragment key={item.id}>
                       {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-1" />}
                       <div
                         onClick={() => handleStartEditDayItem(item)}
-                        className="py-2 px-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between transition cursor-pointer"
+                        className="py-2 px-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between transition cursor-pointer"
                       >
                         <div className="flex flex-col">
                           <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
@@ -1242,7 +1309,7 @@ export default function ExpenseCalendarPage({
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-bold text-sm text-rose-600">
+                          <span className="font-bold text-sm text-rose-600 tabular-nums">
                             {item.dailyShare.toLocaleString()}
                           </span>
                           <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1257,7 +1324,7 @@ export default function ExpenseCalendarPage({
 
               {selectedDayIncomes.length === 0 &&
                 selectedDayExpenses.length === 0 &&
-                selectedDayData.monthlyItems.length === 0 && (
+                currentDayMonthlyItems.length === 0 && (
                   <div className="py-8 text-center text-sm text-slate-400 font-medium">
                     ยังไม่มีรายการบันทึกของวันนี้
                   </div>
@@ -1553,103 +1620,160 @@ export default function ExpenseCalendarPage({
           <div className="absolute inset-0" onClick={() => setActiveModal("NONE")} />
 
           <div className="relative w-[95%] sm:w-full max-w-lg bg-pos-surface border border-pos-border rounded-3xl p-5 sm:p-6 shadow-2xl z-10 animate-in zoom-in-95 duration-150 text-pos-text max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>📅</span>
-                <span>
-                  รายรับ-รายจ่าย{monthName} {thaiYear}
-                </span>
-              </h3>
-              <button
-                onClick={() => setActiveModal("NONE")}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
+            {(() => {
+              const isViewingThisMonth = monthViewTarget === "THIS_MONTH" && !!calendarData?.thisMonthModalData;
+              const activeMonthTitle = isViewingThisMonth
+                ? `${calendarData!.thisMonthModalData!.fullMonthName} ${calendarData!.thisMonthModalData!.thaiYear}`
+                : `${monthName} ${thaiYear}`;
+              const activeMonthIncome = isViewingThisMonth
+                ? calendarData!.thisMonthModalData!.income
+                : (calendarData?.monthIncome ?? 0);
+              const activeMonthExpense = isViewingThisMonth
+                ? calendarData!.thisMonthModalData!.expense
+                : (calendarData?.monthExpense ?? 0);
+              const activeMonthNet = isViewingThisMonth
+                ? calendarData!.thisMonthModalData!.net
+                : (calendarData?.monthNet ?? 0);
 
-            {/* Top Banner (POS Theme) */}
-            <div className="bg-[#166675] text-white rounded-2xl p-4 flex items-center justify-around text-center mb-4 shadow-2xs shrink-0">
-              <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
-                <span className="text-lg font-black text-white">
-                  {(calendarData?.monthIncome ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="w-px h-10 bg-white/20" />
-              <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
-                <span className="text-lg font-black text-[#ffb8b1]">
-                  {(calendarData?.monthExpense ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="w-px h-10 bg-white/20" />
-              <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
-                <span className={`text-lg font-black ${ (calendarData?.monthNet ?? 0) >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]" }`}>
-                  {(calendarData?.monthNet ?? 0) > 0
-                    ? `+${(calendarData?.monthNet ?? 0).toLocaleString()}`
-                    : (calendarData?.monthNet ?? 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
+              return (
+                <>
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <span>📅</span>
+                      <span>
+                        รายรับ-รายจ่าย{activeMonthTitle}
+                      </span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveModal("NONE")}
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Top Banner (POS Theme) */}
+                  <div className="bg-[#166675] text-white rounded-2xl p-4 flex items-center justify-around text-center mb-4 shadow-2xs shrink-0">
+                    <div>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
+                      <span className="text-lg font-black text-white">
+                        {activeMonthIncome.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-px h-10 bg-white/20" />
+                    <div>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
+                      <span className="text-lg font-black text-[#ffb8b1]">
+                        {activeMonthExpense.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-px h-10 bg-white/20" />
+                    <div>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
+                      <span className={`text-lg font-black ${ activeMonthNet >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]" }`}>
+                        {activeMonthNet > 0
+                          ? `+${activeMonthNet.toLocaleString()}`
+                          : activeMonthNet.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Content Sections */}
             <div className="flex-1 min-h-0 max-h-[55vh] overflow-y-auto pr-2 space-y-3.5 custom-scroll">
               {/* Section 1: รายรับ */}
               <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl mb-1.5">
-                  <span>รายรับ</span>
-                  <span className="text-emerald-600 font-bold">
-                    {(calendarData?.monthIncome ?? 0).toLocaleString()}
-                  </span>
-                </div>
-                {calendarData?.monthAllIncomes && calendarData.monthAllIncomes.length > 0 ? (
-                  <div className="space-y-1">
-                    {calendarData.monthAllIncomes.map((item, idx) => (
+                {(() => {
+                  const isViewingThisMonth = monthViewTarget === "THIS_MONTH" && !!calendarData?.thisMonthModalData;
+                  const activeIncomes = isViewingThisMonth
+                    ? calendarData!.thisMonthModalData!.allIncomes
+                    : (calendarData?.monthAllIncomes || []);
+                  const totalInc = isViewingThisMonth
+                    ? calendarData!.thisMonthModalData!.income
+                    : (calendarData?.monthIncome ?? 0);
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
+                        <span>รายรับ</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm sm:text-base tabular-nums">
+                          {totalInc.toLocaleString()}
+                        </span>
+                      </div>
+                      {activeIncomes.length > 0 ? (
+                        <div className="space-y-1">
+                          {activeIncomes.map((item, idx) => (
                       <React.Fragment key={item.id}>
                         {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-0.5" />}
                         <div
-                          onClick={() => handleOpenEditFromMonthView(item)}
-                          className="py-2 px-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between text-sm transition cursor-pointer"
+                          onClick={() => {
+                            if (!item.isSales) {
+                              handleOpenEditFromMonthView(item);
+                            }
+                          }}
+                          className={`py-2 px-3 rounded-lg ${
+                            item.isSales
+                              ? "cursor-default"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer"
+                          } flex items-center justify-between text-sm transition`}
                         >
                           <span className="font-semibold text-slate-800 dark:text-slate-200">
                             {item.title}
                           </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="font-bold text-emerald-600">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-bold text-emerald-600 tabular-nums">
                               {item.amount.toLocaleString()}
                             </span>
-                            <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                            </svg>
+                            {item.isSales ? (
+                              <div className="w-4 h-4 shrink-0" />
+                            ) : (
+                              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                              </svg>
+                            )}
                           </div>
                         </div>
                       </React.Fragment>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center py-2 text-sm text-slate-400">ยังไม่มีรายรับในเดือนนี้</p>
-                )}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-2 text-sm text-slate-400">ยังไม่มีรายรับในเดือนนี้</p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Section 2: รายเดือน */}
               <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl mb-1.5">
-                  <span>รายเดือน</span>
-                  <span className="text-rose-600 font-bold">
-                    {(calendarData?.totalMonthlyExpense ?? 0).toLocaleString()}
-                  </span>
-                </div>
-                {calendarData?.monthlyExpenseItems && calendarData.monthlyExpenseItems.length > 0 ? (
-                  <div className="space-y-1">
-                    {calendarData.monthlyExpenseItems.map((item, idx) => (
+                {(() => {
+                  const isViewingThisMonth = monthViewTarget === "THIS_MONTH" && !!calendarData?.thisMonthModalData;
+                  const activeMonthly = isViewingThisMonth
+                    ? calendarData!.thisMonthModalData!.monthlyExpenses
+                    : (calendarData?.monthlyExpenseItems || []);
+                  const totalMonthlyExp = isViewingThisMonth
+                    ? calendarData!.thisMonthModalData!.totalMonthlyExpense
+                    : (calendarData?.totalMonthlyExpense ?? 0);
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
+                        <span>รายเดือน</span>
+                        <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
+                          {totalMonthlyExp.toLocaleString()}
+                        </span>
+                      </div>
+                      {activeMonthly.length > 0 ? (
+                        <div className="space-y-1">
+                          {activeMonthly.map((item, idx) => (
                       <React.Fragment key={item.id}>
                         {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-0.5" />}
                         <div
                           onClick={() => handleOpenEditFromMonthView(item)}
-                          className="py-2 px-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between transition cursor-pointer"
+                          className="py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between transition cursor-pointer"
                         >
                           <div className="flex flex-col">
                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
@@ -1659,8 +1783,8 @@ export default function ExpenseCalendarPage({
                               เฉลี่ยวันละ {item.dailyShare.toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="font-bold text-sm text-rose-600">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-bold text-sm text-rose-600 tabular-nums">
                               {item.monthlyAmount.toLocaleString()}
                             </span>
                             <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1669,39 +1793,45 @@ export default function ExpenseCalendarPage({
                           </div>
                         </div>
                       </React.Fragment>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center py-2 text-sm text-slate-400">
-                    ยังไม่มีรายจ่ายรายเดือน กดปุ่ม + แล้วเลือก "รายเดือน"
-                  </p>
-                )}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-2 text-sm text-slate-400">
+                          ยังไม่มีรายจ่ายรายเดือน กดปุ่ม + แล้วเลือก "รายเดือน"
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Section 3: รายจ่ายทั่วไป */}
               <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl mb-1.5">
-                  <span>รายจ่ายทั่วไป</span>
-                  <span className="text-rose-600 font-bold">
-                    {(
-                      calendarData?.monthAllDailyExpenses.reduce(
-                        (sum, item) => sum + item.amount,
-                        0
-                      ) ?? 0
-                    ).toLocaleString()}
-                  </span>
-                </div>
-                {calendarData?.monthAllDailyExpenses &&
-                calendarData.monthAllDailyExpenses.length > 0 ? (
-                  <div className="space-y-1">
-                    {calendarData.monthAllDailyExpenses.map((item, idx) => {
+                {(() => {
+                  const isViewingThisMonth = monthViewTarget === "THIS_MONTH" && !!calendarData?.thisMonthModalData;
+                  const activeDaily = isViewingThisMonth
+                    ? calendarData!.thisMonthModalData!.allDailyExpenses
+                    : (calendarData?.monthAllDailyExpenses || []);
+                  const totalDailyExp = activeDaily.reduce((sum, item) => sum + item.amount, 0);
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
+                        <span>รายจ่ายทั่วไป</span>
+                        <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
+                          {totalDailyExp.toLocaleString()}
+                        </span>
+                      </div>
+                      {activeDaily.length > 0 ? (
+                        <div className="space-y-1">
+                          {activeDaily.map((item, idx) => {
                       const thaiInfo = formatThaiDateFromStr(item.dateStr);
                       return (
                         <React.Fragment key={item.id}>
                           {idx > 0 && <div className="border-b border-dashed border-slate-200 dark:border-slate-700/60 my-0.5" />}
                           <div
                             onClick={() => handleOpenEditFromMonthView(item)}
-                            className="py-2 px-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between transition cursor-pointer"
+                            className="py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center justify-between transition cursor-pointer"
                           >
                             <div className="flex flex-col">
                               {thaiInfo.shortMonthYear && (
@@ -1713,8 +1843,8 @@ export default function ExpenseCalendarPage({
                                 {item.title}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="font-bold text-sm text-rose-600">
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-bold text-sm text-rose-600 tabular-nums">
                                 {item.amount.toLocaleString()}
                               </span>
                               <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1725,12 +1855,15 @@ export default function ExpenseCalendarPage({
                         </React.Fragment>
                       );
                     })}
-                  </div>
-                ) : (
-                  <p className="text-center py-2 text-sm text-slate-400">
-                    ยังไม่มีรายจ่ายทั่วไปในเดือนนี้
-                  </p>
-                )}
+                      </div>
+                    ) : (
+                      <p className="text-center py-2 text-sm text-slate-400">
+                        ยังไม่มีรายจ่ายทั่วไปในเดือนนี้
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
               </div>
             </div>
 
@@ -2438,7 +2571,7 @@ export default function ExpenseCalendarPage({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>📅</span>
-                <span>รายรับ-รายจ่ายปี พ.ศ. {thaiYear}</span>
+                <span>รายรับ-รายจ่ายปี พ.ศ. {calendarData?.thisYearModalData?.thaiYear ?? (now.getFullYear() + 543)}</span>
               </h3>
               <button
                 onClick={() => setActiveModal("NONE")}
@@ -2453,30 +2586,33 @@ export default function ExpenseCalendarPage({
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
                 <span className="text-lg font-black text-white">
-                  {(calendarData?.yearIncome ?? 0).toLocaleString()}
+                  {(calendarData?.thisYearModalData?.income ?? calendarData?.thisYearIncome ?? calendarData?.yearIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
                 <span className="text-lg font-black text-[#ffb8b1]">
-                  {(calendarData?.yearExpense ?? 0).toLocaleString()}
+                  {(calendarData?.thisYearModalData?.expense ?? calendarData?.thisYearExpense ?? calendarData?.yearExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
                 <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
-                <span className={`text-lg font-black ${ (calendarData?.yearNet ?? 0) >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]" }`}>
-                  {(calendarData?.yearNet ?? 0) > 0
-                    ? `+${(calendarData?.yearNet ?? 0).toLocaleString()}`
-                    : (calendarData?.yearNet ?? 0).toLocaleString()}
-                </span>
+                {(() => {
+                  const netVal = calendarData?.thisYearModalData?.net ?? calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0;
+                  return (
+                    <span className={`text-lg font-black ${ netVal >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]" }`}>
+                      {netVal > 0 ? `+${netVal.toLocaleString()}` : netVal.toLocaleString()}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
             {/* 12 Months Rows */}
             <div className="space-y-1.5 flex-1 min-h-0 max-h-[55vh] overflow-y-auto pr-2 custom-scroll">
-              {calendarData?.yearlyMonthsData.map((m) => {
+              {(calendarData?.thisYearModalData?.yearlyMonthsData || calendarData?.yearlyMonthsData || []).map((m) => {
                 const incomePct = maxYearlyValue > 0 ? (m.income / maxYearlyValue) * 100 : 0;
                 const expensePct = maxYearlyValue > 0 ? (m.expense / maxYearlyValue) * 100 : 0;
 
@@ -2484,8 +2620,10 @@ export default function ExpenseCalendarPage({
                   <div
                     key={m.month}
                     onClick={() => {
+                      const targetYear = calendarData?.thisYearModalData?.year ?? now.getFullYear();
+                      setCurrentYear(targetYear);
                       setCurrentMonth(m.month);
-                      fetchMonthData(currentYear, m.month);
+                      fetchMonthData(targetYear, m.month);
                       setActiveModal("NONE");
                     }}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition"
