@@ -151,23 +151,35 @@ export async function getCalendarExpensesAction(
     const endOfMonth = new Date(year, month, 0, 23, 59, 59);
     const daysInMonth = endOfMonth.getDate();
 
-    // Range for today
+    // Real Today & Real Current Month definitions
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const thisYear = now.getFullYear();
+    const thisMonth = now.getMonth() + 1;
+    const todayDate = now.getDate();
 
-    // Range for year
+    const startOfToday = new Date(thisYear, thisMonth - 1, todayDate, 0, 0, 0);
+    const endOfToday = new Date(thisYear, thisMonth - 1, todayDate, 23, 59, 59);
+    const startOfThisMonth = new Date(thisYear, thisMonth - 1, 1, 0, 0, 0);
+    const endOfThisMonth = new Date(thisYear, thisMonth, 0, 23, 59, 59);
+    const daysInThisMonth = endOfThisMonth.getDate();
+
+    // Range for selected year and real this year
     const startOfYear = new Date(year, 0, 1, 0, 0, 0);
     const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+    const startOfThisYear = new Date(thisYear, 0, 1, 0, 0, 0);
+    const endOfThisYear = new Date(thisYear, 11, 31, 23, 59, 59);
 
-    // Query all transactions for the year
+    const queryStartDate = new Date(Math.min(startOfYear.getTime(), startOfThisYear.getTime()));
+    const queryEndDate = new Date(Math.max(endOfYear.getTime(), endOfThisYear.getTime()));
+
+    // Query all transactions for the query range (INCOME, EXPENSE)
     const txs = await prisma.account_transaction.findMany({
       where: {
         organizationId,
         type: { in: ["EXPENSE", "INCOME"] },
         OR: [
-          { date: { gte: startOfYear, lte: endOfYear } },
-          { date: null, createdAt: { gte: startOfYear, lte: endOfYear } },
+          { date: { gte: queryStartDate, lte: queryEndDate } },
+          { date: null, createdAt: { gte: queryStartDate, lte: queryEndDate } },
         ],
       },
       include: {
@@ -177,12 +189,113 @@ export async function getCalendarExpensesAction(
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     });
 
+    // POS Sales from account_transaction
+    const salesTxs = await prisma.account_transaction.findMany({
+      where: {
+        organizationId,
+        type: "SALES",
+        OR: [
+          { date: { gte: queryStartDate, lte: queryEndDate } },
+          { date: null, createdAt: { gte: queryStartDate, lte: queryEndDate } },
+        ],
+      },
+      select: {
+        id: true,
+        amount: true,
+        date: true,
+        createdAt: true,
+        paymentOrderId: true,
+      },
+    });
+
+    const linkedOrderIds = salesTxs
+      .map((st) => st.paymentOrderId)
+      .filter((id): id is number => typeof id === "number");
+
+    // Completed orders without an account_transaction yet (e.g. historical orders)
+    const unlinkedCompletedOrders = await prisma.orders.findMany({
+      where: {
+        organizationId,
+        status: "COMPLETED",
+        createdAt: { gte: queryStartDate, lte: queryEndDate },
+        ...(linkedOrderIds.length > 0 ? { id: { notIn: linkedOrderIds } } : {}),
+      },
+      select: {
+        id: true,
+        netAmount: true,
+        createdAt: true,
+      },
+    });
+
     let todayIncome = 0;
     let todayExpense = 0;
+    let thisMonthIncome = 0;
+    let thisMonthExpense = 0;
+    let thisMonthMonthlyExpenseTotal = 0;
+    let thisYearIncome = 0;
+    let thisYearExpense = 0;
     let monthIncome = 0;
     let monthExpense = 0;
     let yearIncome = 0;
     let yearExpense = 0;
+
+    let todaySalesTotal = 0;
+    let thisMonthSalesTotal = 0;
+
+    // Items for real today and real this month modals
+    const todayDailyItems: {
+      id: number;
+      title: string;
+      categoryName: string;
+      amount: number;
+      type: string;
+      accountName: string;
+      note: string | null;
+      dateStr: string;
+      isMonthly: boolean;
+      isSales?: boolean;
+    }[] = [];
+
+    const thisMonthAllIncomes: {
+      id: number;
+      title: string;
+      categoryName: string;
+      amount: number;
+      type: string;
+      accountName: string;
+      note: string | null;
+      dateStr: string;
+      isMonthly: boolean;
+      isSales?: boolean;
+    }[] = [];
+
+    const thisMonthAllDailyExpenses: {
+      id: number;
+      title: string;
+      categoryName: string;
+      amount: number;
+      type: string;
+      accountName: string;
+      note: string | null;
+      dateStr: string;
+      isMonthly: boolean;
+      isSales?: boolean;
+    }[] = [];
+
+    const thisMonthMonthlyExpenses: {
+      id: number;
+      title: string;
+      categoryName: string;
+      amount: number;
+      monthlyAmount: number;
+      dailyShare: number;
+      type: string;
+      accountName: string;
+      note: string | null;
+      dateStr: string;
+      isMonthly: boolean;
+      isSales?: boolean;
+    }[] = [];
 
     // Monthly expense items for the current selected month
     const monthlyExpenseItems: {
@@ -196,7 +309,7 @@ export async function getCalendarExpensesAction(
       accountName: string;
       note: string | null;
       dateStr: string;
-      isMonthly: boolean;
+      isMonthly: boolean; isSales?: boolean;
     }[] = [];
 
     // All income and daily expense items for the current month (for Image 2 modal)
@@ -209,7 +322,7 @@ export async function getCalendarExpensesAction(
       accountName: string;
       note: string | null;
       dateStr: string;
-      isMonthly: boolean;
+      isMonthly: boolean; isSales?: boolean;
     }[] = [];
 
     const monthAllDailyExpenses: {
@@ -221,7 +334,7 @@ export async function getCalendarExpensesAction(
       accountName: string;
       note: string | null;
       dateStr: string;
-      isMonthly: boolean;
+      isMonthly: boolean; isSales?: boolean;
     }[] = [];
 
     // 12 months data for yearly breakdown (for Image 3 modal)
@@ -233,6 +346,82 @@ export async function getCalendarExpensesAction(
       net: 0,
       hasData: false,
     }));
+
+    // 12 months data for real current year breakdown
+    const thisYearlyMonthsData = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      monthName: THAI_SHORT_MONTHS_LIST[i],
+      income: 0,
+      expense: 0,
+      net: 0,
+      hasData: false,
+    }));
+
+    // Aggregate POS sales by day for current month and by month for yearly data
+    const daySalesMap: Record<number, number> = {};
+    let monthTotalSales = 0;
+
+    const allSalesEntries: { amount: number; actualDate: Date }[] = [
+      ...salesTxs.map((st) => ({
+        amount: Math.abs(Number(st.amount)),
+        actualDate: st.date || st.createdAt,
+      })),
+      ...unlinkedCompletedOrders.map((order) => ({
+        amount: Math.abs(Number(order.netAmount)),
+        actualDate: order.createdAt,
+      })),
+    ];
+
+    allSalesEntries.forEach((sale) => {
+      const saleDate = sale.actualDate;
+      const saleTime = saleDate.getTime();
+      const saleYear = saleDate.getFullYear();
+      const saleMonth = saleDate.getMonth() + 1; // 1-12
+      const saleDay = saleDate.getDate();
+      const amount = sale.amount;
+
+      // 1. Yearly aggregation (for viewed year)
+      if (saleYear === year) {
+        yearlyMonthsData[saleMonth - 1].income += amount;
+        yearlyMonthsData[saleMonth - 1].hasData = true;
+        if (saleTime <= endOfToday.getTime()) {
+          yearIncome += amount;
+        }
+      }
+
+      // 1.1 Real Current Year aggregation (for Card "ปีนี้")
+      if (saleYear === thisYear) {
+        thisYearlyMonthsData[saleMonth - 1].income += amount;
+        thisYearlyMonthsData[saleMonth - 1].hasData = true;
+        if (saleTime <= endOfToday.getTime()) {
+          thisYearIncome += amount;
+        }
+      }
+
+      // 2. Real Today aggregation
+      if (saleYear === thisYear && saleMonth === thisMonth && saleDay === todayDate) {
+        todaySalesTotal += amount;
+        todayIncome += amount;
+      }
+
+      // 2.1 Real This Month aggregation
+      if (saleYear === thisYear && saleMonth === thisMonth) {
+        thisMonthSalesTotal += amount;
+        if (saleTime <= endOfToday.getTime()) {
+          thisMonthIncome += amount;
+        }
+      }
+
+      // 3. Current month aggregation
+      if (saleYear === year && saleMonth === month) {
+        if (saleTime <= endOfToday.getTime()) {
+          monthIncome += amount;
+        }
+        monthTotalSales += amount;
+        const dayNum = saleDate.getDate();
+        daySalesMap[dayNum] = (daySalesMap[dayNum] || 0) + amount;
+      }
+    });
 
     // Pre-initialize dailyExpensesMap for each day 1..daysInMonth
     const dailyExpensesMap: Record<
@@ -250,7 +439,7 @@ export async function getCalendarExpensesAction(
           accountName: string;
           note: string | null;
           dateStr: string;
-          isMonthly: boolean;
+          isMonthly: boolean; isSales?: boolean;
         }[];
         monthlyItems: {
           id: number;
@@ -263,7 +452,7 @@ export async function getCalendarExpensesAction(
           accountName: string;
           note: string | null;
           dateStr: string;
-          isMonthly: boolean;
+          isMonthly: boolean; isSales?: boolean;
         }[];
       }
     > = {};
@@ -285,6 +474,8 @@ export async function getCalendarExpensesAction(
       const amount = Math.abs(Number(tx.amount));
       const isMonthly = !!tx.note?.includes("[MONTHLY]");
       const txMonth = actualDate.getMonth() + 1; // 1-12
+      const txYear = actualDate.getFullYear();
+      const txDay = actualDate.getDate();
       const dateStr = actualDate.toISOString().split("T")[0];
 
       const itemObj = {
@@ -299,8 +490,8 @@ export async function getCalendarExpensesAction(
         isMonthly,
       };
 
-      // 1. Yearly aggregation (Image 3)
-      if (txTime <= endOfToday.getTime() || isMonthly) {
+      // 1. Yearly aggregation (Image 3 - for viewed year)
+      if (txYear === year && (txTime <= endOfToday.getTime() || isMonthly)) {
         if (tx.type === "INCOME") {
           yearIncome += amount;
           yearlyMonthsData[txMonth - 1].income += amount;
@@ -309,6 +500,52 @@ export async function getCalendarExpensesAction(
           yearExpense += amount;
           yearlyMonthsData[txMonth - 1].expense += amount;
           yearlyMonthsData[txMonth - 1].hasData = true;
+        }
+      }
+
+      // 1.0 Real Current Year aggregation (for Card "ปีนี้")
+      if (txYear === thisYear && (txTime <= endOfToday.getTime() || isMonthly)) {
+        if (tx.type === "INCOME") {
+          thisYearIncome += amount;
+          thisYearlyMonthsData[txMonth - 1].income += amount;
+          thisYearlyMonthsData[txMonth - 1].hasData = true;
+        } else if (tx.type === "EXPENSE") {
+          thisYearExpense += amount;
+          thisYearlyMonthsData[txMonth - 1].expense += amount;
+          thisYearlyMonthsData[txMonth - 1].hasData = true;
+        }
+      }
+
+      // 1.1 Real Today aggregation (regardless of selected calendar month)
+      if (txYear === thisYear && txMonth === thisMonth && txDay === todayDate && !isMonthly) {
+        todayDailyItems.push(itemObj);
+        if (tx.type === "INCOME") todayIncome += amount;
+        if (tx.type === "EXPENSE") todayExpense += amount;
+      }
+
+      // 1.2 Real This Month aggregation (regardless of selected calendar month)
+      if (txYear === thisYear && txMonth === thisMonth) {
+        if (isMonthly && tx.type === "EXPENSE") {
+          const dailyShare = Math.round(amount / daysInThisMonth);
+          thisMonthMonthlyExpenses.push({
+            ...itemObj,
+            monthlyAmount: amount,
+            dailyShare,
+          });
+          thisMonthMonthlyExpenseTotal += amount;
+          thisMonthExpense += amount;
+        } else {
+          if (tx.type === "INCOME") {
+            thisMonthAllIncomes.push(itemObj);
+            if (txTime <= endOfToday.getTime()) {
+              thisMonthIncome += amount;
+            }
+          } else if (tx.type === "EXPENSE") {
+            thisMonthAllDailyExpenses.push(itemObj);
+            if (txTime <= endOfToday.getTime()) {
+              thisMonthExpense += amount;
+            }
+          }
         }
       }
 
@@ -347,14 +584,47 @@ export async function getCalendarExpensesAction(
             }
           }
 
-          // Today metrics for regular daily transaction
-          if (txTime >= startOfToday.getTime() && txTime <= endOfToday.getTime()) {
-            if (tx.type === "INCOME") todayIncome += amount;
-            if (tx.type === "EXPENSE") todayExpense += amount;
-          }
+          // Today metrics handled in global loop
         }
       }
     });
+
+    // Insert POS sales into dailyExpensesMap
+    for (let d = 1; d <= daysInMonth; d++) {
+      const daySales = daySalesMap[d] || 0;
+      if (daySales > 0) {
+        dailyExpensesMap[d].totalIncome += daySales;
+        const salesItem = {
+          id: -d,
+          title: "ยอดขาย",
+          categoryName: "ยอดขายหน้าร้าน",
+          amount: daySales,
+          type: "INCOME",
+          accountName: "หน้าร้าน (POS)",
+          note: null,
+          dateStr: `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+          isMonthly: false,
+          isSales: true,
+        };
+        dailyExpensesMap[d].dailyItems.unshift(salesItem);
+      }
+    }
+
+    // Insert aggregated POS sales at the top of monthAllIncomes
+    if (monthTotalSales > 0) {
+      monthAllIncomes.unshift({
+        id: -999999,
+        title: "ยอดขาย",
+        categoryName: "ยอดขายหน้าร้าน",
+        amount: monthTotalSales,
+        type: "INCOME",
+        accountName: "หน้าร้าน (POS)",
+        note: null,
+        dateStr: `${year}-${String(month).padStart(2, "0")}-01`,
+        isMonthly: false,
+        isSales: true,
+      });
+    }
 
     // Sum of daily share from all monthly expenses
     const totalMonthlyExpense = monthlyExpenseItems.reduce((sum, item) => sum + item.monthlyAmount, 0);
@@ -367,17 +637,56 @@ export async function getCalendarExpensesAction(
       dailyExpensesMap[d].monthlyItems = monthlyExpenseItems;
     }
 
-    // Add monthly share to today's expense if looking at current month
-    if (now.getMonth() + 1 === month && now.getFullYear() === year) {
-      todayExpense += dailyShareOfMonthly;
+    // Prepend POS sales to Real Today items
+    if (todaySalesTotal > 0) {
+      todayDailyItems.unshift({
+        id: -999998,
+        title: "ยอดขาย",
+        categoryName: "ยอดขายหน้าร้าน",
+        amount: todaySalesTotal,
+        type: "INCOME",
+        accountName: "หน้าร้าน (POS)",
+        note: null,
+        dateStr: `${thisYear}-${String(thisMonth).padStart(2, "0")}-${String(todayDate).padStart(2, "0")}`,
+        isMonthly: false,
+        isSales: true,
+      });
+    }
+
+    // Prepend POS sales to Real This Month items
+    if (thisMonthSalesTotal > 0) {
+      thisMonthAllIncomes.unshift({
+        id: -999997,
+        title: "ยอดขาย",
+        categoryName: "ยอดขายหน้าร้าน",
+        amount: thisMonthSalesTotal,
+        type: "INCOME",
+        accountName: "หน้าร้าน (POS)",
+        note: null,
+        dateStr: `${thisYear}-${String(thisMonth).padStart(2, "0")}-01`,
+        isMonthly: false,
+        isSales: true,
+      });
+    }
+
+    // Add real this month's daily share to today's expense (ONLY from this month's monthly expenses!)
+    if (thisMonthMonthlyExpenseTotal > 0) {
+      const thisMonthDailyShare = Math.round(thisMonthMonthlyExpenseTotal / daysInThisMonth);
+      todayExpense += thisMonthDailyShare;
     }
 
     // Calculate net values
     const todayNet = todayIncome - todayExpense;
+    const thisMonthNet = thisMonthIncome - thisMonthExpense;
+    const thisYearNet = thisYearIncome - thisYearExpense;
     const monthNet = monthIncome - monthExpense;
     const yearNet = yearIncome - yearExpense;
 
-    // Calculate daily and monthly averages (Image 1)
+    // Real this month averages (for Card "เดือนนี้" on the left sidebar)
+    const thisMonthAvgDailyIncome = todayDate > 0 ? Math.round(thisMonthIncome / todayDate) : 0;
+    const thisMonthAvgDailyExpense = todayDate > 0 ? Math.round(thisMonthExpense / todayDate) : 0;
+
+    // Selected month averages (for calendar / month view)
     const currentDay = now.getMonth() + 1 === month && now.getFullYear() === year ? now.getDate() : daysInMonth;
     const avgDailyExpense = currentDay > 0 ? Math.round(monthExpense / currentDay) : 0;
     const avgDailyIncome = currentDay > 0 ? Math.round(monthIncome / currentDay) : 0;
@@ -390,6 +699,60 @@ export async function getCalendarExpensesAction(
     yearlyMonthsData.forEach((m) => {
       m.net = m.income - m.expense;
     });
+
+    const currentMonthNumThisYear = now.getMonth() + 1;
+    const thisYearAvgMonthlyExpense = currentMonthNumThisYear > 0 ? Math.round(thisYearExpense / currentMonthNumThisYear) : 0;
+    const thisYearAvgMonthlyIncome = currentMonthNumThisYear > 0 ? Math.round(thisYearIncome / currentMonthNumThisYear) : 0;
+
+    thisYearlyMonthsData.forEach((m) => {
+      m.net = m.income - m.expense;
+    });
+
+    const thisYearModalData = {
+      year: thisYear,
+      thaiYear: thisYear + 543,
+      income: thisYearIncome,
+      expense: thisYearExpense,
+      net: thisYearNet,
+      avgMonthlyIncome: thisYearAvgMonthlyIncome,
+      avgMonthlyExpense: thisYearAvgMonthlyExpense,
+      yearlyMonthsData: thisYearlyMonthsData,
+    };
+
+    const shortThaiYear = String(thisYear + 543).slice(-2);
+    const todayThaiDateStr = `${todayDate} ${THAI_SHORT_MONTHS_LIST[thisMonth - 1]} ${shortThaiYear}`;
+
+    const FULL_THAI_MONTHS_LIST = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+
+    const todayModalData = {
+      dayNum: todayDate,
+      thaiDate: todayThaiDateStr,
+      totalIncome: todayIncome,
+      totalExpense: todayExpense,
+      net: todayNet,
+      dailyItems: todayDailyItems,
+      monthlyItems: thisMonthMonthlyExpenses,
+    };
+
+    const thisMonthModalData = {
+      month: thisMonth,
+      year: thisYear,
+      monthName: THAI_SHORT_MONTHS_LIST[thisMonth - 1],
+      fullMonthName: FULL_THAI_MONTHS_LIST[thisMonth - 1],
+      thaiYear: thisYear + 543,
+      income: thisMonthIncome,
+      expense: thisMonthExpense,
+      net: thisMonthNet,
+      allIncomes: thisMonthAllIncomes,
+      monthlyExpenses: thisMonthMonthlyExpenses,
+      totalMonthlyExpense: thisMonthMonthlyExpenseTotal,
+      allDailyExpenses: thisMonthAllDailyExpenses,
+      avgDailyIncome: thisMonthAvgDailyIncome,
+      avgDailyExpense: thisMonthAvgDailyExpense,
+    };
 
     // Accounts
     const accounts = await prisma.account.findMany({
@@ -409,6 +772,19 @@ export async function getCalendarExpensesAction(
         todayIncome,
         todayExpense,
         todayNet,
+        thisMonthIncome,
+        thisMonthExpense,
+        thisMonthNet,
+        thisMonthAvgDailyIncome,
+        thisMonthAvgDailyExpense,
+        thisYearIncome,
+        thisYearExpense,
+        thisYearNet,
+        thisYearAvgMonthlyIncome,
+        thisYearAvgMonthlyExpense,
+        todayModalData,
+        thisMonthModalData,
+        thisYearModalData,
         monthIncome,
         monthExpense,
         monthNet,

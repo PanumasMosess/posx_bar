@@ -618,11 +618,57 @@ export interface ExpenseItem {
   note: string | null;
   dateStr: string;
   isMonthly?: boolean;
+  isSales?: boolean;
 }
 
 export interface MonthlyExpenseItem extends ExpenseItem {
   monthlyAmount: number;
   dailyShare: number;
+}
+
+export interface TodayModalData {
+  dayNum: number;
+  thaiDate: string;
+  totalIncome: number;
+  totalExpense: number;
+  net: number;
+  dailyItems: ExpenseItem[];
+  monthlyItems: MonthlyExpenseItem[];
+}
+
+export interface ThisMonthModalData {
+  month: number;
+  year: number;
+  monthName: string;
+  fullMonthName: string;
+  thaiYear: number;
+  income: number;
+  expense: number;
+  net: number;
+  allIncomes: ExpenseItem[];
+  monthlyExpenses: MonthlyExpenseItem[];
+  totalMonthlyExpense: number;
+  allDailyExpenses: ExpenseItem[];
+  avgDailyIncome: number;
+  avgDailyExpense: number;
+}
+
+export interface ThisYearModalData {
+  year: number;
+  thaiYear: number;
+  income: number;
+  expense: number;
+  net: number;
+  avgMonthlyIncome: number;
+  avgMonthlyExpense: number;
+  yearlyMonthsData: {
+    month: number;
+    monthName: string;
+    income: number;
+    expense: number;
+    net: number;
+    hasData?: boolean;
+  }[];
 }
 
 export interface CalendarData {
@@ -639,6 +685,19 @@ export interface CalendarData {
   avgDailyExpense: number;
   avgMonthlyIncome: number;
   avgMonthlyExpense: number;
+  thisMonthIncome?: number;
+  thisMonthExpense?: number;
+  thisMonthNet?: number;
+  thisMonthAvgDailyIncome?: number;
+  thisMonthAvgDailyExpense?: number;
+  thisYearIncome?: number;
+  thisYearExpense?: number;
+  thisYearNet?: number;
+  thisYearAvgMonthlyIncome?: number;
+  thisYearAvgMonthlyExpense?: number;
+  todayModalData?: TodayModalData;
+  thisMonthModalData?: ThisMonthModalData;
+  thisYearModalData?: ThisYearModalData;
   daysInMonth: number;
   dailyExpensesMap: Record<
     number,
