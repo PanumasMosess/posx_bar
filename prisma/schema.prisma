@@ -182,10 +182,10 @@ model orders {
   shifts    shifts?  @relation(fields: [shiftsId], references: [id])
   shiftsId  Int?
 
-  memberId           Int?
-  member             member?              @relation(fields: [memberId], references: [id])
-  memberTransactions membertransaction[]
-  qrPaymentIntents   qr_payment_intents[]
+  memberId            Int?
+  member              member?               @relation(fields: [memberId], references: [id])
+  memberTransactions  membertransaction[]
+  qrPaymentIntents    qr_payment_intents[]
   accountTransactions account_transaction[]
 }
 
@@ -276,8 +276,8 @@ model shifts {
   organizationId Int
   organization   organizations @relation(fields: [organizationId], references: [id])
 
-  payments payments[] // ประวัติการชำระเงินทั้งหมดในกะนี้
-  orders   orders[] // ออเดอร์ทั้งหมดที่เกิดขึ้นในกะนี้
+  payments            payments[] // ประวัติการชำระเงินทั้งหมดในกะนี้
+  orders              orders[] // ออเดอร์ทั้งหมดที่เกิดขึ้นในกะนี้
   accountTransactions account_transaction[]
 
   createdAt DateTime @default(now())
@@ -287,6 +287,7 @@ model shifts {
 model organizations_settings {
   id                Int           @id @default(autoincrement())
   currencyCode      String        @default("THB")
+  languageCode      String        @default("th")
   openTime          String?
   closeTime         String?
   isManualOpenClose Boolean       @default(false) // เก็บค่าสวิตช์โหมดเปิด-ปิดร้าน (true = เปิดโหมด, false = ปิดโหมด)
@@ -301,19 +302,19 @@ model organizations_settings {
 }
 
 model employees {
-  id                 Int                   @id @default(autoincrement())
-  name               String // ชื่อพนักงาน
-  role               String                @default("พนักงาน") // ตำแหน่ง/หน้าที่
-  pin                String                @unique // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
-  img                String? // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
-  isActive           Boolean               @default(true) // สถานะ เปิด/ปิด การใช้งาน
-  organizationId     Int
-  organization       organizations         @relation(fields: [organizationId], references: [id])
-  permission         employee_permissions?
-  createdBy          String?
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  memberTransactions membertransaction[]
+  id                  Int                   @id @default(autoincrement())
+  name                String // ชื่อพนักงาน
+  role                String                @default("พนักงาน") // ตำแหน่ง/หน้าที่
+  pin                 String                @unique // PIN 4-6 หลัก สำหรับ Login เข้าเครื่อง POS
+  img                 String? // เก็บ URL หรือ Path ของรูปภาพโปรไฟล์
+  isActive            Boolean               @default(true) // สถานะ เปิด/ปิด การใช้งาน
+  organizationId      Int
+  organization        organizations         @relation(fields: [organizationId], references: [id])
+  permission          employee_permissions?
+  createdBy           String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  memberTransactions  membertransaction[]
   createdTransactions account_transaction[]
 }
 
@@ -530,10 +531,10 @@ model account_transaction {
 
   // Relations
 
-  organization organizations?     @relation(fields: [organizationId], references: [id])
-  account      account            @relation(fields: [accountId], references: [id])
-  category     account_category?  @relation(fields: [categoryId], references: [id])
-  order        orders?            @relation(fields: [paymentOrderId], references: [id])
-  shift        shifts?            @relation(fields: [shiftId], references: [id])
-  creator      employees          @relation(fields: [createdById], references: [id])
+  organization organizations?    @relation(fields: [organizationId], references: [id])
+  account      account           @relation(fields: [accountId], references: [id])
+  category     account_category? @relation(fields: [categoryId], references: [id])
+  order        orders?           @relation(fields: [paymentOrderId], references: [id])
+  shift        shifts?           @relation(fields: [shiftId], references: [id])
+  creator      employees         @relation(fields: [createdById], references: [id])
 }

@@ -15,7 +15,8 @@ import RestaurantModeSetting from './RestaurantModeSetting';
 import MemberSetting from './MemberSetting';
 import AccountingSetting from './AccountingSetting';
 
-import { getShopProfileSettings, updateShopNameAction } from '@/lib/actions/actionsSettings';
+import { getShopProfileSettings, updateShopNameAction, updateLanguageAction } from '@/lib/actions/actionsSettings';
+import { useOrgSettings } from '@/components/providers/OrganizationSettingsContext';
 import { SettingsSection } from '@/lib/types';
 import { useEmployee } from '@/components/providers/EmployeeContext';
 
@@ -139,8 +140,12 @@ export default function SettingsView() {
   const [editShopNameInput, setEditShopNameInput] = useState('');
   const [isSavingShop, setIsSavingShop] = useState(false);
 
+  const { refetchSettings } = useOrgSettings();
+
   // ข้อมูลร้านที่แสดงในแถบด้านซ้าย
   const [selectedCurrency, setSelectedCurrency] = useState('บาท · THB');
+  const [selectedLanguage, setSelectedLanguage] = useState<'th' | 'en'>('th');
+  const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
   const [businessHoursText, setBusinessHoursText] = useState('08:00 - 22:30');
 
   // State สำหรับเก็บข้อมูลร้านจาก Database
@@ -166,6 +171,11 @@ export default function SettingsView() {
             phone: data.phone || 'ยังไม่ได้ตั้งค่าเบอร์โทร',
             createdDateStr: data.createdDateStr
           });
+
+          if (data.languageCode) {
+            const lang = data.languageCode.toLowerCase();
+            setSelectedLanguage(lang === 'en' ? 'en' : 'th');
+          }
 
           if (data.currencyCode) {
             const found = ALL_CURRENCIES.find((c) => c.code === data.currencyCode);
@@ -250,6 +260,36 @@ export default function SettingsView() {
       showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
     } finally {
       setIsSavingShop(false);
+    }
+  };
+
+  // ฟังก์ชันเปลี่ยนภาษาของระบบ (บันทึกลง organizations_settings)
+  const handleLanguageChange = async (lang: 'th' | 'en') => {
+    if (lang === selectedLanguage || isUpdatingLanguage) return;
+    if (!orgId) {
+      showToast('ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่', 'error');
+      return;
+    }
+
+    const prevLang = selectedLanguage;
+    setSelectedLanguage(lang);
+    setIsUpdatingLanguage(true);
+
+    try {
+      await updateLanguageAction(orgId, lang);
+      if (refetchSettings) {
+        await refetchSettings();
+      }
+      showToast(
+        lang === 'th' ? 'เปลี่ยนภาษาของระบบเป็น ภาษาไทย แล้ว' : 'Switched system language to English',
+        'success'
+      );
+    } catch (error) {
+      console.error('Failed to update language:', error);
+      setSelectedLanguage(prevLang);
+      showToast('เกิดข้อผิดพลาดในการบันทึกภาษา', 'error');
+    } finally {
+      setIsUpdatingLanguage(false);
     }
   };
 
@@ -561,7 +601,7 @@ export default function SettingsView() {
             </div>
 
             {/* Section: การขาย */}
-            <div className="space-y-2 pb-6">
+            <div className="space-y-2">
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">การขาย</p>
               <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
                 {menuSalesItems.map(({ section, label, sub, icon }) => (
@@ -574,6 +614,61 @@ export default function SettingsView() {
                     icon={icon}
                   />
                 ))}
+              </div>
+            </div>
+
+            {/* Section: ระบบ */}
+            <div className="space-y-2 pb-6">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">ระบบ</p>
+              <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
+                <div className="w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3.5 transition text-left select-none hover:bg-pos-hover/30">
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                    <div className="w-5 h-5 shrink-0 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      {/* Globe Icon */}
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9.25" strokeWidth="1.75" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.8 12h18.4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.75C9.5 6 8.25 9 8.25 12s1.25 6 3.75 9.25M12 2.75C14.5 6 15.75 9 15.75 12s-1.25 6-3.75 9.25" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-tight font-semibold text-pos-text">
+                        ภาษา
+                      </p>
+                      <p className="text-xs mt-0.5 truncate text-slate-400 dark:text-slate-500">
+                        ภาษาของระบบ
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Inline Segmented Control [ TH | EN ] */}
+                  <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shrink-0">
+                    <button
+                      type="button"
+                      disabled={isUpdatingLanguage}
+                      onClick={() => handleLanguageChange('th')}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-60 ${
+                        selectedLanguage === 'th'
+                          ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
+                          : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      TH
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isUpdatingLanguage}
+                      onClick={() => handleLanguageChange('en')}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-60 ${
+                        selectedLanguage === 'en'
+                          ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
+                          : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      EN
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

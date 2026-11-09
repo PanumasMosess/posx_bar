@@ -36,6 +36,7 @@ export async function getShopProfileSettings(organizationId: number) {
     receiptFooter: setting?.receiptFooter || "",
     taxId: setting?.taxId || "",
     currencyCode: setting?.currencyCode || "THB",
+    languageCode: setting?.languageCode || "th",
     openTime: setting?.openTime || null,
     closeTime: setting?.closeTime || null,
     isManualOpenClose: setting?.isManualOpenClose ?? false,
@@ -379,4 +380,22 @@ export async function savePaymentSettingsAction(payload: {
         error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูลการตั้งค่าการชำระเงิน",
     };
   }
+}
+
+// 5. อัปเดตภาษาของระบบ (Language)
+export async function updateLanguageAction(
+  organizationId: number,
+  languageCode: string,
+) {
+  const result = await prisma.organizations_settings.upsert({
+    where: { organizationId },
+    update: { languageCode },
+    create: {
+      organizationId,
+      languageCode,
+    },
+  });
+  revalidatePath("/settings");
+  revalidatePath("/");
+  return result;
 }

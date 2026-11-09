@@ -21,6 +21,7 @@ export interface PaymentSettings {
 export interface OrganizationSettings {
   id?: number;
   currencyCode: string;
+  languageCode?: string;
   openTime?: string | null;
   closeTime?: string | null;
   isManualOpenClose: boolean;
