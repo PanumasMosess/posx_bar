@@ -913,24 +913,25 @@ export default function MemberPaymentPage({
 
       {/* MODAL ชำระหนี้ */}
       {selectedMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 pt-12 pb-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="absolute inset-0" onClick={closeModal} />
-          <div className="relative w-full max-w-[920px] max-h-[90vh] bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-700/60 rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden z-10">
+          <div className="relative w-full max-w-[920px] h-[85vh] max-h-[86vh] md:h-full md:max-h-[90vh] bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-700/60 rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden z-10">
             <button
+              type="button"
               onClick={closeModal}
-              className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
+              className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
             >
               ✕
             </button>
 
-            {/* ฝั่งซ้าย: ข้อมูลบิล & สมาชิก */}
-            <div className="w-full md:w-1/2 bg-slate-50 dark:bg-[#0A0A0B] p-6 border-r border-slate-200 dark:border-zinc-800/80 flex flex-col h-full max-h-[90vh] overflow-hidden">
-              <div className="flex items-center gap-3.5 mb-5 shrink-0">
-                <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center text-white text-lg font-bold shadow-md">
+            {/* ฝั่งซ้าย (ฝั่งบนบนมือถือ): ข้อมูลบิล & สมาชิก */}
+            <div className="w-full md:w-1/2 bg-slate-50 dark:bg-[#0A0A0B] px-4 pt-4 sm:pt-6 pb-3 sm:p-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-zinc-800/80 flex flex-col flex-1 min-h-0 md:h-full md:max-h-[90vh] overflow-hidden">
+              <div className="flex items-center gap-3 sm:gap-3.5 mb-2.5 sm:mb-5 shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-sky-600 flex items-center justify-center text-white text-base sm:text-lg font-bold shadow-md shrink-0">
                   {selectedMember.firstName[0]}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                     {selectedMember.firstName} {selectedMember.lastName || ""}
                   </h3>
                   <p className="text-slate-500 dark:text-zinc-400 font-mono text-xs mt-0.5">
@@ -939,20 +940,22 @@ export default function MemberPaymentPage({
                 </div>
               </div>
 
-              <div className="px-5 py-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/30 mb-5 shrink-0">
-                <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1 uppercase tracking-wider">
+              {/* ป้ายยอดหนี้แบบเต็มจอเหมือนเดิม */}
+              <div className="px-4 py-2.5 sm:px-5 sm:py-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/30 mb-2.5 sm:mb-4 shrink-0">
+                <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-0.5 uppercase tracking-wider">
                   ยอดหนี้ที่ต้องชำระทั้งหมด
                 </p>
-                <p className="text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
+                <p className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
                   {selectedMember.currentDebt.toLocaleString()} {currency}
                 </p>
               </div>
 
               {/* TABS */}
-              <div className="flex items-center gap-1 mb-4 bg-slate-200/60 dark:bg-[#161618] p-1 rounded-xl shrink-0">
+              <div className="flex items-center gap-1 mb-2 sm:mb-4 bg-slate-200/60 dark:bg-[#161618] p-1 rounded-xl shrink-0">
                 <button
+                  type="button"
                   onClick={() => setActiveTab("DEBT")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "DEBT"
+                  className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition cursor-pointer ${activeTab === "DEBT"
                       ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
@@ -960,8 +963,9 @@ export default function MemberPaymentPage({
                   ค้างชำระ ({activeBills.length})
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab("PAID")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "PAID"
+                  className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition cursor-pointer ${activeTab === "PAID"
                       ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
@@ -969,8 +973,9 @@ export default function MemberPaymentPage({
                   ชำระแล้ว ({settledBills.length})
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab("HISTORY")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${activeTab === "HISTORY"
+                  className={`flex-1 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition cursor-pointer ${activeTab === "HISTORY"
                       ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
@@ -979,8 +984,8 @@ export default function MemberPaymentPage({
                 </button>
               </div>
 
-              {/* LIST CONTENT */}
-              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+              {/* LIST CONTENT (เลื่อนเฉพาะในกรอบรายการนี้เท่านั้น) */}
+              <div className="flex-1 min-h-[85px] overflow-y-auto space-y-2 pr-1 custom-scroll">
                 {activeTab === "DEBT" && (
                   <>
                     {activeBills.map((tx, idx) => {
@@ -989,25 +994,25 @@ export default function MemberPaymentPage({
                         <div
                           key={`debt-${idx}`}
                           onClick={() => handleToggleSelectBill(tx)}
-                          className={`p-3.5 rounded-xl border flex flex-col gap-2 transition cursor-pointer relative ${isSelected
-                              ? "bg-sky-50 dark:bg-sky-950/20 border-sky-400 dark:border-sky-500/50 shadow-xs"
+                          className={`p-3 sm:p-4 rounded-xl border flex flex-col gap-2 transition cursor-pointer relative ${isSelected
+                              ? "bg-sky-50 dark:bg-sky-950/20 border-sky-400 dark:border-sky-500/50 shadow-xs ring-1 ring-sky-400/40"
                               : "bg-white dark:bg-[#161618] border-slate-200 dark:border-zinc-800/60 hover:border-slate-300"
                             }`}
                         >
                           <div
-                            className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected
+                            className={`absolute top-3 right-3 sm:top-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition shrink-0 ${isSelected
                                 ? "border-sky-500 bg-sky-500 text-white text-xs font-bold"
                                 : "border-slate-300 dark:border-zinc-600"
                               }`}
                           >
                             {isSelected && "✓"}
                           </div>
-                          <div className="pr-7">
-                            <div className="flex items-center gap-2">
+                          <div className="pr-8">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p
-                                className={`font-semibold text-xs ${isSelected
+                                className={`font-bold text-sm sm:text-base ${isSelected
                                     ? "text-sky-700 dark:text-sky-300"
-                                    : "text-slate-800 dark:text-zinc-200"
+                                    : "text-slate-900 dark:text-zinc-100"
                                   }`}
                               >
                                 🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
@@ -1016,28 +1021,30 @@ export default function MemberPaymentPage({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setViewingOrderId(tx.orderId!); }}
-                                  className="text-[10px] text-sky-500 hover:text-sky-400 underline shrink-0 cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/50 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-200 transition shrink-0 cursor-pointer"
                                 >
                                   🔍 ดูบิล
                                 </button>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
-                              {new Date(tx.date || tx.createdAt).toLocaleDateString(
-                                "th-TH"
-                              )}
+                            <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5 block">
+                              📅 {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-zinc-800/40 text-xs">
-                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-800/40 text-xs sm:text-sm">
+                            <div className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 flex-wrap">
                               <span>ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}</span>
                               {tx.paidAmount > 0 && (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                                  (ชำระแล้ว {tx.paidAmount.toLocaleString()} {currency})
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                  (ชำระแล้ว {tx.paidAmount.toLocaleString()})
                                 </span>
                               )}
                             </div>
-                            <span className="font-bold text-rose-500">
+                            <span className="font-extrabold text-sm sm:text-base text-rose-600 dark:text-rose-400 shrink-0">
                               ค้าง {tx.remainingAmount.toLocaleString()} {currency}
                             </span>
                           </div>
@@ -1045,7 +1052,7 @@ export default function MemberPaymentPage({
                       );
                     })}
                     {activeBills.length === 0 && (
-                      <p className="text-center text-xs text-slate-400 py-8">
+                      <p className="text-center text-xs text-slate-400 py-6">
                         ไม่มีบิลค้างชำระ
                       </p>
                     )}
@@ -1057,43 +1064,50 @@ export default function MemberPaymentPage({
                     {settledBills.map((tx, idx) => (
                       <div
                         key={`paid-${idx}`}
-                        className="p-3.5 rounded-xl border bg-white dark:bg-[#161618] border-slate-200 dark:border-zinc-800/60 text-xs space-y-1.5"
+                        className="p-3 sm:p-4 rounded-xl border bg-white dark:bg-[#161618] border-slate-200 dark:border-zinc-800/60 text-xs sm:text-sm space-y-2"
                       >
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-800 dark:text-zinc-200">
-                            🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
-                          </p>
-                          {tx.orderId && (
-                            <button
-                              type="button"
-                              onClick={() => setViewingOrderId(tx.orderId!)}
-                              className="text-[10px] text-sky-500 hover:text-sky-400 underline shrink-0 cursor-pointer"
-                            >
-                              🔍 ดูบิล
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex justify-between text-slate-400 text-[11px]">
-                          <span>
-                            {new Date(tx.date || tx.createdAt).toLocaleDateString(
-                              "th-TH"
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-zinc-100">
+                              🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
+                            </p>
+                            {tx.orderId && (
+                              <button
+                                type="button"
+                                onClick={() => setViewingOrderId(tx.orderId!)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/50 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-200 transition shrink-0 cursor-pointer"
+                              >
+                                🔍 ดูบิล
+                              </button>
                             )}
+                          </div>
+                          <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
+                            📅 {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
                           </span>
-                          <div className="text-right">
-                            <div className="text-emerald-500 font-bold">
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-zinc-800/40 text-xs sm:text-sm">
+                          <span className="text-slate-500 dark:text-zinc-400">
+                            ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}
+                          </span>
+                          <div className="text-right flex items-center gap-2">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                               จ่ายแล้ว {tx.paidAmount.toLocaleString()} {currency}
-                            </div>
+                            </span>
                             {tx.remainingAmount > 0 && (
-                              <div className="text-rose-400">
-                                ค้าง {tx.remainingAmount.toLocaleString()} {currency}
-                              </div>
+                              <span className="text-rose-500 font-bold">
+                                (ค้าง {tx.remainingAmount.toLocaleString()})
+                              </span>
                             )}
                           </div>
                         </div>
                       </div>
                     ))}
                     {settledBills.length === 0 && (
-                      <p className="text-center text-xs text-slate-400 py-8">
+                      <p className="text-center text-xs text-slate-400 py-6">
                         ยังไม่มีประวัติบิลที่ชำระ
                       </p>
                     )}
@@ -1115,37 +1129,37 @@ export default function MemberPaymentPage({
                       return (
                         <div
                           key={`hist-${idx}`}
-                          className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${isSpend
+                          className={`p-3 sm:p-4 rounded-xl border text-xs sm:text-sm space-y-2 ${isSpend
                               ? "bg-rose-50/50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30"
                               : tx.type === "REFUND"
                                 ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30"
                                 : "bg-sky-50/50 dark:bg-sky-950/10 border-sky-200 dark:border-sky-900/30"
                             }`}
                         >
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start gap-2">
                             <div>
-                              <p className={`font-bold ${isSpend ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                              <p className={`font-bold text-sm sm:text-base ${isSpend ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
                                 {isSpend ? "🧾" : tx.type === "REFUND" ? "💰" : "💳"} {tx.note || (isSpend ? "เซ็นบิล" : tx.type === "REFUND" ? "รับชำระหนี้คืน" : "เติมวงเงินเครดิต")}
                               </p>
-                              <span className="text-[10px] text-slate-400">
-                                {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH")}
+                              <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5 block">
+                                📅 {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH")}
                               </span>
                             </div>
-                            <div className="text-right flex items-center gap-2">
-                              <span className={`font-bold text-sm ${isSpend ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                            <div className="text-right flex items-center gap-2 shrink-0">
+                              <span className={`font-extrabold text-sm sm:text-base ${isSpend ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                                 {isSpend ? "" : "+"}{Math.abs(tx.amount).toLocaleString()} {currency}
                               </span>
                               {!isSpend && tx.paymentGroupId == null && (
-                                <span className="text-[10px] bg-slate-100 dark:bg-zinc-800 text-slate-500 px-1.5 py-0.5 rounded">วงเงิน</span>
+                                <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 px-2 py-0.5 rounded font-medium">วงเงิน</span>
                               )}
                             </div>
                           </div>
                           {relatedBills.length > 0 && (
-                            <div className="pt-1.5 border-t border-emerald-100 dark:border-emerald-900/30 space-y-1">
+                            <div className="pt-2 border-t border-emerald-100 dark:border-emerald-900/30 space-y-1">
                               {relatedBills.map((b, bIdx) => (
                                 <div
                                   key={`rel-${bIdx}`}
-                                  className="flex justify-between items-center text-[11px] text-slate-500 dark:text-zinc-400"
+                                  className="flex justify-between items-center text-xs text-slate-600 dark:text-zinc-400"
                                 >
                                   <div className="flex items-center gap-1.5">
                                     <span>🧾 {b?.orderId ? `บิล #${b.orderId}` : "บิลหน้าร้าน"}</span>
@@ -1165,7 +1179,7 @@ export default function MemberPaymentPage({
                       );
                     })}
                     {groupedHistory.length === 0 && (
-                      <p className="text-center text-xs text-slate-400 py-8">
+                      <p className="text-center text-xs text-slate-400 py-6">
                         ยังไม่มีประวัติการชำระเงิน
                       </p>
                     )}
@@ -1174,26 +1188,26 @@ export default function MemberPaymentPage({
               </div>
             </div>
 
-            {/* ฝั่งขวา: ฟอร์มรับเงิน */}
-            <div className="w-full md:w-1/2 p-6 flex flex-col justify-between h-full bg-white dark:bg-[#111113]">
+            {/* ฝั่งขวา (ฝั่งล่างบนมือถือ): ฟอร์มรับเงิน */}
+            <div className="w-full md:w-1/2 p-3.5 sm:p-6 flex flex-col justify-between shrink-0 md:shrink md:h-full bg-white dark:bg-[#111113]">
               <div>
-                <div className="mb-5 pb-3 border-b border-slate-200 dark:border-zinc-800">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <div className="mb-2.5 sm:mb-5 pb-2 sm:pb-3 border-b border-slate-200 dark:border-zinc-800">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
                     <span>💵</span> บันทึกรับชำระเงิน
                   </h3>
                   <p className="text-slate-500 dark:text-zinc-400 text-xs mt-0.5">
                     {selectedBillsToPay.length > 0
                       ? `เลือกจ่าย ${selectedBillsToPay.length} บิล (ยอดคำนวณอัตโนมัติ)`
-                      : "กรอกจำนวนเงิน หรือกดเลือกบิลจากด้านซ้าย"}
+                      : "กรอกจำนวนเงิน หรือกดเลือกบิลจากด้านบน/ซ้าย"}
                   </p>
                 </div>
 
                 <form
                   id="paymentForm"
                   onSubmit={handleSubmitPayment}
-                  className="space-y-4"
+                  className="space-y-2 sm:space-y-3.5"
                 >
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                       วันที่ชำระเงิน <span className="text-rose-500">*</span>
                     </label>
@@ -1203,11 +1217,11 @@ export default function MemberPaymentPage({
                       value={paymentDate}
                       onChange={(e) => setPaymentDate(e.target.value)}
                       disabled={loading}
-                      className="w-full h-11 px-3.5 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full h-9 sm:h-11 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                       ช่องทางรับเงินเข้าร้าน <span className="text-rose-500">*</span>
                     </label>
@@ -1216,7 +1230,7 @@ export default function MemberPaymentPage({
                       value={selectedShopAccountId}
                       onChange={(e) => setSelectedShopAccountId(e.target.value)}
                       disabled={loading}
-                      className="w-full h-11 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                      className="w-full h-9 sm:h-11 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                     >
                       <option value="" disabled>
                         -- เลือกบัญชีธนาคาร หรือ เงินสด --
@@ -1229,7 +1243,7 @@ export default function MemberPaymentPage({
                     </select>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                       จำนวนเงินที่ลูกค้านำมาจ่าย <span className="text-rose-500">*</span>
                     </label>
@@ -1242,15 +1256,15 @@ export default function MemberPaymentPage({
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         disabled={loading}
-                        className="w-full h-14 pl-4 pr-12 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-300 dark:border-zinc-700 rounded-xl text-2xl font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full h-10 sm:h-13 pl-3.5 pr-12 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-300 dark:border-zinc-700 rounded-xl text-lg sm:text-2xl font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm sm:text-lg font-bold text-slate-400">
                         {currency}
                       </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
                       หมายเหตุช่วยจำ (ถ้ามี)
                     </label>
@@ -1259,18 +1273,18 @@ export default function MemberPaymentPage({
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       disabled={loading}
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full h-8.5 sm:h-10 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                   </div>
                 </form>
               </div>
 
-              <div className="pt-4 mt-6 border-t border-slate-100 dark:border-zinc-800">
+              <div className="pt-2.5 sm:pt-4 mt-2.5 sm:mt-6 border-t border-slate-100 dark:border-zinc-800">
                 <button
                   type="submit"
                   form="paymentForm"
                   disabled={loading || selectedMember.currentDebt <= 0}
-                  className="w-full h-12 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm rounded-xl transition shadow-md disabled:opacity-50 cursor-pointer"
+                  className="w-full h-10 sm:h-12 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm sm:text-base rounded-xl transition shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? "กำลังบันทึก..." : "ยืนยันรับชำระเงิน"}
                 </button>
