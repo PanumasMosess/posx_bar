@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/language/LanguageContext";
+
 interface KitchenOrderItemProps {
   item: any;
   isProcessing: boolean;
@@ -40,7 +42,8 @@ export default function KitchenOrderItem({
   isProcessing,
   onServe,
 }: KitchenOrderItemProps) {
-  const itemName = item.product?.name || "รายการสินค้า";
+  const { isThai } = useTranslation();
+  const itemName = item.product?.name || (isThai ? "รายการสินค้า" : "Product Item");
   const optDisplay = renderOptionsText(item.options);
 
   return (

@@ -15,11 +15,11 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "POSX - ระบบจัดการการขาย POS",
+  title: "POSX - POS Management System",
   description: "POSX Modern Mobile POS system",
   icons: {
-    icon: "/icon.png", 
-    apple: "/icon.png", 
+    icon: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({
       className={`${inter.variable} ${prompt.variable}`}
       suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

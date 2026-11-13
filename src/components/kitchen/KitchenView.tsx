@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import {
   updateKitchenItemStatusDB,
   markAllItemsServedDB,
   getActiveKitchenOrdersJSON,
 } from "@/lib/actions/actionsKitchen";
 import { KitchenViewProps } from "@/lib/interface";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 import KitchenHeader from "./KitchenHeader";
 import KitchenEmptyState from "./KitchenEmptyState";
 import KitchenOrderCard from "./KitchenOrderCard";
 
 export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
+  const { t, isThai } = useTranslation();
   const [orders, setActiveOrders] = useState<any[]>(activeKitchenOrders);
   const [processingId, setProcessingId] = useState<number | null>(null);
 
@@ -37,7 +38,11 @@ export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch((e) => {
         console.error("Audio error:", e);
-        alert("เบราว์เซอร์บล็อกเสียง กรุณากดอนุญาตให้เว็บไซต์เล่นเสียงได้ครับ");
+        alert(
+          isThai
+            ? "เบราว์เซอร์บล็อกเสียง กรุณากดอนุญาตให้เว็บไซต์เล่นเสียงได้ครับ"
+            : "Browser blocked audio. Please allow sound playback in browser settings.",
+        );
       });
     }
   };
@@ -90,7 +95,7 @@ export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
           .filter((order) => order.items.length > 0),
       );
     } else {
-      alert("เกิดข้อผิดพลาดในการอัปเดตรายการ");
+      alert(isThai ? "เกิดข้อผิดพลาดในการอัปเดตรายการ" : "Error updating item status");
     }
     setProcessingId(null);
   };
@@ -101,7 +106,7 @@ export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
     if (res.success) {
       setActiveOrders((prev) => prev.filter((order) => order.id !== orderId));
     } else {
-      alert("เกิดข้อผิดพลาดในการอัปเดตบิล");
+      alert(isThai ? "เกิดข้อผิดพลาดในการอัปเดตบิล" : "Error updating order");
     }
     setProcessingId(null);
   };
@@ -125,12 +130,11 @@ export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
           onClick={testSound}
           className="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-colors shadow-sm border bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
         >
-          🎵 ทดสอบเสียง
+          🎵 {t("kitchen.test_sound")}
         </button>
         <button
           onClick={() => {
             setIsSoundEnabled(!isSoundEnabled);
-            // ถ้ากดเปิดเสียง ให้เล่นเสียง 1 ครั้งเพื่อยืนยันว่าทำงาน
             if (!isSoundEnabled) testSound();
           }}
           className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-colors shadow-sm border ${
@@ -140,8 +144,8 @@ export default function KitchenView({ activeKitchenOrders }: KitchenViewProps) {
           }`}
         >
           {isSoundEnabled
-            ? "🔊 เปิดเสียงแจ้งเตือนแล้ว"
-            : "🔇 ปิดเสียงอยู่ (กดเพื่อเปิด)"}
+            ? `🔊 ${t("kitchen.sound_enabled")}`
+            : `🔇 ${t("kitchen.sound_disabled")}`}
         </button>
       </div>
 

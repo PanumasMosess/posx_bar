@@ -3,8 +3,8 @@ import prisma from "@/lib/prisma";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "สั่งอาหาร",
-  description: "ระบบสั่งอาหารผ่าน QR Code",
+  title: "Order Food | สั่งอาหาร",
+  description: "QR Code Food Ordering | ระบบสั่งอาหารผ่าน QR Code",
 };
 
 
@@ -22,8 +22,9 @@ export default async function QROrderingPage({
 
   if (!orgId || isNaN(orgId)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-bold p-4 text-center">
-        QR Code ไม่ถูกต้อง หรือไม่พบข้อมูลร้านค้า
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-500 font-bold p-4 text-center">
+        <p>QR Code ไม่ถูกต้อง หรือไม่พบข้อมูลร้านค้า</p>
+        <p className="text-sm font-normal text-slate-400 mt-1">Invalid QR Code or store not found</p>
       </div>
     );
   }

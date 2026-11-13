@@ -14,6 +14,7 @@ import {
   getActiveShiftDB,
 } from "@/lib/actions/actionsPos";
 import { useEmployee } from "@/components/providers/EmployeeContext"; // 🌟 1. นำเข้า useEmployee
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export interface ShiftData {
   id: number;
@@ -53,6 +54,7 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 // 🌟 2. ลบ organizationId ออกจาก Props
 export function ShiftProvider({ children }: { children: ReactNode }) {
+  const { isThai } = useTranslation();
   const [activeShift, setActiveShift] = useState<ShiftData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -91,7 +93,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     if (!organizationId) {
       return {
         success: false,
-        message: "ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่",
+        message: isThai ? "ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่" : "Store not found. Please log in again",
       };
     }
 
@@ -107,10 +109,10 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
         setActiveShift(res.shift as ShiftData);
         return { success: true };
       } else {
-        return { success: false, message: res.message || "ไม่สามารถเปิดกะได้" };
+        return { success: false, message: res.message ? (isThai ? res.message : "Unable to open shift") : (isThai ? "ไม่สามารถเปิดกะได้" : "Unable to open shift") };
       }
     } catch (error: any) {
-      return { success: false, message: error.message || "เกิดข้อผิดพลาด" };
+      return { success: false, message: error.message || (isThai ? "เกิดข้อผิดพลาด" : "An error occurred") };
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +124,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     note?: string,
   ) => {
     if (!activeShift) {
-      return { success: false, message: "ไม่มีกะที่กำลังเปิดอยู่" };
+      return { success: false, message: isThai ? "ไม่มีกะที่กำลังเปิดอยู่" : "No active open shift found" };
     }
 
     setIsLoading(true);
@@ -138,10 +140,10 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
         setActiveShift(null);
         return { success: true };
       } else {
-        return { success: false, message: res.message || "ไม่สามารถปิดกะได้" };
+        return { success: false, message: res.message ? (isThai ? res.message : "Unable to close shift") : (isThai ? "ไม่สามารถปิดกะได้" : "Unable to close shift") };
       }
     } catch (error: any) {
-      return { success: false, message: error.message || "เกิดข้อผิดพลาด" };
+      return { success: false, message: error.message || (isThai ? "เกิดข้อผิดพลาด" : "An error occurred") };
     } finally {
       setIsLoading(false);
     }

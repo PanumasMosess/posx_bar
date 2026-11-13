@@ -6,7 +6,11 @@ export function exportReportToExcel(
   data: any,
   fileName: string = "report"
 ) {
+  const isThai = data?.isThai !== false;
+  const L = (th: string, en: string) => (isThai ? th : en);
   try {
+    const isThai = data?.isThai !== false;
+    const L = (th: string, en: string) => (isThai ? th : en);
     const wb = XLSX.utils.book_new();
 
     if (reportType === "total") {
@@ -16,11 +20,11 @@ export function exportReportToExcel(
       const totalNet = bills.reduce((s: number, b: any) => s + (b.netAmount || 0), 0);
 
       const summarySheetData: any[] = [
-        ["ร้าน", data.shopName || "ร้านค้า"],
-        ["ช่วงวัน", data.dateRangeText || ""],
-        ["สกุลเงิน", "THB"],
+        [L("ร้าน", "Store"), data.shopName || (isThai ? "ร้านค้า" : "Store")],
+        [L("ช่วงวัน", "Date Range"), data.dateRangeText || ""],
+        [L("สกุลเงิน", "Currency"), "THB"],
         [],
-        ["ลำดับ", "วันที่", "เวลา", "เลขที่เอกสาร", "สถานะ", "ช่องทางชำระ", "จำนวน", "ยอดรวม", "ส่วนลดโปรโมชั่น", "ส่วนลดที่หักจากภาษีได้", "ยอดสุทธิ"],
+        [L("ลำดับ", "No."), L("วันที่", "Date"), L("เวลา", "Time"), L("เลขที่เอกสาร", "Document No."), L("สถานะ", "Status"), L("ช่องทางชำระ", "Payment Method"), L("จำนวน", "Quantity"), L("ยอดรวม", "Subtotal"), L("ส่วนลดโปรโมชั่น", "Promo Discount"), L("ส่วนลดที่หักจากภาษีได้", "Tax-Deductible Discount"), L("ยอดสุทธิ", "Net Total")],
         ...bills.map((b: any) => [
           b.index,
           b.date,
@@ -34,15 +38,15 @@ export function exportReportToExcel(
           "0.00",
           Number(b.netAmount || 0).toFixed(2),
         ]),
-        ["", "รวม", "", "", "", "", totalQty, Number(totalGross).toFixed(2), "0.00", "0.00", Number(totalNet).toFixed(2)],
-        ["หมายเหตุ..."],
+        ["", L("รวม", "Total"), "", "", "", "", totalQty, Number(totalGross).toFixed(2), "0.00", "0.00", Number(totalNet).toFixed(2)],
+        [L("หมายเหตุ...", "Notes...")],
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(summarySheetData);
       XLSX.utils.book_append_sheet(wb, ws, "sales-summary");
     } else if (reportType === "product") {
       const isLowSellers = data.productFilterMode === "worst";
-      const shopName = data.shopName || "ซูชิ";
+      const shopName = data.shopName || (isThai ? "ซูชิ" : "Store");
       const dateRange = data.dateRangeText || "";
       const currency = "THB";
 
@@ -60,22 +64,22 @@ export function exportReportToExcel(
         );
 
         const lowSellersSheetData = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "ชื่อสินค้า",
-            "รหัสสินค้า",
-            "หมวดหมู่",
-            "ราคาขาย",
-            "จำนวนขาย",
-            "ยอดขายรวม",
-            "กำไรขั้นต้น",
-            "คงเหลือในสต๊อก",
-            "มูลค่าสต๊อกคงเหลือ",
-            "สถานะ",
+            L("ลำดับ", "No."),
+            L("ชื่อสินค้า", "Product Name"),
+            L("รหัสสินค้า", "Product Code"),
+            L("หมวดหมู่", "Category"),
+            L("ราคาขาย", "Price"),
+            L("จำนวนขาย", "Qty Sold"),
+            L("ยอดขายรวม", "Total Sales"),
+            L("กำไรขั้นต้น", "Gross Profit"),
+            L("คงเหลือในสต๊อก", "In Stock"),
+            L("มูลค่าสต๊อกคงเหลือ", "Stock Value"),
+            L("สถานะ", "Status"),
           ],
           ...items.map((p: any, idx: number) => [
             idx + 1,
@@ -88,11 +92,11 @@ export function exportReportToExcel(
             Number(p.profit || 0).toFixed(2),
             p.stock ?? 0,
             Number((p.stock ?? 0) * (p.cost || p.price || 0)).toFixed(2),
-            p.quantity === 0 ? "ไม่ขายเลย" : "ขายได้น้อย",
+            p.quantity === 0 ? L("ไม่ขายเลย", "Unsold") : L("ขายได้น้อย", "Low Sales"),
           ]),
           [
             "",
-            "รวม",
+            L("รวม", "Total"),
             "",
             "",
             "",
@@ -101,9 +105,9 @@ export function exportReportToExcel(
             totalProfit.toFixed(2),
             totalStock,
             totalStockVal.toFixed(2),
-            `ไม่ขายเลย ${unsoldProductsCount} รายการ`,
+            isThai ? `ไม่ขายเลย ${unsoldProductsCount} รายการ` : `${unsoldProductsCount} Unsold Items`,
           ],
-          ["หมายเหตุ..."],
+          [L("หมายเหตุ...", "Notes...")],
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(lowSellersSheetData);
@@ -121,29 +125,29 @@ export function exportReportToExcel(
         const avgPrice = totalQty > 0 ? Number(totalSales / totalQty).toFixed(2) : "0.00";
 
         const productsSheetData = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "ชื่อสินค้า",
-            "รหัสสินค้า",
-            "หมวดหมู่",
-            "จำนวนขาย",
-            "ยอดขายรวม",
-            "ส่วนลดโปรโมชั่น",
-            "ส่วนลดที่พนักงานให้",
-            "ค่าธรรมเนียม",
-            "ค่าบริการ",
-            "ยอดขายสุทธิ",
-            "ต้นทุนรวม",
-            "กำไรขั้นต้น",
-            "%กำไร",
-            "ราคาเฉลี่ย/ชิ้น",
-            "VAT ที่รวมในราคา",
-            "เศษปัด",
-            "ค่าส่งกลับบ้าน",
+            L("ลำดับ", "No."),
+            L("ชื่อสินค้า", "Product Name"),
+            L("รหัสสินค้า", "Product Code"),
+            L("หมวดหมู่", "Category"),
+            L("จำนวนขาย", "Qty Sold"),
+            L("ยอดขายรวม", "Total Sales"),
+            L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+            L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+            L("ค่าธรรมเนียม", "Fee"),
+            L("ค่าบริการ", "Service Charge"),
+            L("ยอดขายสุทธิ", "Net Sales"),
+            L("ต้นทุนรวม", "Total Cost"),
+            L("กำไรขั้นต้น", "Gross Profit"),
+            L("%กำไร", "% Profit"),
+            L("ราคาเฉลี่ย/ชิ้น", "Avg Price/Piece"),
+            L("VAT ที่รวมในราคา", "VAT in Price"),
+            L("เศษปัด", "Rounding"),
+            L("ค่าส่งกลับบ้าน", "Takeaway Fee"),
           ],
           ...items.map((p: any, idx: number) => {
             const qty = p.quantity || 0;
@@ -175,7 +179,7 @@ export function exportReportToExcel(
           }),
           [
             "",
-            "รวม",
+            L("รวม", "Total"),
             "",
             "",
             totalQty,
@@ -193,7 +197,7 @@ export function exportReportToExcel(
             "0.00",
             "0.00",
           ],
-          ["หมายเหตุ..."],
+          [L("หมายเหตุ...", "Notes...")],
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(productsSheetData);
         XLSX.utils.book_append_sheet(wb, ws1, "Products");
@@ -205,30 +209,30 @@ export function exportReportToExcel(
         const billsProfit = bills.reduce((s: number, b: any) => s + (b.grossProfit || 0), 0);
 
         const billsSheetData = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "เลขที่เอกสาร",
-            "วันที่",
-            "เวลา",
-            "ชื่อสินค้า",
-            "รหัสสินค้า",
-            "หมวดหมู่",
-            "จำนวน",
-            "ยอดขาย",
-            "ส่วนลดโปรโมชั่น",
-            "ส่วนลดที่พนักงานให้",
-            "ค่าธรรมเนียม",
-            "ยอดขายสุทธิ",
-            "ต้นทุน",
-            "กำไรขั้นต้น",
-            "VAT ที่รวมในราคา",
-            "เศษปัด",
-            "ผู้บันทึก",
-            "ค่าส่งกลับบ้าน",
+            L("ลำดับ", "No."),
+            L("เลขที่เอกสาร", "Document No."),
+            L("วันที่", "Date"),
+            L("เวลา", "Time"),
+            L("ชื่อสินค้า", "Product Name"),
+            L("รหัสสินค้า", "Product Code"),
+            L("หมวดหมู่", "Category"),
+            L("จำนวน", "Quantity"),
+            L("ยอดขาย", "Sales"),
+            L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+            L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+            L("ค่าธรรมเนียม", "Fee"),
+            L("ยอดขายสุทธิ", "Net Sales"),
+            L("ต้นทุน", "Cost"),
+            L("กำไรขั้นต้น", "Gross Profit"),
+            L("VAT ที่รวมในราคา", "VAT in Price"),
+            L("เศษปัด", "Rounding"),
+            L("ผู้บันทึก", "Recorded By"),
+            L("ค่าส่งกลับบ้าน", "Takeaway Fee"),
           ],
           ...bills.map((b: any, idx: number) => [
             idx + 1,
@@ -253,7 +257,7 @@ export function exportReportToExcel(
           ]),
           [
             "",
-            "รวม",
+            L("รวม", "Total"),
             "",
             "",
             "",
@@ -272,13 +276,13 @@ export function exportReportToExcel(
             "",
             "0.00",
           ],
-          ["หมายเหตุ..."],
+          [L("หมายเหตุ...", "Notes...")],
         ];
         const ws2 = XLSX.utils.aoa_to_sheet(billsSheetData);
         XLSX.utils.book_append_sheet(wb, ws2, "ProductBills");
       }
     } else if (reportType === "employee") {
-      const shopName = data.shopName || "ซูชิ";
+      const shopName = data.shopName || (isThai ? "ซูชิ" : "Store");
       const dateRange = data.dateRangeText || "";
       const currency = "THB";
       const employees = data.employees || [];
@@ -293,34 +297,34 @@ export function exportReportToExcel(
       const totalCancelled = employees.reduce((s: number, e: any) => s + (e.cancelledBills || 0), 0);
 
       const staffSheetData: any[] = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "พนักงาน",
-          "จำนวนบิล",
-          "ยอดขาย",
-          "% ของยอดขาย",
-          "เฉลี่ย/บิล",
-          "เงินสด",
-          "โอน",
-          "เดลิเวอรี่",
-          "ยกเลิกบิล (ใบ)",
-          "ยอดบิลที่ยกเลิก",
-          "ลบสินค้า (ชิ้น)",
-          "ยอดสินค้าที่ลบ",
-          "สั่งเปิดลิ้นชัก (ครั้ง)",
-          "ใส่เงินเข้าลิ้นชัก",
-          "นำเงินออกจากลิ้นชัก",
-          "เปิดกะไม่ส่งยอด",
-          "ส่วนลดรายการ",
-          "ส่วนลดท้ายบิล",
-          "ฟรีบิล (ครั้ง)",
-          "คืนบิล (ใบ)",
-          "บัตรเครดิต",
-          "ยอดขายสุทธิ",
+          L("ลำดับ", "No."),
+          L("พนักงาน", "Staff"),
+          L("จำนวนบิล", "Bills Count"),
+          L("ยอดขาย", "Sales"),
+          L("% ของยอดขาย", "% of Sales"),
+          L("เฉลี่ย/บิล", "Avg/Bill"),
+          L("เงินสด", "Cash"),
+          L("โอน", "Transfer"),
+          L("เดลิเวอรี่", "Delivery"),
+          L("ยกเลิกบิล (ใบ)", "Cancelled Bills"),
+          L("ยอดบิลที่ยกเลิก", "Cancelled Amount"),
+          L("ลบสินค้า (ชิ้น)", "Deleted Items"),
+          L("ยอดสินค้าที่ลบ", "Deleted Amount"),
+          L("สั่งเปิดลิ้นชัก (ครั้ง)", "Drawer Opens"),
+          L("ใส่เงินเข้าลิ้นชัก", "Cash In"),
+          L("นำเงินออกจากลิ้นชัก", "Cash Out"),
+          L("เปิดกะไม่ส่งยอด", "Unsubmitted Shifts"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ส่วนลดท้ายบิล", "Bill Discount"),
+          L("ฟรีบิล (ครั้ง)", "Free Bills"),
+          L("คืนบิล (ใบ)", "Refunded Bills"),
+          L("บัตรเครดิต", "Credit Card"),
+          L("ยอดขายสุทธิ", "Net Sales"),
         ],
         ...employees.map((e: any, idx: number) => [
           idx + 1,
@@ -349,7 +353,7 @@ export function exportReportToExcel(
         ]),
         [
           "",
-          "รวม",
+          L("รวม", "Total"),
           totalBills,
           totalSales.toFixed(2),
           "",
@@ -372,8 +376,8 @@ export function exportReportToExcel(
           "0.00",
           totalSales.toFixed(2),
         ],
-        ["หมายเหตุ..."],
-        ["ยกเลิก..."],
+        [L("หมายเหตุ...", "Notes...")],
+        [L("ยกเลิก...", "Cancelled...")],
       ];
       const wsStaff = XLSX.utils.aoa_to_sheet(staffSheetData);
       XLSX.utils.book_append_sheet(wb, wsStaff, "Staff");
@@ -382,22 +386,22 @@ export function exportReportToExcel(
       const totalBillsNet = staffBills.reduce((s: number, b: any) => s + (b.netAmount || 0), 0);
 
       const staffBillsSheetData: any[] = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "พนักงาน",
-          "ชื่อลูกค้า/โต๊ะ",
-          "ช่องทางชำระ",
-          "ยอดชำระ",
-          "ส่วนลดรายการ",
-          "ส่วนลดท้ายบิล",
-          "ยอดสุทธิ",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("พนักงาน", "Staff"),
+          L("ชื่อลูกค้า/โต๊ะ", "Customer / Table"),
+          L("ช่องทางชำระ", "Payment Method"),
+          L("ยอดชำระ", "Paid Amount"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ส่วนลดท้ายบิล", "Bill Discount"),
+          L("ยอดสุทธิ", "Net Total"),
         ],
         ...staffBills.map((b: any, idx: number) => [
           idx + 1,
@@ -406,7 +410,7 @@ export function exportReportToExcel(
           b.time || "",
           b.employeeName || "",
           b.customerOrTable || "",
-          b.paymentMethod || "เงินสด",
+          b.paymentMethod || L("เงินสด", "Cash"),
           Number(b.paidAmount || b.netAmount || 0).toFixed(2),
           "0.00",
           "0.00",
@@ -414,7 +418,7 @@ export function exportReportToExcel(
         ]),
         [
           "",
-          "รวม",
+          L("รวม", "Total"),
           "",
           "",
           "",
@@ -425,7 +429,7 @@ export function exportReportToExcel(
           "0.00",
           totalBillsNet.toFixed(2),
         ],
-        ["หมายเหตุ..."],
+        [L("หมายเหตุ...", "Notes...")],
       ];
       const wsBills = XLSX.utils.aoa_to_sheet(staffBillsSheetData);
       XLSX.utils.book_append_sheet(wb, wsBills, "StaffBills");
@@ -434,19 +438,19 @@ export function exportReportToExcel(
       const totalItemsSales = staffItems.reduce((s: number, it: any) => s + (it.sales || 0), 0);
 
       const staffItemsSheetData: any[] = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "พนักงาน",
-          "ชื่อสินค้า",
-          "รหัสสินค้า",
-          "หมวดหมู่",
-          "จำนวนขาย",
-          "ยอดขายรวม",
-          "ยอดขายสุทธิ",
+          L("ลำดับ", "No."),
+          L("พนักงาน", "Staff"),
+          L("ชื่อสินค้า", "Product Name"),
+          L("รหัสสินค้า", "Product Code"),
+          L("หมวดหมู่", "Category"),
+          L("จำนวนขาย", "Qty Sold"),
+          L("ยอดขายรวม", "Total Sales"),
+          L("ยอดขายสุทธิ", "Net Sales"),
         ],
         ...staffItems.map((it: any, idx: number) => [
           idx + 1,
@@ -460,7 +464,7 @@ export function exportReportToExcel(
         ]),
         [
           "",
-          "รวม",
+          L("รวม", "Total"),
           "",
           "",
           "",
@@ -468,66 +472,66 @@ export function exportReportToExcel(
           totalItemsSales.toFixed(2),
           totalItemsSales.toFixed(2),
         ],
-        ["หมายเหตุ..."],
+        [L("หมายเหตุ...", "Notes...")],
       ];
       const wsItems = XLSX.utils.aoa_to_sheet(staffItemsSheetData);
       XLSX.utils.book_append_sheet(wb, wsItems, "StaffItems");
     } else if (reportType === "bills") {
-      const shopName = data.shopName || "ซูชิ";
+      const shopName = data.shopName || (isThai ? "ซูชิ" : "Store");
       const dateRange = data.dateRangeText || "";
       const currency = "THB";
       const bills = data.billsExportList || [];
       const billItems = data.billItemsExportList || [];
 
-      const completedBills = bills.filter((b: any) => b.isCompleted || b.status === "สำเร็จ");
+      const completedBills = bills.filter((b: any) => b.isCompleted || (b.status === "สำเร็จ" || b.status === "Completed"));
       const totalCompletedQty = completedBills.reduce((s: number, b: any) => s + (b.quantity || 0), 0);
       const totalCompletedSales = completedBills.reduce((s: number, b: any) => s + (b.paidAmount || b.grossAmount || 0), 0);
 
       const billsSheetData: any[] = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "ชื่อลูกค้า/โต๊ะ",
-          "หมายเหตุ",
-          "สถานะ",
-          "ช่องทางชำระ",
-          "จำนวน",
-          "ยอดรวม",
-          "ส่วนลดโปรโมชั่น",
-          "โปรโมชั่น",
-          "ส่วนลดที่พนักงานให้",
-          "ยอดชำระ",
-          "ค่าธรรมเนียมแอป",
-          "เงินเข้าร้านจริง",
-          "เงินรับ",
-          "เงินทอน",
-          "บันทึกร้าน-ส่วนลดโปร",
-          "เรทค่าธรรมเนียม (%)",
-          "ค่าธรรมเนียมบัตร",
-          "เลขคิว",
-          "ยกเลิกโดย",
-          "เหตุผลที่ยกเลิก",
-          "แก้ไขเมื่อ",
-          "แก้ไขโดย",
-          "เหตุผลที่แก้ไข",
-          "ส่วนเงินสด เบิก/ทอน",
-          "ส่วนเงินโอน เบิก/ทอน",
-          "ประวัติโต๊ะ",
-          "ผู้บันทึก",
-          "ส่วนลดรายการ",
-          "ส่วนลดท้ายบิล",
-          "VAT ที่รวมในบิล",
-          "เศษปัด",
-          "คืนบิลเมื่อ",
-          "คืนบิลโดย",
-          "เหตุผลที่คืนบิล",
-          "เหตุผลที่ขอยกเลิก",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("ชื่อลูกค้า/โต๊ะ", "Customer / Table"),
+          L("หมายเหตุ", "Note"),
+          L("สถานะ", "Status"),
+          L("ช่องทางชำระ", "Payment Method"),
+          L("จำนวน", "Quantity"),
+          L("ยอดรวม", "Subtotal"),
+          L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+          L("โปรโมชั่น", "Promotion"),
+          L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+          L("ยอดชำระ", "Paid Amount"),
+          L("ค่าธรรมเนียมแอป", "App Fee"),
+          L("เงินเข้าร้านจริง", "Net Income"),
+          L("เงินรับ", "Received"),
+          L("เงินทอน", "Change"),
+          L("บันทึกร้าน-ส่วนลดโปร", "Shop Promo"),
+          L("เรทค่าธรรมเนียม (%)", "Fee Rate (%)"),
+          L("ค่าธรรมเนียมบัตร", "Card Fee"),
+          L("เลขคิว", "Queue No."),
+          L("ยกเลิกโดย", "Cancelled By"),
+          L("เหตุผลที่ยกเลิก", "Cancel Reason"),
+          L("แก้ไขเมื่อ", "Edited At"),
+          L("แก้ไขโดย", "Edited By"),
+          L("เหตุผลที่แก้ไข", "Edit Reason"),
+          L("ส่วนเงินสด เบิก/ทอน", "Cash Payout/Change"),
+          L("ส่วนเงินโอน เบิก/ทอน", "Transfer Payout/Change"),
+          L("ประวัติโต๊ะ", "Table History"),
+          L("ผู้บันทึก", "Recorded By"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ส่วนลดท้ายบิล", "Bill Discount"),
+          L("VAT ที่รวมในบิล", "VAT in Bill"),
+          L("เศษปัด", "Rounding"),
+          L("คืนบิลเมื่อ", "Refunded At"),
+          L("คืนบิลโดย", "Refunded By"),
+          L("เหตุผลที่คืนบิล", "Refund Reason"),
+          L("เหตุผลที่ขอยกเลิก", "Cancel Request Reason"),
         ],
         ...bills.map((b: any) => [
           b.index,
@@ -536,8 +540,8 @@ export function exportReportToExcel(
           b.time || "",
           b.tableName || "",
           b.note || "",
-          b.status || "สำเร็จ",
-          b.paymentMethod || "เงินสด",
+          b.status || L("สำเร็จ", "Completed"),
+          b.paymentMethod || L("เงินสด", "Cash"),
           b.quantity || 1,
           Number(b.grossAmount || 0).toFixed(2),
           "0.00",
@@ -572,7 +576,7 @@ export function exportReportToExcel(
         ]),
         [
           "",
-          "รวม (เฉพาะบิลสำเร็จ)",
+          L("รวม (เฉพาะบิลสำเร็จ)", "Total (Completed Bills Only)"),
           "",
           "",
           "",
@@ -611,43 +615,43 @@ export function exportReportToExcel(
           "",
           "",
         ],
-        ["หมายเหตุ..."],
+        [L("หมายเหตุ...", "Notes...")],
       ];
       const wsBills = XLSX.utils.aoa_to_sheet(billsSheetData);
       XLSX.utils.book_append_sheet(wb, wsBills, "Bills");
 
-      const completedItems = billItems.filter((it: any) => it.isCompleted !== false && it.status !== "ยกเลิก");
+      const completedItems = billItems.filter((it: any) => it.isCompleted !== false && (it.status !== "ยกเลิก" && it.status !== "Cancelled"));
       const totalItemQty = completedItems.reduce((s: number, it: any) => s + (it.quantity || 0), 0);
       const totalItemGross = completedItems.reduce((s: number, it: any) => s + (it.grossAmount || 0), 0);
       const totalItemNet = completedItems.reduce((s: number, it: any) => s + (it.netSales || it.grossAmount || 0), 0);
 
       const billItemsSheetData: any[] = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "สถานะ",
-          "ชื่อสินค้า",
-          "รหัสสินค้า",
-          "ตัวเลือก",
-          "หมายเหตุ",
-          "จำนวน",
-          "ยอดรวม",
-          "ส่วนลดโปรโมชั่น",
-          "ส่วนลดรายการ",
-          "ยอดขายสุทธิ",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("สถานะ", "Status"),
+          L("ชื่อสินค้า", "Product Name"),
+          L("รหัสสินค้า", "Product Code"),
+          L("ตัวเลือก", "Options"),
+          L("หมายเหตุ", "Note"),
+          L("จำนวน", "Quantity"),
+          L("ยอดรวม", "Subtotal"),
+          L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ยอดขายสุทธิ", "Net Sales"),
         ],
         ...billItems.map((it: any) => [
           it.index,
           it.orderNumber || "",
           it.date || "",
           it.time || "",
-          it.status || "สำเร็จ",
+          it.status || L("สำเร็จ", "Completed"),
           it.productName || "",
           it.productCode || "",
           it.options || "",
@@ -660,7 +664,7 @@ export function exportReportToExcel(
         ]),
         [
           "",
-          "รวม (เฉพาะบิลสำเร็จ)",
+          L("รวม (เฉพาะบิลสำเร็จ)", "Total (Completed Bills Only)"),
           "",
           "",
           "",
@@ -674,7 +678,7 @@ export function exportReportToExcel(
           "0.00",
           totalItemNet.toFixed(2),
         ],
-        ["หมายเหตุ..."],
+        [L("หมายเหตุ...", "Notes...")],
       ];
       const wsBillItems = XLSX.utils.aoa_to_sheet(billItemsSheetData);
       XLSX.utils.book_append_sheet(wb, wsBillItems, "BillItems");
@@ -683,7 +687,7 @@ export function exportReportToExcel(
     XLSX.writeFile(wb, `${fileName}.xlsx`);
   } catch (error) {
     console.error("Export to Excel failed:", error);
-    alert("เกิดข้อผิดพลาดในการดาวน์โหลด Excel");
+    alert(isThai ? "เกิดข้อผิดพลาดในการดาวน์โหลด Excel" : "Error downloading Excel file");
   }
 }
 

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   // รายการเมนูสำหรับ Sidebar
-  // 🌟 เพิ่ม property "disabled: true" ให้กับเมนูที่ยังไม่พร้อมใช้งาน
   const navItems = [
     {
       href: "/pos",
-      label: "ขาย",
+      label: t("nav.pos"),
       disabled: false,
       icon: (
         <path
@@ -23,7 +24,7 @@ export default function Sidebar() {
     },
     {
       href: "/reports",
-      label: "รายงาน",
+      label: t("nav.reports"),
       disabled: false,
       icon: (
         <path
@@ -35,7 +36,7 @@ export default function Sidebar() {
     },
     {
       href: "/inventory",
-      label: "คลัง",
+      label: t("nav.inventory"),
       disabled: false,
       icon: (
         <path
@@ -47,7 +48,7 @@ export default function Sidebar() {
     },
     {
       href: "/kitchen",
-      label: "จอครัว",
+      label: t("nav.kitchen"),
       disabled: false,
       icon: (
         <path
@@ -59,8 +60,8 @@ export default function Sidebar() {
     },
     {
       href: "/expenses",
-      label: "รายจ่าย",
-      disabled: false, // 🔒 ปิดใช้งานชั่วคราว
+      label: t("nav.expenses"),
+      disabled: false,
       icon: (
         <path
           d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
@@ -71,7 +72,7 @@ export default function Sidebar() {
     },
     {
       href: "/accounting",
-      label: "บัญชี",
+      label: t("nav.accounting"),
       disabled: false,
       icon: (
         <path
@@ -87,23 +88,26 @@ export default function Sidebar() {
     <nav className="hidden md:flex flex-col items-center w-16 lg:w-20 bg-pos-surface border-r border-pos-border py-4 shrink-0 space-y-3 select-none z-20">
       {navItems.map((item) => {
         const isActive =
-          pathname === item.href || (item.href === "/pos" && pathname === "/") || (item.href === "/expenses" && pathname.startsWith("/expenses")) || (item.href === "/accounting" && pathname.startsWith("/accounting"));
+          pathname === item.href ||
+          (item.href === "/pos" && pathname === "/") ||
+          (item.href === "/expenses" && pathname.startsWith("/expenses")) ||
+          (item.href === "/accounting" && pathname.startsWith("/accounting"));
 
         return (
           <Link
             key={item.href}
-            href={item.disabled ? "#" : item.href} // ถ้า disabled ให้เปลี่ยนลิ้งก์เป็น # แทน
+            href={item.disabled ? "#" : item.href}
             onClick={(e) => {
-              if (item.disabled) e.preventDefault(); // ถ้า disabled ห้ามกดเปลี่ยนหน้า
+              if (item.disabled) e.preventDefault();
             }}
             className={`w-11 lg:w-12 h-11 lg:h-12 rounded-xl flex flex-col items-center justify-center transition group ${
               item.disabled
-                ? "opacity-30 cursor-not-allowed pointer-events-none grayscale" // 🌟 สไตล์สำหรับปุ่มที่ถูกปิด
+                ? "opacity-30 cursor-not-allowed pointer-events-none grayscale"
                 : isActive
                   ? "bg-gradient-to-br from-sky-600 to-cyan-500 text-white shadow-md shadow-sky-500/25 font-bold active:scale-95"
                   : "text-slate-400 hover:text-sky-600 hover:bg-sky-50/50 dark:hover:bg-sky-950/30 active:scale-95"
             }`}
-            title={item.disabled ? "กำลังพัฒนา" : item.label} // เอาเมาส์ชี้จะขึ้นว่า "กำลังพัฒนา"
+            title={item.disabled ? t("nav.under_development") : item.label}
           >
             <svg
               className={`w-5 h-5 ${isActive ? "stroke-[2.3]" : "stroke-[1.8]"}`}
@@ -159,7 +163,7 @@ export default function Sidebar() {
             pathname === "/settings" ? "font-bold" : "font-medium"
           }`}
         >
-          ตั้งค่า
+          {t("nav.settings")}
         </span>
       </Link>
     </nav>

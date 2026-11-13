@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { getFilteredTransactions } from "@/lib/actions/actionAccountingHistory";
 import { AccountTransactionItem, AccountingHistoryPageProps } from "@/lib/types";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function AccountingHistoryPage({
   accounts,
@@ -12,6 +13,7 @@ export default function AccountingHistoryPage({
   initialStartDate,
   initialEndDate,
 }: AccountingHistoryPageProps) {
+  const { t, isThai } = useTranslation();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
 
@@ -59,30 +61,30 @@ export default function AccountingHistoryPage({
 
   const transactionTypeGroups = [
     {
-      group: "ยอดเงินเข้า (Inflow)",
+      group: isThai ? "ยอดเงินเข้า (Inflow)" : "Inflow",
       items: [
-        { id: "SALES", name: "ยอดขายหน้าร้าน (SALES)" },
-        { id: "INCOME", name: "รายรับอื่นๆ (INCOME)" },
-        { id: "AR_PAYMENT", name: "รับชำระหนี้เครดิต (AR_PAYMENT)" },
+        { id: "SALES", name: isThai ? "ยอดขายหน้าร้าน (SALES)" : "Point of Sale (SALES)" },
+        { id: "INCOME", name: isThai ? "รายรับอื่นๆ (INCOME)" : "Other Income (INCOME)" },
+        { id: "AR_PAYMENT", name: isThai ? "รับชำระหนี้เครดิต (AR_PAYMENT)" : "AR Payment (AR_PAYMENT)" },
       ],
     },
     {
-      group: "ยอดเงินออก (Outflow)",
-      items: [{ id: "EXPENSE", name: "รายจ่าย (EXPENSE)" }],
+      group: isThai ? "ยอดเงินออก (Outflow)" : "Outflow",
+      items: [{ id: "EXPENSE", name: isThai ? "รายจ่าย (EXPENSE)" : "Expense (EXPENSE)" }],
     },
     {
-      group: "การโอนเงิน",
+      group: isThai ? "การโอนเงิน" : "Transfer",
       items: [
-        { id: "TRANSFER_IN", name: "รับโอนเงิน (TRANSFER_IN)" },
-        { id: "TRANSFER_OUT", name: "โอนเงินออก (TRANSFER_OUT)" },
+        { id: "TRANSFER_IN", name: isThai ? "รับโอนเงิน (TRANSFER_IN)" : "Transfer In (TRANSFER_IN)" },
+        { id: "TRANSFER_OUT", name: isThai ? "โอนเงินออก (TRANSFER_OUT)" : "Transfer Out (TRANSFER_OUT)" },
       ],
     },
     {
-      group: "การปรับปรุงยอด",
+      group: isThai ? "การปรับปรุงยอด" : "Adjustment",
       items: [
-        { id: "ADJUSTMENT_UP", name: "ปรับยอดเพิ่ม (ADJUSTMENT_UP)" },
-        { id: "ADJUSTMENT_DOWN", name: "ปรับยอดลด (ADJUSTMENT_DOWN)" },
-        { id: "OVERRIDE_BALANCE", name: "แก้ไขยอดเงินสุทธิ (OVERRIDE_BALANCE)" },
+        { id: "ADJUSTMENT_UP", name: isThai ? "ปรับยอดเพิ่ม (ADJUSTMENT_UP)" : "Adjust Up (ADJUSTMENT_UP)" },
+        { id: "ADJUSTMENT_DOWN", name: isThai ? "ปรับยอดลด (ADJUSTMENT_DOWN)" : "Adjust Down (ADJUSTMENT_DOWN)" },
+        { id: "OVERRIDE_BALANCE", name: isThai ? "แก้ไขยอดเงินสุทธิ (OVERRIDE_BALANCE)" : "Override Balance (OVERRIDE_BALANCE)" },
       ],
     },
   ];
@@ -109,10 +111,10 @@ export default function AccountingHistoryPage({
       setTxLogs(res.data as unknown as AccountTransactionItem[]);
       setCurrentPage(1);
       if (res.data.length === 0) {
-        showToast("ไม่พบรายการในช่วงเวลาที่เลือก", "warning");
+        showToast(t("common.no_data"), "warning");
       }
     } else {
-      showToast(res.message || "ไม่สามารถดึงข้อมูลได้", "error");
+      showToast(res.message || (isThai ? "ไม่สามารถดึงข้อมูลได้" : "Failed to load data"), "error");
     }
     setLoading(false);
   };
@@ -181,22 +183,32 @@ export default function AccountingHistoryPage({
 
   const handleExportCSV = () => {
     if (txLogs.length === 0) {
-      showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
+      showToast(t("common.no_data"), "warning");
       return;
     }
-    const headers = [
-      "วันที่/เวลา",
-      "ชื่อรายการ",
-      "ประเภท",
-      "บัญชี",
-      "จำนวนเงิน",
-      "ยอดคงเหลือหลังทำรายการ",
-      "หมายเหตุ",
-    ];
+    const headers = isThai
+      ? [
+          "วันที่/เวลา",
+          "ชื่อรายการ",
+          "ประเภท",
+          "บัญชี",
+          "จำนวนเงิน",
+          "ยอดคงเหลือหลังทำรายการ",
+          "หมายเหตุ",
+        ]
+      : [
+          "Date/Time",
+          "Description",
+          "Type",
+          "Account",
+          "Amount",
+          "Balance After Transaction",
+          "Note",
+        ];
     const csvData = txLogs.map((log) => {
-      const date = new Date(log.date || log.createdAt).toLocaleString("th-TH");
+      const date = new Date(log.date || log.createdAt).toLocaleString(isThai ? "th-TH" : "en-US");
       const title = log.title || "-";
-      const type = log.type || "-";
+      const type = log.type === "EXPENSE" ? (isThai ? "รายจ่าย" : "Expense") : log.type === "INCOME" ? (isThai ? "รายรับ" : "Income") : (log.type || "-");
       const accountName = log.account?.accountName || "-";
       const amount = log.amount || 0;
       const balance = log.accountBalance || 0;
@@ -220,22 +232,22 @@ export default function AccountingHistoryPage({
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Statement_${startDate}_ถึง_${endDate}.csv`);
+    link.setAttribute("download", `Statement_${startDate}_${isThai ? "ถึง" : "to"}_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    showToast("ดาวน์โหลดไฟล์ CSV สำเร็จ", "success");
+    showToast(isThai ? "ดาวน์โหลดไฟล์ CSV สำเร็จ" : "CSV downloaded successfully", "success");
   };
 
   const handleExportPDF = () => {
     if (txLogs.length === 0) {
-      showToast("ไม่มีข้อมูลสำหรับส่งออก", "warning");
+      showToast(t("common.no_data"), "warning");
       return;
     }
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      showToast("กรุณาอนุญาตให้ Pop-up ทำงานเพื่อพิมพ์ PDF", "error");
+      showToast(isThai ? "กรุณาอนุญาตให้ Pop-up ทำงานเพื่อพิมพ์ PDF" : "Please allow pop-ups to print PDF", "error");
       return;
     }
 
@@ -244,7 +256,7 @@ export default function AccountingHistoryPage({
       <html>
         <head>
           <meta charset="utf-8">
-          <title>Statement_${startDate}_ถึง_${endDate}</title>
+          <title>Statement_${startDate}_${isThai ? "ถึง" : "to"}_${endDate}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
             body { 
@@ -315,24 +327,24 @@ export default function AccountingHistoryPage({
         </head>
         <body>
           <div class="action-bar">
-            <button class="btn btn-secondary" onclick="window.close()">ปิดหน้าต่าง</button>
-            <button class="btn btn-primary" onclick="window.print()">🖨️ สั่งพิมพ์ / บันทึก PDF</button>
+            <button class="btn btn-secondary" onclick="window.close()">${isThai ? "ปิดหน้าต่าง" : "Close"}</button>
+            <button class="btn btn-primary" onclick="window.print()">${isThai ? "🖨️ สั่งพิมพ์ / บันทึก PDF" : "🖨️ Print / Save PDF"}</button>
           </div>
           <div class="page-container">
             <div class="header">
-              <h2>รายงานรายการเดินบัญชี (Statement)</h2>
-              <p>ช่วงเวลา: ${new Date(startDate).toLocaleDateString("th-TH")} ถึง ${new Date(endDate).toLocaleDateString("th-TH")}</p>
+              <h2>${t("accounting.statement_title")}</h2>
+              <p>${isThai ? "ช่วงเวลา: " : "Period: "}${new Date(startDate).toLocaleDateString(isThai ? "th-TH" : "en-US")} ${isThai ? "ถึง" : "to"} ${new Date(endDate).toLocaleDateString(isThai ? "th-TH" : "en-US")}</p>
             </div>
             <table>
               <thead>
                 <tr>
-                  <th>วันที่/เวลา</th>
-                  <th>ชื่อรายการ</th>
-                  <th>ประเภท</th>
-                  <th>บัญชี</th>
-                  <th class="text-right">จำนวนเงิน</th>
-                  <th class="text-right">ยอดคงเหลือ</th>
-                  <th>หมายเหตุ</th>
+                  <th>${t("common.date")} / ${t("common.time")}</th>
+                  <th>${t("accounting.account_name")}</th>
+                  <th>${t("accounting.tx_type")}</th>
+                  <th>${t("accounting.select_account")}</th>
+                  <th class="text-right">${t("accounting.amount")}</th>
+                  <th class="text-right">${t("accounting.balance_after")}</th>
+                  <th>${t("accounting.note")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,9 +372,9 @@ export default function AccountingHistoryPage({
               </tbody>
             </table>
             <div class="summary-box">
-              <div class="summary-item">รวมเงินเข้า: <span class="text-green">${summary.income.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
-              <div class="summary-item">รวมเงินออก: <span class="text-red">${summary.expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
-              <div class="summary-item">ยอดสุทธิ: <span style="color: #0284c7;">${summary.net.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
+              <div class="summary-item">${t("accounting.inflow")}: <span class="text-green">${summary.income.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
+              <div class="summary-item">${t("accounting.outflow")}: <span class="text-red">${summary.expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
+              <div class="summary-item">${t("accounting.net")}: <span style="color: #0284c7;">${summary.net.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ${currency}</span></div>
             </div>
           </div>
         </body>
@@ -376,11 +388,11 @@ export default function AccountingHistoryPage({
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "SALES":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">SALES (ขาย)</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">{isThai ? "SALES (ขาย)" : "SALES"}</span>;
       case "INCOME":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">INCOME (รับ)</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">{isThai ? "INCOME (รับ)" : "INCOME"}</span>;
       case "EXPENSE":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">EXPENSE (จ่าย)</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">{isThai ? "EXPENSE (จ่าย)" : "EXPENSE"}</span>;
       case "TRANSFER_IN":
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">TRANSFER IN</span>;
       case "TRANSFER_OUT":
@@ -423,11 +435,9 @@ export default function AccountingHistoryPage({
             🏛️
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              รายการเดินบัญชี (Statement)
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{t("accounting.statement_title")}</h2>
             <p className="text-xs text-slate-500 dark:text-zinc-400">
-              ตรวจสอบประวัติธุรกรรมและยอดเงินไหลเข้า-ออกโดยละเอียด
+              {isThai ? "ตรวจสอบประวัติธุรกรรมและยอดเงินไหลเข้า-ออกโดยละเอียด" : "Detailed transaction history and cash flow audit"}
             </p>
           </div>
         </div>
@@ -436,16 +446,14 @@ export default function AccountingHistoryPage({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
             {/* Account Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                เลือกบัญชี
-              </label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">{t("accounting.select_account")}</label>
               <select
                 className="w-full h-10 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-[#0A0A0B] px-3 text-xs text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
                 disabled={loading}
               >
-                <option value="all">ทั้งหมดทุกบัญชี</option>
+                <option value="all">{t("accounting.all_accounts")}</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.accountName}
@@ -456,9 +464,7 @@ export default function AccountingHistoryPage({
 
             {/* Type Multi-select */}
             <div className="space-y-1.5" ref={typeDropdownRef}>
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                ประเภทรายการ
-              </label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">{t("accounting.select_tx_type")}</label>
               <div className="relative">
                 <div
                   className={`flex h-10 w-full items-center justify-between rounded-xl border bg-slate-50 dark:bg-[#0A0A0B] px-3 text-xs cursor-pointer select-none transition ${
@@ -476,8 +482,8 @@ export default function AccountingHistoryPage({
                     }`}
                   >
                     {selectedTypes.length === 0
-                      ? "ทุกประเภทรายการ"
-                      : `เลือกไว้ ${selectedTypes.length} รายการ`}
+                      ? t("accounting.all_tx_types")
+                      : (isThai ? `เลือกไว้ ${selectedTypes.length} รายการ` : `Selected ${selectedTypes.length} items`)}
                   </span>
                   <span className="text-xs text-slate-400">▾</span>
                 </div>
@@ -486,7 +492,7 @@ export default function AccountingHistoryPage({
                   <div className="absolute top-[calc(100%+6px)] left-0 z-50 w-full min-w-[280px] bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-[320px] overflow-y-auto p-2">
                     <div className="sticky top-0 z-10 flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-[#111113]">
                       <span className="text-xs font-bold text-slate-600 dark:text-zinc-300">
-                        เลือกประเภทธุรกรรม
+                        {isThai ? "เลือกประเภทธุรกรรม" : "Select Transaction Types"}
                       </span>
                       {selectedTypes.length > 0 && (
                         <button
@@ -494,7 +500,7 @@ export default function AccountingHistoryPage({
                           onClick={() => setSelectedTypes([])}
                           className="text-[11px] font-semibold text-sky-600 hover:underline cursor-pointer"
                         >
-                          ล้างทั้งหมด
+                          {t("pos.deselect_all")}
                         </button>
                       )}
                     </div>
@@ -538,9 +544,7 @@ export default function AccountingHistoryPage({
 
             {/* Start Date */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                ตั้งแต่วันที่
-              </label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">{t("accounting.start_date")}</label>
               <input
                 type="date"
                 value={startDate}
@@ -553,9 +557,7 @@ export default function AccountingHistoryPage({
 
             {/* End Date */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                ถึงวันที่
-              </label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400">{t("accounting.end_date")}</label>
               <input
                 type="date"
                 value={endDate}
@@ -573,17 +575,15 @@ export default function AccountingHistoryPage({
                 disabled={loading}
                 className="flex-1 h-10 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
               >
-                {loading ? "กำลังค้นหา..." : "🔍 ค้นหา"}
+                {loading ? t("common.loading") : t("accounting.search_transactions")}
               </button>
               <button
                 type="button"
                 onClick={handleReset}
                 disabled={loading}
                 className="h-10 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 rounded-xl text-xs font-semibold transition cursor-pointer"
-                title="ล้างค่าตัวกรองทั้งหมด"
-              >
-                รีเซ็ต
-              </button>
+                title={isThai ? "ล้างค่าตัวกรองทั้งหมด" : "Clear all filters"}
+              >{t("accounting.reset_filters")}</button>
             </div>
           </div>
         </form>
@@ -594,7 +594,7 @@ export default function AccountingHistoryPage({
         <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/60 dark:bg-emerald-950/20 p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-              รวมเงินเข้า (Inflow)
+              {t("accounting.inflow")}
             </p>
             <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
               {summary.income.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
@@ -606,7 +606,7 @@ export default function AccountingHistoryPage({
         <div className="rounded-2xl border border-rose-200 dark:border-rose-900/30 bg-rose-50/60 dark:bg-rose-950/20 p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">
-              รวมเงินออก (Outflow)
+              {t("accounting.outflow")}
             </p>
             <p className="text-2xl font-black text-rose-700 dark:text-rose-300">
               {summary.expense.toLocaleString("th-TH", { minimumFractionDigits: 2 })} {currency}
@@ -618,7 +618,7 @@ export default function AccountingHistoryPage({
         <div className="rounded-2xl border border-sky-200 dark:border-sky-900/30 bg-sky-50/60 dark:bg-sky-950/20 p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider mb-1">
-              ยอดสุทธิ (Net)
+              {t("accounting.net")}
             </p>
             <p
               className={`text-2xl font-black ${
@@ -640,16 +640,16 @@ export default function AccountingHistoryPage({
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-[#161618]">
           <div>
             <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-              รายการธุรกรรมที่ค้นพบ ({filteredTableData.length} รายการ)
+              {t("accounting.found_transactions", { count: filteredTableData.length })}
             </h3>
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              แสดงข้อมูลตามเงื่อนไขที่เลือก
+              {isThai ? "แสดงข้อมูลตามเงื่อนไขที่เลือก" : "Displaying data matching criteria"}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
             <input
-              placeholder="ค้นหาในตาราง..."
+              placeholder={t("accounting.search_in_table")}
               value={tableSearch}
               onChange={(e) => {
                 setTableSearch(e.target.value);
@@ -662,14 +662,14 @@ export default function AccountingHistoryPage({
               disabled={txLogs.length === 0}
               className="h-8.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
             >
-              📥 ส่งออก CSV
+              📥 {t("accounting.export_csv")}
             </button>
             <button
               onClick={handleExportPDF}
               disabled={txLogs.length === 0}
               className="h-8.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
             >
-              🖨️ พิมพ์ / PDF
+              🖨️ {t("accounting.print_pdf")}
             </button>
           </div>
         </div>
@@ -678,13 +678,13 @@ export default function AccountingHistoryPage({
           <table className="w-full text-left border-collapse min-w-[850px] text-xs">
             <thead className="bg-slate-100/70 dark:bg-[#0A0A0B] border-b border-slate-200 dark:border-zinc-800">
               <tr className="text-slate-500 dark:text-zinc-400 uppercase tracking-wider font-semibold whitespace-nowrap">
-                <th className="px-4 py-3">วันที่/เวลา</th>
-                <th className="px-4 py-3">ประเภท</th>
-                <th className="px-4 py-3">ชื่อรายการ / หมวดหมู่</th>
-                <th className="px-4 py-3">บัญชี</th>
-                <th className="px-4 py-3 text-right">จำนวนเงิน</th>
-                <th className="px-4 py-3 text-right">ยอดคงเหลือ</th>
-                <th className="px-4 py-3">หมายเหตุ</th>
+                <th className="px-4 py-3">{t("common.date")} / {t("common.time")}</th>
+                <th className="px-4 py-3">{t("accounting.tx_type")}</th>
+                <th className="px-4 py-3">{t("accounting.account_name")} / {t("accounting.category")}</th>
+                <th className="px-4 py-3">{t("accounting.select_account")}</th>
+                <th className="px-4 py-3 text-right">{t("accounting.amount")}</th>
+                <th className="px-4 py-3 text-right">{t("accounting.balance_after")}</th>
+                <th className="px-4 py-3">{t("accounting.note")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/40">
@@ -748,7 +748,7 @@ export default function AccountingHistoryPage({
               {paginatedData.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-slate-400">
-                    ไม่พบรายการธุรกรรม
+                    {t("common.no_data")}
                   </td>
                 </tr>
               )}
@@ -759,11 +759,7 @@ export default function AccountingHistoryPage({
         {/* PAGINATION */}
         <div className="px-4 py-3 border-t border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-[#161618] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
-            <span className="text-slate-500 dark:text-zinc-400">
-              แสดงแถวที่ {(currentPage - 1) * pageSize + 1} -{" "}
-              {Math.min(currentPage * pageSize, filteredTableData.length)} จากทั้งหมด{" "}
-              {filteredTableData.length}
-            </span>
+            <span className="text-slate-500 dark:text-zinc-400">{isThai ? `แสดงแถวที่ ${(currentPage - 1) * pageSize + 1} - ${Math.min(currentPage * pageSize, filteredTableData.length)} จากทั้งหมด ${filteredTableData.length}` : `Showing ${(currentPage - 1) * pageSize + 1} - ${Math.min(currentPage * pageSize, filteredTableData.length)} of ${filteredTableData.length}`}</span>
             <select
               className="h-7 px-2 bg-white dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-700 rounded-md text-xs cursor-pointer"
               value={pageSize}
@@ -786,7 +782,7 @@ export default function AccountingHistoryPage({
                 disabled={currentPage === 1}
                 className="h-7 px-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-md text-slate-700 dark:text-zinc-300 disabled:opacity-40 cursor-pointer"
               >
-                ก่อนหน้า
+                {t("inventory.prev_page")}
               </button>
               <span className="px-2 font-semibold text-slate-700 dark:text-zinc-300">
                 {currentPage} / {totalPages}
@@ -796,7 +792,7 @@ export default function AccountingHistoryPage({
                 disabled={currentPage === totalPages}
                 className="h-7 px-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-md text-slate-700 dark:text-zinc-300 disabled:opacity-40 cursor-pointer"
               >
-                ถัดไป
+                {t("inventory.next_page")}
               </button>
             </div>
           )}

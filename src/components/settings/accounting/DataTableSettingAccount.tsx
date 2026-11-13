@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import {
   createAccount,
   adjustAccountBalance,
@@ -23,6 +24,7 @@ export default function DataTableSettingAccount({
   viewMode = "split",
 }: DataTableProps) {
   const router = useRouter();
+  const { t, isThai } = useTranslation();
 
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<"id" | "accountName" | "balance">("id");
@@ -115,16 +117,16 @@ export default function DataTableSettingAccount({
         id,
         newBal,
         "OVERRIDE",
-        "แก้ไขยอดเงินโดยตรงจากตาราง",
+        isThai ? "แก้ไขยอดเงินโดยตรงจากตาราง" : "Direct balance edit from table",
         userId,
         organizationId
       );
       if (res.success) {
-        showToast("อัปเดตยอดเงินสำเร็จ", "success");
+        showToast(isThai ? "อัปเดตยอดเงินสำเร็จ" : "Balance updated successfully", "success");
         if (onRefresh) await onRefresh();
         router.refresh();
       } else {
-        showToast(res.message || "อัปเดตยอดเงินไม่สำเร็จ", "error");
+        showToast(res.message || (isThai ? "อัปเดตยอดเงินไม่สำเร็จ" : "Failed to update balance"), "error");
       }
       setIsLoading(false);
     }
@@ -159,7 +161,7 @@ export default function DataTableSettingAccount({
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccountName.trim()) {
-      showToast("กรุณากรอกชื่อบัญชี", "error");
+      showToast(isThai ? "กรุณากรอกชื่อบัญชี" : "Please enter account name", "error");
       return;
     }
     const initBalance = parseFloat(newAccountBalance) || 0;
@@ -171,14 +173,14 @@ export default function DataTableSettingAccount({
       createdById: userId,
     });
     if (res.success) {
-      showToast("เพิ่มบัญชีสำเร็จ", "success");
+      showToast(isThai ? "เพิ่มบัญชีสำเร็จ" : "Account added successfully", "success");
       setNewAccountName("");
       setNewAccountBalance("0");
       setOpenAdd(false);
       if (onRefresh) await onRefresh();
       router.refresh();
     } else {
-      showToast(res.message || "เพิ่มบัญชีไม่สำเร็จ", "error");
+      showToast(res.message || (isThai ? "เพิ่มบัญชีไม่สำเร็จ" : "Failed to add account"), "error");
     }
     setIsLoading(false);
   };
@@ -188,11 +190,11 @@ export default function DataTableSettingAccount({
     const amount = parseFloat(transferAmount);
     const toId = parseInt(targetAccountId);
     if (isNaN(amount) || amount <= 0) {
-      showToast("กรุณาระบุจำนวนเงินที่มากกว่า 0", "error");
+      showToast(isThai ? "กรุณาระบุจำนวนเงินที่มากกว่า 0" : "Please enter an amount greater than 0", "error");
       return;
     }
     if (isNaN(toId)) {
-      showToast("กรุณาเลือกบัญชีปลายทาง", "error");
+      showToast(isThai ? "กรุณาเลือกบัญชีปลายทาง" : "Please select destination account", "error");
       return;
     }
     if (!selectedAccount) return;
@@ -207,12 +209,12 @@ export default function DataTableSettingAccount({
       organizationId
     );
     if (res.success) {
-      showToast(res.message || "โอนเงินสำเร็จ", "success");
+      showToast(res.message || (isThai ? "โอนเงินสำเร็จ" : "Transfer successful"), "success");
       setOpenTransfer(false);
       if (onRefresh) await onRefresh();
       router.refresh();
     } else {
-      showToast(res.message || "เกิดข้อผิดพลาดในการโอนเงิน", "error");
+      showToast(res.message || (isThai ? "เกิดข้อผิดพลาดในการโอนเงิน" : "Error transferring money"), "error");
     }
     setIsLoading(false);
   };
@@ -221,28 +223,36 @@ export default function DataTableSettingAccount({
     e.preventDefault();
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount) || amount <= 0) {
-      showToast("กรุณาระบุจำนวนเงินที่มากกว่า 0", "error");
+      showToast(isThai ? "กรุณาระบุจำนวนเงินที่มากกว่า 0" : "Please enter an amount greater than 0", "error");
       return;
     }
     if (!selectedAccount) return;
 
     setIsLoading(true);
     const mode = adjustType === "IN" ? "ADD" : "REDUCE";
+    const defaultNote = adjustType === "IN"
+      ? (isThai ? "เพิ่มเงินในบัญชี" : "Deposit money")
+      : (isThai ? "ลดเงินในบัญชี" : "Withdraw money");
     const res = await adjustAccountBalance(
       selectedAccount.id,
       amount,
       mode,
-      adjustNote || (adjustType === "IN" ? "เพิ่มเงินในบัญชี" : "ลดเงินในบัญชี"),
+      adjustNote || defaultNote,
       userId,
       organizationId
     );
     if (res.success) {
-      showToast(adjustType === "IN" ? "เพิ่มเงินสำเร็จ" : "ลดเงินสำเร็จ", "success");
+      showToast(
+        adjustType === "IN"
+          ? (isThai ? "เพิ่มเงินสำเร็จ" : "Deposit successful")
+          : (isThai ? "ลดเงินสำเร็จ" : "Withdrawal successful"),
+        "success"
+      );
       setOpenAdjust(false);
       if (onRefresh) await onRefresh();
       router.refresh();
     } else {
-      showToast(res.message || "ทำรายการไม่สำเร็จ", "error");
+      showToast(res.message || (isThai ? "ทำรายการไม่สำเร็จ" : "Transaction failed"), "error");
     }
     setIsLoading(false);
   };
@@ -251,11 +261,11 @@ export default function DataTableSettingAccount({
     setIsLoading(true);
     const res = await setAccPosPayment(accountId, organizationId);
     if (res.success) {
-      showToast("เปลี่ยนช่องทางรับเงินหน้าร้านเรียบร้อยแล้ว", "success");
+      showToast(isThai ? "เปลี่ยนช่องทางรับเงินหน้าร้านเรียบร้อยแล้ว" : "POS payment channel updated successfully", "success");
       if (onRefresh) await onRefresh();
       router.refresh();
     } else {
-      showToast(res.message || "เกิดข้อผิดพลาด", "error");
+      showToast(res.message || (isThai ? "เกิดข้อผิดพลาด" : "An error occurred"), "error");
     }
     setIsLoading(false);
   };
@@ -272,10 +282,10 @@ export default function DataTableSettingAccount({
           </div>
           <div>
             <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">
-              จัดการบัญชีการเงิน
+              {isThai ? "จัดการบัญชีการเงิน" : "Financial Accounts"}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 truncate">
-              คลิกที่ ยอดเงินคงเหลือ เพื่อแก้ไขตัวเลขโดยตรง
+              {isThai ? "คลิกที่ ยอดเงินคงเหลือ เพื่อแก้ไขตัวเลขโดยตรง" : "Click on balance to edit directly"}
             </p>
           </div>
         </div>
@@ -287,7 +297,7 @@ export default function DataTableSettingAccount({
             </svg>
             <input
               type="text"
-              placeholder="ค้นหาบัญชี..."
+              placeholder={isThai ? "ค้นหาบัญชี..." : "Search accounts..."}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -305,7 +315,7 @@ export default function DataTableSettingAccount({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>เพิ่มบัญชี</span>
+            <span>{isThai ? "เพิ่มบัญชี" : "Add Account"}</span>
           </button>
         </div>
       </div>
@@ -331,7 +341,7 @@ export default function DataTableSettingAccount({
                 className="py-3 px-2 cursor-pointer hover:text-slate-800 whitespace-nowrap"
               >
                 <div className="flex items-center gap-1">
-                  <span>ชื่อบัญชี</span>
+                  <span>{isThai ? "ชื่อบัญชี" : "Account Name"}</span>
                   <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
                   </svg>
@@ -339,30 +349,30 @@ export default function DataTableSettingAccount({
               </th>
               <th
                 className="py-3 px-1.5 text-center text-sky-600 dark:text-sky-400 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap cursor-help"
-                title="ยอดขายหน้าร้าน (POS) จะวิ่งเข้าบัญชีนี้อัตโนมัติ"
+                title={isThai ? "ยอดขายหน้าร้าน (POS) จะวิ่งเข้าบัญชีนี้อัตโนมัติ" : "Store POS sales will automatically be deposited into this account"}
               >
-                รับเงิน POS
+                {isThai ? "รับเงิน POS" : "POS Receive"}
               </th>
               <th
                 onClick={() => handleSort("balance")}
                 className="py-3 px-2 cursor-pointer hover:text-slate-800 text-right text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span>ยอดคงเหลือ</span>
+                  <span>{isThai ? "ยอดคงเหลือ" : "Balance"}</span>
                   <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
                   </svg>
                 </div>
               </th>
               <th className="py-3 px-1.5 text-center font-bold text-[11px] uppercase tracking-wider whitespace-nowrap">
-                สถานะ
+                {isThai ? "สถานะ" : "Status"}
               </th>
               <th className="py-3 px-2 text-center font-bold text-[11px] uppercase tracking-wider whitespace-nowrap">
-                จัดการเงิน
+                {isThai ? "จัดการเงิน" : "Manage"}
               </th>
               {viewMode === "tabs" && (
                 <th className="py-3 px-3 text-center text-slate-400 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap">
-                  อัปเดตล่าสุด
+                  {isThai ? "อัปเดตล่าสุด" : "Last Updated"}
                 </th>
               )}
             </tr>
@@ -371,7 +381,7 @@ export default function DataTableSettingAccount({
             {paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={viewMode === "tabs" ? 7 : 6} className="py-12 text-center text-slate-400 font-medium">
-                  ไม่พบข้อมูลบัญชี
+                  {isThai ? "ไม่พบข้อมูลบัญชี" : "No account data found"}
                 </td>
               </tr>
             ) : (
@@ -412,7 +422,7 @@ export default function DataTableSettingAccount({
                               setEditingNameValue(acc.accountName);
                             }}
                             className="cursor-pointer group inline-flex items-center gap-1 py-0.5 rounded hover:text-sky-600 transition"
-                            title="คลิกเพื่อแก้ไขชื่อบัญชี"
+                            title={isThai ? "คลิกเพื่อแก้ไขชื่อบัญชี" : "Click to edit account name"}
                           >
                             <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-sky-600">
                               {acc.accountName}
@@ -423,8 +433,8 @@ export default function DataTableSettingAccount({
                           </div>
                           {viewMode !== "tabs" && acc.updatedAt && (
                             <span className="text-[10px] text-slate-400 font-normal leading-tight">
-                              อัปเดต{" "}
-                              {new Date(acc.updatedAt).toLocaleDateString("th-TH", {
+                              {isThai ? "อัปเดต " : "Updated "}
+                              {new Date(acc.updatedAt).toLocaleDateString(isThai ? "th-TH" : "en-US", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
@@ -441,8 +451,8 @@ export default function DataTableSettingAccount({
                         type="button"
                         title={
                           isPos
-                            ? "ยอดขายจากหน้าร้านจะเข้าบัญชีนี้อัตโนมัติ"
-                            : "คลิกเพื่อตั้งให้ยอดขายหน้าร้านวิ่งเข้าบัญชีนี้"
+                            ? (isThai ? "ยอดขายจากหน้าร้านจะเข้าบัญชีนี้อัตโนมัติ" : "POS store sales will automatically deposit here")
+                            : (isThai ? "คลิกเพื่อตั้งให้ยอดขายหน้าร้านวิ่งเข้าบัญชีนี้" : "Click to set POS store sales to deposit here")
                         }
                         disabled={!isActive || isPos}
                         onClick={() => handleSetAccPos(acc.id)}
@@ -484,10 +494,10 @@ export default function DataTableSettingAccount({
                             setEditingBalanceValue(acc.balance.toString());
                           }}
                           className="cursor-pointer group inline-flex items-center justify-end gap-1 py-0.5 px-1 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
-                          title="คลิกเพื่อแก้ไขยอดเงินคงเหลือโดยตรง"
+                          title={isThai ? "คลิกเพื่อแก้ไขยอดเงินคงเหลือโดยตรง" : "Click to edit balance directly"}
                         >
                           <span className="font-black text-emerald-600 dark:text-emerald-400 tracking-tight whitespace-nowrap text-xs sm:text-sm">
-                            {Number(acc.balance).toLocaleString("th-TH", {
+                            {Number(acc.balance).toLocaleString(isThai ? "th-TH" : "en-US", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
@@ -512,8 +522,8 @@ export default function DataTableSettingAccount({
                           onChange={(e) => onUpdateStatus(acc.id, e.target.value)}
                           className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none cursor-pointer"
                         >
-                          <option value="ACTIVE">ใช้งาน</option>
-                          <option value="INACTIVE">ไม่ใช้งาน</option>
+                          <option value="ACTIVE">{isThai ? "ใช้งาน" : "Active"}</option>
+                          <option value="INACTIVE">{isThai ? "ไม่ใช้งาน" : "Inactive"}</option>
                         </select>
                       </div>
                     </td>
@@ -526,7 +536,7 @@ export default function DataTableSettingAccount({
                           type="button"
                           onClick={() => handleOpenAddMoney(acc)}
                           className="w-6.5 h-6.5 flex items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition active:scale-95 shadow-2xs cursor-pointer"
-                          title="เพิ่มเงินเข้าบัญชี"
+                          title={isThai ? "เพิ่มเงินเข้าบัญชี" : "Deposit money"}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -538,7 +548,7 @@ export default function DataTableSettingAccount({
                           type="button"
                           onClick={() => handleOpenDeductMoney(acc)}
                           className="w-6.5 h-6.5 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-500 hover:bg-rose-500 hover:text-white transition active:scale-95 shadow-2xs cursor-pointer"
-                          title="ลดเงินจากบัญชี"
+                          title={isThai ? "ลดเงินจากบัญชี" : "Withdraw money"}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
@@ -550,7 +560,7 @@ export default function DataTableSettingAccount({
                           type="button"
                           onClick={() => handleOpenTransfer(acc)}
                           className="w-6.5 h-6.5 flex items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white transition active:scale-95 shadow-2xs cursor-pointer"
-                          title="โอนเงินระหว่างบัญชี"
+                          title={isThai ? "โอนเงินระหว่างบัญชี" : "Transfer money"}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -659,7 +669,7 @@ export default function DataTableSettingAccount({
           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden z-10 animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                เพิ่มบัญชีใหม่
+                {isThai ? "เพิ่มบัญชีใหม่" : "Add New Account"}
               </h3>
               <button
                 type="button"
@@ -675,12 +685,12 @@ export default function DataTableSettingAccount({
             <form onSubmit={handleAddAccount} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  ชื่อบัญชี / ช่องทางรับเงิน
+                  {isThai ? "ชื่อบัญชี / ช่องทางรับเงิน" : "Account Name / Payment Channel"}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="เช่น ลิ้นชักหน้าร้าน, ธนาคารกสิกรไทย"
+                  placeholder={isThai ? "เช่น ลิ้นชักหน้าร้าน, ธนาคารกสิกรไทย" : "e.g. Front Cash Drawer, Kasikorn Bank"}
                   value={newAccountName}
                   onChange={(e) => setNewAccountName(e.target.value)}
                   disabled={isLoading}
@@ -690,7 +700,7 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  ยอดยกมา / เงินตั้งต้น (ถ้ามี)
+                  {isThai ? "ยอดยกมา / เงินตั้งต้น (ถ้ามี)" : "Initial Balance (Optional)"}
                 </label>
                 <input
                   type="number"
@@ -709,7 +719,7 @@ export default function DataTableSettingAccount({
                   disabled={isLoading}
                   className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isLoading ? "กำลังบันทึก..." : "บันทึกบัญชี"}
+                  {isLoading ? (isThai ? "กำลังบันทึก..." : "Saving...") : (isThai ? "บันทึกบัญชี" : "Save Account")}
                 </button>
               </div>
             </form>
@@ -729,7 +739,7 @@ export default function DataTableSettingAccount({
                 <svg className="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                 </svg>
-                โอนเงินระหว่างบัญชี
+                {isThai ? "โอนเงินระหว่างบัญชี" : "Transfer Between Accounts"}
               </h3>
               <button
                 type="button"
@@ -746,15 +756,15 @@ export default function DataTableSettingAccount({
               {/* Card info origin */}
               <div className="p-4 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-100 dark:border-orange-900/40">
                 <span className="text-xs text-orange-600/80 font-medium block">
-                  โอนเงินออกจากบัญชี
+                  {isThai ? "โอนเงินออกจากบัญชี" : "Transfer Out From Account"}
                 </span>
                 <span className="text-base font-bold text-orange-700 dark:text-orange-400 block mt-0.5">
                   {selectedAccount.accountName}
                 </span>
                 <span className="text-xs text-orange-600/80 block mt-1">
-                  ยอดเงินที่สามารถโอนได้:{" "}
+                  {isThai ? "ยอดเงินที่สามารถโอนได้: " : "Transferable Balance: "}
                   <strong className="text-orange-700 dark:text-orange-300">
-                    {Number(selectedAccount.balance).toLocaleString("th-TH", {
+                    {Number(selectedAccount.balance).toLocaleString(isThai ? "th-TH" : "en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -764,7 +774,7 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  เลือกบัญชีปลายทาง (โอนเข้า)
+                  {isThai ? "เลือกบัญชีปลายทาง (โอนเข้า)" : "Select Destination Account"}
                 </label>
                 <select
                   required
@@ -773,7 +783,7 @@ export default function DataTableSettingAccount({
                   disabled={isLoading}
                   className="w-full h-10 px-3 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
                 >
-                  <option value="" disabled>-- เลือกบัญชี --</option>
+                  <option value="" disabled>{isThai ? "-- เลือกบัญชี --" : "-- Select Account --"}</option>
                   {data
                     .filter((a) => a.id !== selectedAccount.id && a.status === "ACTIVE")
                     .map((a) => (
@@ -786,7 +796,7 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  จำนวนเงินที่ต้องการโอน
+                  {isThai ? "จำนวนเงินที่ต้องการโอน" : "Transfer Amount"}
                 </label>
                 <input
                   type="number"
@@ -802,11 +812,11 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  หมายเหตุ
+                  {isThai ? "หมายเหตุ" : "Note"}
                 </label>
                 <input
                   type="text"
-                  placeholder="เช่น นำเงินสดเข้าธนาคาร"
+                  placeholder={isThai ? "เช่น นำเงินสดเข้าธนาคาร" : "e.g. Deposit cash into bank"}
                   value={transferNote}
                   onChange={(e) => setTransferNote(e.target.value)}
                   disabled={isLoading}
@@ -820,7 +830,7 @@ export default function DataTableSettingAccount({
                   disabled={isLoading}
                   className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isLoading ? "กำลังประมวลผล..." : "ยืนยันการโอนเงิน"}
+                  {isLoading ? (isThai ? "กำลังประมวลผล..." : "Processing...") : (isThai ? "ยืนยันการโอนเงิน" : "Confirm Transfer")}
                 </button>
               </div>
             </form>
@@ -842,14 +852,14 @@ export default function DataTableSettingAccount({
                     <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>เพิ่มเงินเข้าบัญชี</span>
+                    <span>{isThai ? "เพิ่มเงินเข้าบัญชี" : "Deposit Money"}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>ลดเงินจากบัญชี</span>
+                    <span>{isThai ? "ลดเงินจากบัญชี" : "Withdraw Money"}</span>
                   </>
                 )}
               </h3>
@@ -877,7 +887,7 @@ export default function DataTableSettingAccount({
                     adjustType === "IN" ? "text-emerald-600/80" : "text-rose-600/80"
                   }`}
                 >
-                  ทำรายการสำหรับบัญชี
+                  {isThai ? "ทำรายการสำหรับบัญชี" : "Transaction for Account"}
                 </span>
                 <span
                   className={`text-base font-bold block mt-0.5 ${
@@ -893,9 +903,9 @@ export default function DataTableSettingAccount({
                     adjustType === "IN" ? "text-emerald-600/80" : "text-rose-600/80"
                   }`}
                 >
-                  ยอดเงินปัจจุบัน:{" "}
+                  {isThai ? "ยอดเงินปัจจุบัน: " : "Current Balance: "}
                   <strong>
-                    {Number(selectedAccount.balance).toLocaleString("th-TH", {
+                    {Number(selectedAccount.balance).toLocaleString(isThai ? "th-TH" : "en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -905,7 +915,7 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  จำนวนเงิน
+                  {isThai ? "จำนวนเงิน" : "Amount"}
                 </label>
                 <input
                   type="number"
@@ -925,14 +935,16 @@ export default function DataTableSettingAccount({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  หมายเหตุ (สาเหตุการ{adjustType === "IN" ? "เพิ่ม" : "ลด"}เงิน)
+                  {isThai
+                    ? `หมายเหตุ (สาเหตุการ${adjustType === "IN" ? "เพิ่ม" : "ลด"}เงิน)`
+                    : `Note (Reason for ${adjustType === "IN" ? "deposit" : "withdrawal"})`}
                 </label>
                 <input
                   type="text"
                   placeholder={
                     adjustType === "IN"
-                      ? "เช่น เงินทอนตั้งต้นประจำวัน"
-                      : "เช่น ถอนเงินไปใช้จ่ายอื่นๆ"
+                      ? (isThai ? "เช่น เงินทอนตั้งต้นประจำวัน" : "e.g. Daily change cash")
+                      : (isThai ? "เช่น ถอนเงินไปใช้จ่ายอื่นๆ" : "e.g. Cash withdrawal for expenses")
                   }
                   value={adjustNote}
                   onChange={(e) => setAdjustNote(e.target.value)}
@@ -952,10 +964,10 @@ export default function DataTableSettingAccount({
                   }`}
                 >
                   {isLoading
-                    ? "กำลังประมวลผล..."
+                    ? (isThai ? "กำลังประมวลผล..." : "Processing...")
                     : adjustType === "IN"
-                    ? "ยืนยันการเพิ่มเงิน"
-                    : "ยืนยันการลดเงิน"}
+                    ? (isThai ? "ยืนยันการเพิ่มเงิน" : "Confirm Deposit")
+                    : (isThai ? "ยืนยันการลดเงิน" : "Confirm Withdrawal")}
                 </button>
               </div>
             </form>

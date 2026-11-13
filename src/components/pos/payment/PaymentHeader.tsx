@@ -1,6 +1,7 @@
 "use client";
 
 import { PaymentHeaderProps } from "@/lib/interface";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function PaymentHeader({
   orderNumber,
@@ -8,6 +9,8 @@ export default function PaymentHeader({
   shiftNumber,
   onClose,
 }: PaymentHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="p-3.5 border-b border-pos-border bg-pos-surface flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
@@ -29,7 +32,7 @@ export default function PaymentHeader({
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-sm text-pos-text leading-tight">
-              ชำระเงิน
+              {t("payment.title")}
             </h3>
             {shiftNumber && (
               <span className="text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded-md font-mono font-bold">
@@ -38,7 +41,7 @@ export default function PaymentHeader({
             )}
           </div>
           <p className="text-[11px] text-pos-text/60 font-medium">
-            #{orderNumber} {tableName ? `• โต๊ะ ${tableName}` : ""}
+            #{orderNumber} {tableName ? `• ${t("pos.table")} ${tableName}` : ""}
           </p>
         </div>
       </div>

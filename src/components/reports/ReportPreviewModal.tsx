@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { ReportPreviewModalProps } from "@/lib/types";
 
 export default function ReportPreviewModal({
@@ -12,6 +13,9 @@ export default function ReportPreviewModal({
   data,
   onDownload,
 }: ReportPreviewModalProps) {
+  const { isThai } = useTranslation();
+  const L = (th: string, en: string) => (isThai ? th : en);
+
   const [activeProductSheet, setActiveProductSheet] = useState<"Products" | "ProductBills">("Products");
   const [activeEmployeeSheet, setActiveEmployeeSheet] = useState<"Staff" | "StaffBills" | "StaffItems">("Staff");
   const [activeBillSheet, setActiveBillSheet] = useState<"Bills" | "BillItems">("Bills");
@@ -55,7 +59,7 @@ export default function ReportPreviewModal({
   };
 
   const buildSpreadsheetRows = () => {
-    const shopName = data.shopName || "ซูชิ";
+    const shopName = data.shopName || (isThai ? "ซูชิ" : "Store");
     const dateRange = data.dateRangeText || "";
     const currency = data.currency || "THB";
 
@@ -66,22 +70,22 @@ export default function ReportPreviewModal({
       const totalNet = bills.reduce((s: number, b: any) => s + (b.netAmount || 0), 0);
 
       const rows: Array<string[]> = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "วันที่",
-          "เวลา",
-          "เลขที่เอกสาร",
-          "สถานะ",
-          "ช่องทางชำระ",
-          "จำนวน",
-          "ยอดรวม",
-          "ส่วนลดโปรโมชั่น",
-          "ส่วนลดที่หักจากภาษีได้",
-          "ยอดสุทธิ",
+          L("ลำดับ", "No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("เลขที่เอกสาร", "Document No."),
+          L("สถานะ", "Status"),
+          L("ช่องทางชำระ", "Payment Method"),
+          L("จำนวน", "Quantity"),
+          L("ยอดรวม", "Subtotal"),
+          L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+          L("ส่วนลดที่หักจากภาษีได้", "Tax-Deductible Discount"),
+          L("ยอดสุทธิ", "Net Total"),
         ],
       ];
 
@@ -91,8 +95,8 @@ export default function ReportPreviewModal({
           b.date || "",
           b.time || "",
           b.orderNumber || "",
-          b.status || "สำเร็จ",
-          b.paymentMethod || "เงินสด",
+          b.status || L("สำเร็จ", "Completed"),
+          b.paymentMethod || L("เงินสด", "Cash"),
           `${b.quantity || 1}`,
           Number(b.grossAmount || b.netAmount || 0).toFixed(2),
           "0.00",
@@ -104,7 +108,7 @@ export default function ReportPreviewModal({
       // แถวรวม
       rows.push([
         "",
-        "รวม",
+        L("รวม", "Total"),
         "",
         "",
         "",
@@ -117,7 +121,7 @@ export default function ReportPreviewModal({
       ]);
 
       // แถวหมายเหตุ
-      rows.push(["หมายเหตุ..."]);
+      rows.push([L("หมายเหตุ...", "Notes...")]);
       return { columns: getColLetters(11), rows };
     }
 
@@ -126,55 +130,55 @@ export default function ReportPreviewModal({
       const billItems = data.billItemsExportList || [];
 
       if (activeBillSheet === "Bills") {
-        const completedBills = bills.filter((b: any) => b.isCompleted || b.status === "สำเร็จ");
+        const completedBills = bills.filter((b: any) => b.isCompleted || (b.status === "สำเร็จ" || b.status === "Completed"));
         const totalCompletedQty = completedBills.reduce((s: number, b: any) => s + (b.quantity || 0), 0);
         const totalCompletedSales = completedBills.reduce((s: number, b: any) => s + (b.paidAmount || b.grossAmount || 0), 0);
 
         const rows: Array<string[]> = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "เลขที่เอกสาร",
-            "วันที่",
-            "เวลา",
-            "ชื่อลูกค้า/โต๊ะ",
-            "หมายเหตุ",
-            "สถานะ",
-            "ช่องทางชำระ",
-            "จำนวน",
-            "ยอดรวม",
-            "ส่วนลดโปรโมชั่น",
-            "โปรโมชั่น",
-            "ส่วนลดที่พนักงานให้",
-            "ยอดชำระ",
-            "ค่าธรรมเนียมแอป",
-            "เงินเข้าร้านจริง",
-            "เงินรับ",
-            "เงินทอน",
-            "บันทึกร้าน-ส่วนลดโปร",
-            "เรทค่าธรรมเนียม (%)",
-            "ค่าธรรมเนียมบัตร",
-            "เลขคิว",
-            "ยกเลิกโดย",
-            "เหตุผลที่ยกเลิก",
-            "แก้ไขเมื่อ",
-            "แก้ไขโดย",
-            "เหตุผลที่แก้ไข",
-            "ส่วนเงินสด เบิก/ทอน",
-            "ส่วนเงินโอน เบิก/ทอน",
-            "ประวัติโต๊ะ",
-            "ผู้บันทึก",
-            "ส่วนลดรายการ",
-            "ส่วนลดท้ายบิล",
-            "VAT ที่รวมในบิล",
-            "เศษปัด",
-            "คืนบิลเมื่อ",
-            "คืนบิลโดย",
-            "เหตุผลที่คืนบิล",
-            "เหตุผลที่ขอยกเลิก",
+            L("ลำดับ", "No."),
+            L("เลขที่เอกสาร", "Document No."),
+            L("วันที่", "Date"),
+            L("เวลา", "Time"),
+            L("ชื่อลูกค้า/โต๊ะ", "Customer / Table"),
+            L("หมายเหตุ", "Note"),
+            L("สถานะ", "Status"),
+            L("ช่องทางชำระ", "Payment Method"),
+            L("จำนวน", "Quantity"),
+            L("ยอดรวม", "Subtotal"),
+            L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+            L("โปรโมชั่น", "Promotion"),
+            L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+            L("ยอดชำระ", "Paid Amount"),
+            L("ค่าธรรมเนียมแอป", "App Fee"),
+            L("เงินเข้าร้านจริง", "Net Income"),
+            L("เงินรับ", "Received"),
+            L("เงินทอน", "Change"),
+            L("บันทึกร้าน-ส่วนลดโปร", "Shop Promo"),
+            L("เรทค่าธรรมเนียม (%)", "Fee Rate (%)"),
+            L("ค่าธรรมเนียมบัตร", "Card Fee"),
+            L("เลขคิว", "Queue No."),
+            L("ยกเลิกโดย", "Cancelled By"),
+            L("เหตุผลที่ยกเลิก", "Cancel Reason"),
+            L("แก้ไขเมื่อ", "Edited At"),
+            L("แก้ไขโดย", "Edited By"),
+            L("เหตุผลที่แก้ไข", "Edit Reason"),
+            L("ส่วนเงินสด เบิก/ทอน", "Cash Payout/Change"),
+            L("ส่วนเงินโอน เบิก/ทอน", "Transfer Payout/Change"),
+            L("ประวัติโต๊ะ", "Table History"),
+            L("ผู้บันทึก", "Recorded By"),
+            L("ส่วนลดรายการ", "Item Discount"),
+            L("ส่วนลดท้ายบิล", "Bill Discount"),
+            L("VAT ที่รวมในบิล", "VAT in Bill"),
+            L("เศษปัด", "Rounding"),
+            L("คืนบิลเมื่อ", "Refunded At"),
+            L("คืนบิลโดย", "Refunded By"),
+            L("เหตุผลที่คืนบิล", "Refund Reason"),
+            L("เหตุผลที่ขอยกเลิก", "Cancel Request Reason"),
           ],
         ];
 
@@ -186,8 +190,8 @@ export default function ReportPreviewModal({
             b.time || "",
             b.tableName || "",
             b.note || "",
-            b.status || "สำเร็จ",
-            b.paymentMethod || "เงินสด",
+            b.status || L("สำเร็จ", "Completed"),
+            b.paymentMethod || L("เงินสด", "Cash"),
             `${b.quantity || 1}`,
             Number(b.grossAmount || 0).toFixed(2),
             "0.00",
@@ -224,7 +228,7 @@ export default function ReportPreviewModal({
 
         rows.push([
           "",
-          "รวม (เฉพาะบิลสำเร็จ)",
+          L("รวม (เฉพาะบิลสำเร็จ)", "Total (Completed Bills Only)"),
           "",
           "",
           "",
@@ -264,35 +268,35 @@ export default function ReportPreviewModal({
           "",
         ]);
 
-        rows.push(["หมายเหตุ..."]);
+        rows.push([L("หมายเหตุ...", "Notes...")]);
         return { columns: getColLetters(39), rows };
       }
 
-      const completedItems = billItems.filter((it: any) => it.isCompleted !== false && it.status !== "ยกเลิก");
+      const completedItems = billItems.filter((it: any) => it.isCompleted !== false && (it.status !== "ยกเลิก" && it.status !== "Cancelled"));
       const totalItemQty = completedItems.reduce((s: number, it: any) => s + (it.quantity || 0), 0);
       const totalItemGross = completedItems.reduce((s: number, it: any) => s + (it.grossAmount || 0), 0);
       const totalItemNet = completedItems.reduce((s: number, it: any) => s + (it.netSales || it.grossAmount || 0), 0);
 
       const rows: Array<string[]> = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "สถานะ",
-          "ชื่อสินค้า",
-          "รหัสสินค้า",
-          "ตัวเลือก",
-          "หมายเหตุ",
-          "จำนวน",
-          "ยอดรวม",
-          "ส่วนลดโปรโมชั่น",
-          "ส่วนลดรายการ",
-          "ยอดขายสุทธิ",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("สถานะ", "Status"),
+          L("ชื่อสินค้า", "Product Name"),
+          L("รหัสสินค้า", "Product Code"),
+          L("ตัวเลือก", "Options"),
+          L("หมายเหตุ", "Note"),
+          L("จำนวน", "Quantity"),
+          L("ยอดรวม", "Subtotal"),
+          L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ยอดขายสุทธิ", "Net Sales"),
         ],
       ];
 
@@ -302,7 +306,7 @@ export default function ReportPreviewModal({
           it.orderNumber || "",
           it.date || "",
           it.time || "",
-          it.status || "สำเร็จ",
+          it.status || L("สำเร็จ", "Completed"),
           it.productName || "",
           it.productCode || "",
           it.options || "",
@@ -317,7 +321,7 @@ export default function ReportPreviewModal({
 
       rows.push([
         "",
-        "รวม (เฉพาะบิลสำเร็จ)",
+        L("รวม (เฉพาะบิลสำเร็จ)", "Total (Completed Bills Only)"),
         "",
         "",
         "",
@@ -332,7 +336,7 @@ export default function ReportPreviewModal({
         totalItemNet.toFixed(2),
       ]);
 
-      rows.push(["หมายเหตุ..."]);
+      rows.push([L("หมายเหตุ...", "Notes...")]);
       return { columns: getColLetters(14), rows };
     }
 
@@ -357,22 +361,22 @@ export default function ReportPreviewModal({
         );
 
         const rows: Array<string[]> = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "ชื่อสินค้า",
-            "รหัสสินค้า",
-            "หมวดหมู่",
-            "ราคาขาย",
-            "จำนวนขาย",
-            "ยอดขายรวม",
-            "กำไรขั้นต้น",
-            "คงเหลือในสต๊อก",
-            "มูลค่าสต๊อกคงเหลือ",
-            "สถานะ",
+            L("ลำดับ", "No."),
+            L("ชื่อสินค้า", "Product Name"),
+            L("รหัสสินค้า", "Product Code"),
+            L("หมวดหมู่", "Category"),
+            L("ราคาขาย", "Price"),
+            L("จำนวนขาย", "Qty Sold"),
+            L("ยอดขายรวม", "Total Sales"),
+            L("กำไรขั้นต้น", "Gross Profit"),
+            L("คงเหลือในสต๊อก", "In Stock"),
+            L("มูลค่าสต๊อกคงเหลือ", "Stock Value"),
+            L("สถานะ", "Status"),
           ],
         ];
 
@@ -388,14 +392,14 @@ export default function ReportPreviewModal({
             Number(p.profit || 0).toFixed(2),
             `${p.stock ?? 0}`,
             Number((p.stock ?? 0) * (p.cost || p.price || 0)).toFixed(2),
-            p.quantity === 0 ? "ไม่ขายเลย" : "ขายได้น้อย",
+            p.quantity === 0 ? L("ไม่ขายเลย", "Unsold") : L("ขายได้น้อย", "Low Sales"),
           ]);
         });
 
         // แถวรวม
         rows.push([
           "",
-          "รวม",
+          L("รวม", "Total"),
           "",
           "",
           "",
@@ -404,10 +408,10 @@ export default function ReportPreviewModal({
           totalProfit.toFixed(2),
           `${totalStock}`,
           totalStockVal.toFixed(2),
-          `ไม่ขายเลย ${unsoldProductsCount} รายการ`,
+          isThai ? `ไม่ขายเลย ${unsoldProductsCount} รายการ` : `${unsoldProductsCount} Unsold Items`,
         ]);
 
-        rows.push(["หมายเหตุ..."]);
+        rows.push([L("หมายเหตุ...", "Notes...")]);
         return { columns: getColLetters(11), rows };
       }
 
@@ -428,29 +432,29 @@ export default function ReportPreviewModal({
         const avgPrice = totalQty > 0 ? Number(totalSales / totalQty).toFixed(2) : "0.00";
 
         const rows: Array<string[]> = [
-          ["ร้าน", shopName],
-          ["ช่วงวัน...", dateRange],
-          ["สกุลเงิน", currency],
+          [L("ร้าน", "Store"), shopName],
+          [L("ช่วงวัน...", "Date Range..."), dateRange],
+          [L("สกุลเงิน", "Currency"), currency],
           [],
           [
-            "ลำดับ",
-            "ชื่อสินค้า",
-            "รหัสสินค้า",
-            "หมวดหมู่",
-            "จำนวนขาย",
-            "ยอดขายรวม",
-            "ส่วนลดโปรโมชั่น",
-            "ส่วนลดที่พนักงานให้",
-            "ค่าธรรมเนียม",
-            "ค่าบริการ",
-            "ยอดขายสุทธิ",
-            "ต้นทุนรวม",
-            "กำไรขั้นต้น",
-            "%กำไร",
-            "ราคาเฉลี่ย/ชิ้น",
-            "VAT ที่รวมในราคา",
-            "เศษปัด",
-            "ค่าส่งกลับบ้าน",
+            L("ลำดับ", "No."),
+            L("ชื่อสินค้า", "Product Name"),
+            L("รหัสสินค้า", "Product Code"),
+            L("หมวดหมู่", "Category"),
+            L("จำนวนขาย", "Qty Sold"),
+            L("ยอดขายรวม", "Total Sales"),
+            L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+            L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+            L("ค่าธรรมเนียม", "Fee"),
+            L("ค่าบริการ", "Service Charge"),
+            L("ยอดขายสุทธิ", "Net Sales"),
+            L("ต้นทุนรวม", "Total Cost"),
+            L("กำไรขั้นต้น", "Gross Profit"),
+            L("%กำไร", "% Profit"),
+            L("ราคาเฉลี่ย/ชิ้น", "Avg Price/Piece"),
+            L("VAT ที่รวมในราคา", "VAT in Price"),
+            L("เศษปัด", "Rounding"),
+            L("ค่าส่งกลับบ้าน", "Takeaway Fee"),
           ],
         ];
 
@@ -487,7 +491,7 @@ export default function ReportPreviewModal({
         // แถวรวม
         rows.push([
           "",
-          "รวม",
+          L("รวม", "Total"),
           "",
           "",
           `${totalQty}`,
@@ -506,7 +510,7 @@ export default function ReportPreviewModal({
           "0.00",
         ]);
 
-        rows.push(["หมายเหตุ..."]);
+        rows.push([L("หมายเหตุ...", "Notes...")]);
         return { columns: getColLetters(18), rows };
       }
 
@@ -518,30 +522,30 @@ export default function ReportPreviewModal({
       const billsProfit = bills.reduce((s: number, b: any) => s + (b.grossProfit || 0), 0);
 
       const rows: Array<string[]> = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "ชื่อสินค้า",
-          "รหัสสินค้า",
-          "หมวดหมู่",
-          "จำนวน",
-          "ยอดขาย",
-          "ส่วนลดโปรโมชั่น",
-          "ส่วนลดที่พนักงานให้",
-          "ค่าธรรมเนียม",
-          "ยอดขายสุทธิ",
-          "ต้นทุน",
-          "กำไรขั้นต้น",
-          "VAT ที่รวมในราคา",
-          "เศษปัด",
-          "ผู้บันทึก",
-          "ค่าส่งกลับบ้าน",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("ชื่อสินค้า", "Product Name"),
+          L("รหัสสินค้า", "Product Code"),
+          L("หมวดหมู่", "Category"),
+          L("จำนวน", "Quantity"),
+          L("ยอดขาย", "Sales"),
+          L("ส่วนลดโปรโมชั่น", "Promo Discount"),
+          L("ส่วนลดที่พนักงานให้", "Staff Discount"),
+          L("ค่าธรรมเนียม", "Fee"),
+          L("ยอดขายสุทธิ", "Net Sales"),
+          L("ต้นทุน", "Cost"),
+          L("กำไรขั้นต้น", "Gross Profit"),
+          L("VAT ที่รวมในราคา", "VAT in Price"),
+          L("เศษปัด", "Rounding"),
+          L("ผู้บันทึก", "Recorded By"),
+          L("ค่าส่งกลับบ้าน", "Takeaway Fee"),
         ],
       ];
 
@@ -572,7 +576,7 @@ export default function ReportPreviewModal({
       // แถวรวม
       rows.push([
         "",
-        "รวม",
+        L("รวม", "Total"),
         "",
         "",
         "",
@@ -592,7 +596,7 @@ export default function ReportPreviewModal({
         "0.00",
       ]);
 
-      rows.push(["หมายเหตุ..."]);
+      rows.push([L("หมายเหตุ...", "Notes...")]);
       return { columns: getColLetters(19), rows };
     }
 
@@ -611,34 +615,34 @@ export default function ReportPreviewModal({
       const totalCancelled = employees.reduce((s: number, e: any) => s + (e.cancelledBills || 0), 0);
 
       const rows: Array<string[]> = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "พนักงาน",
-          "จำนวนบิล",
-          "ยอดขาย",
-          "% ของยอดขาย",
-          "เฉลี่ย/บิล",
-          "เงินสด",
-          "โอน",
-          "เดลิเวอรี่",
-          "ยกเลิกบิล (ใบ)",
-          "ยอดบิลที่ยกเลิก",
-          "ลบสินค้า (ชิ้น)",
-          "ยอดสินค้าที่ลบ",
-          "สั่งเปิดลิ้นชัก (ครั้ง)",
-          "ใส่เงินเข้าลิ้นชัก",
-          "นำเงินออกจากลิ้นชัก",
-          "เปิดกะไม่ส่งยอด",
-          "ส่วนลดรายการ",
-          "ส่วนลดท้ายบิล",
-          "ฟรีบิล (ครั้ง)",
-          "คืนบิล (ใบ)",
-          "บัตรเครดิต",
-          "ยอดขายสุทธิ",
+          L("ลำดับ", "No."),
+          L("พนักงาน", "Staff"),
+          L("จำนวนบิล", "Bills Count"),
+          L("ยอดขาย", "Sales"),
+          L("% ของยอดขาย", "% of Sales"),
+          L("เฉลี่ย/บิล", "Avg/Bill"),
+          L("เงินสด", "Cash"),
+          L("โอน", "Transfer"),
+          L("เดลิเวอรี่", "Delivery"),
+          L("ยกเลิกบิล (ใบ)", "Cancelled Bills"),
+          L("ยอดบิลที่ยกเลิก", "Cancelled Amount"),
+          L("ลบสินค้า (ชิ้น)", "Deleted Items"),
+          L("ยอดสินค้าที่ลบ", "Deleted Amount"),
+          L("สั่งเปิดลิ้นชัก (ครั้ง)", "Drawer Opens"),
+          L("ใส่เงินเข้าลิ้นชัก", "Cash In"),
+          L("นำเงินออกจากลิ้นชัก", "Cash Out"),
+          L("เปิดกะไม่ส่งยอด", "Unsubmitted Shifts"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ส่วนลดท้ายบิล", "Bill Discount"),
+          L("ฟรีบิล (ครั้ง)", "Free Bills"),
+          L("คืนบิล (ใบ)", "Refunded Bills"),
+          L("บัตรเครดิต", "Credit Card"),
+          L("ยอดขายสุทธิ", "Net Sales"),
         ],
       ];
 
@@ -671,7 +675,7 @@ export default function ReportPreviewModal({
       });
       rows.push([
         "",
-        "รวม",
+        L("รวม", "Total"),
         `${totalBills}`,
         totalSales.toFixed(2),
         "",
@@ -695,8 +699,8 @@ export default function ReportPreviewModal({
         totalSales.toFixed(2),
       ]);
 
-      rows.push(["หมายเหตุ..."]);
-      rows.push(["ยกเลิก..."]);
+      rows.push([L("หมายเหตุ...", "Notes...")]);
+      rows.push([L("ยกเลิก...", "Cancelled...")]);
       return { columns: getColLetters(23), rows };
     }
 
@@ -706,22 +710,22 @@ export default function ReportPreviewModal({
       const totalBillsNet = staffBills.reduce((s: number, b: any) => s + (b.netAmount || 0), 0);
 
       const rows: Array<string[]> = [
-        ["ร้าน", shopName],
-        ["ช่วงวัน...", dateRange],
-        ["สกุลเงิน", currency],
+        [L("ร้าน", "Store"), shopName],
+        [L("ช่วงวัน...", "Date Range..."), dateRange],
+        [L("สกุลเงิน", "Currency"), currency],
         [],
         [
-          "ลำดับ",
-          "เลขที่เอกสาร",
-          "วันที่",
-          "เวลา",
-          "พนักงาน",
-          "ชื่อลูกค้า/โต๊ะ",
-          "ช่องทางชำระ",
-          "ยอดชำระ",
-          "ส่วนลดรายการ",
-          "ส่วนลดท้ายบิล",
-          "ยอดสุทธิ",
+          L("ลำดับ", "No."),
+          L("เลขที่เอกสาร", "Document No."),
+          L("วันที่", "Date"),
+          L("เวลา", "Time"),
+          L("พนักงาน", "Staff"),
+          L("ชื่อลูกค้า/โต๊ะ", "Customer / Table"),
+          L("ช่องทางชำระ", "Payment Method"),
+          L("ยอดชำระ", "Paid Amount"),
+          L("ส่วนลดรายการ", "Item Discount"),
+          L("ส่วนลดท้ายบิล", "Bill Discount"),
+          L("ยอดสุทธิ", "Net Total"),
         ],
       ];
 
@@ -733,7 +737,7 @@ export default function ReportPreviewModal({
           b.time || "",
           b.employeeName || "",
           b.customerOrTable || "",
-          b.paymentMethod || "เงินสด",
+          b.paymentMethod || L("เงินสด", "Cash"),
           Number(b.paidAmount || b.netAmount || 0).toFixed(2),
           "0.00",
           "0.00",
@@ -743,7 +747,7 @@ export default function ReportPreviewModal({
 
       rows.push([
         "",
-        "รวม",
+        L("รวม", "Total"),
         "",
         "",
         "",
@@ -755,7 +759,7 @@ export default function ReportPreviewModal({
         totalBillsNet.toFixed(2),
       ]);
 
-      rows.push(["หมายเหตุ..."]);
+      rows.push([L("หมายเหตุ...", "Notes...")]);
       return { columns: getColLetters(11), rows };
     }
 
@@ -764,19 +768,19 @@ export default function ReportPreviewModal({
     const totalItemsSales = staffItems.reduce((s: number, it: any) => s + (it.sales || 0), 0);
 
     const rows: Array<string[]> = [
-      ["ร้าน", shopName],
-      ["ช่วงวัน...", dateRange],
-      ["สกุลเงิน", currency],
+      [L("ร้าน", "Store"), shopName],
+      [L("ช่วงวัน...", "Date Range..."), dateRange],
+      [L("สกุลเงิน", "Currency"), currency],
       [],
       [
-        "ลำดับ",
-        "พนักงาน",
-        "ชื่อสินค้า",
-        "รหัสสินค้า",
-        "หมวดหมู่",
-        "จำนวนขาย",
-        "ยอดขายรวม",
-        "ยอดขายสุทธิ",
+        L("ลำดับ", "No."),
+        L("พนักงาน", "Staff"),
+        L("ชื่อสินค้า", "Product Name"),
+        L("รหัสสินค้า", "Product Code"),
+        L("หมวดหมู่", "Category"),
+        L("จำนวนขาย", "Qty Sold"),
+        L("ยอดขายรวม", "Total Sales"),
+        L("ยอดขายสุทธิ", "Net Sales"),
       ],
     ];
 
@@ -795,7 +799,7 @@ export default function ReportPreviewModal({
 
     rows.push([
       "",
-      "รวม",
+      L("รวม", "Total"),
       "",
       "",
       "",
@@ -804,7 +808,7 @@ export default function ReportPreviewModal({
       totalItemsSales.toFixed(2),
     ]);
 
-    rows.push(["หมายเหตุ..."]);
+    rows.push([L("หมายเหตุ...", "Notes...")]);
     return { columns: getColLetters(8), rows };
   };
 
@@ -834,7 +838,7 @@ export default function ReportPreviewModal({
 
             <div>
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                ตัวอย่างไฟล์ก่อนดาวน์โหลด
+                {isThai ? "ตัวอย่างไฟล์ก่อนดาวน์โหลด" : "File Preview Before Download"}
               </h3>
               <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                 {fileName}
@@ -874,7 +878,7 @@ export default function ReportPreviewModal({
                 {rows.map((rowCells, rIdx) => {
                   const rowNumber = rIdx + 1;
                   const isHeaderRow = rowNumber === 5;
-                  const isSummaryRow = typeof rowCells[1] === "string" && rowCells[1].startsWith("รวม");
+                  const isSummaryRow = typeof rowCells[1] === "string" && rowCells[1].startsWith(L("รวม", "Total"));
 
                   return (
                     <tr
@@ -928,7 +932,7 @@ export default function ReportPreviewModal({
         {reportType === "product" && data.productFilterMode !== "worst" && (
           <div className="bg-slate-100 dark:bg-slate-800/90 px-4 py-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3 shrink-0">
             <span className="text-[11px] text-slate-400 select-none font-medium">
-              2 ชีต
+              {isThai ? "2 ชีต" : "2 Sheets"}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -960,7 +964,7 @@ export default function ReportPreviewModal({
         {reportType === "employee" && (
           <div className="bg-slate-100 dark:bg-slate-800/90 px-4 py-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3 shrink-0">
             <span className="text-[11px] text-slate-400 select-none font-medium">
-              3 ชีต
+              {isThai ? "3 ชีต" : "3 Sheets"}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -1003,7 +1007,7 @@ export default function ReportPreviewModal({
         {reportType === "bills" && (
           <div className="bg-slate-100 dark:bg-slate-800/90 px-4 py-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3 shrink-0">
             <span className="text-[11px] text-slate-400 select-none font-medium">
-              2 ชีต
+              {isThai ? "2 ชีต" : "2 Sheets"}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -1054,7 +1058,7 @@ export default function ReportPreviewModal({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            ดาวน์โหลด Excel (.xlsx)
+            {isThai ? "ดาวน์โหลด Excel (.xlsx)" : "Download Excel (.xlsx)"}
           </button>
         </div>
       </div>

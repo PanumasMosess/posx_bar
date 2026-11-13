@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import ReceiptDetailModal from "./ReceiptDetailModal";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 import { EmployeeSalesReportViewProps } from "@/lib/types";
 
@@ -10,6 +11,7 @@ export default function EmployeeSalesReportView({
   data,
   isMobile = false,
 }: EmployeeSalesReportViewProps) {
+  const { t } = useTranslation();
   const employees = (data?.employees || []).filter(
     (emp) => emp.completedBills > 0 || emp.totalSales > 0
   );
@@ -65,7 +67,7 @@ export default function EmployeeSalesReportView({
           </div>
           <div>
             <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">
-              ยอดขายตามพนักงาน
+              {t('reports.tab_employee')}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
               {data?.dateRangeText || ""}
@@ -75,7 +77,7 @@ export default function EmployeeSalesReportView({
 
         <div className="text-right">
           <span className="text-[11px] font-medium text-slate-400 block">
-            ยอดขายทั้งหมด
+            {t('reports.tab_total')}
           </span>
           <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             {totalSales.toLocaleString()}
@@ -88,7 +90,7 @@ export default function EmployeeSalesReportView({
       <div className="space-y-4">
         {employees.length === 0 ? (
           <div className="py-20 text-center text-xs text-slate-400">
-            ไม่พบข้อมูลยอดขายพนักงานในช่วงเวลานี้
+            {t('reports.no_employee_sales')}
           </div>
         ) : (
           employees.map((emp) => {
@@ -149,7 +151,7 @@ export default function EmployeeSalesReportView({
                         </svg>
                       </div>
                       <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
-                        {emp.percentage}% ของยอดขาย
+                        {t('reports.sales_percent').replace('{percent}', String(emp.percentage))}
                       </span>
                     </div>
                   </div>
@@ -159,7 +161,7 @@ export default function EmployeeSalesReportView({
                       {emp.totalSales.toLocaleString()}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 font-medium">
-                      บาท
+                      {t('reports.baht')}
                     </span>
                   </div>
                 </div>
@@ -169,16 +171,16 @@ export default function EmployeeSalesReportView({
                   <div className="grid grid-cols-3 gap-2 pt-1 pb-3 text-center sm:text-left">
                     <div>
                       <span className="text-[11px] text-slate-400 block font-medium">
-                        บิลสำเร็จ
+                        {t('reports.completed_bills')}
                       </span>
                       <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5 block">
-                        {emp.completedBills} บิล
+                        {emp.completedBills} {t('reports.bill_unit')}
                       </span>
                     </div>
 
                     <div>
                       <span className="text-[11px] text-slate-400 block font-medium">
-                        บิลเฉลี่ย
+                        {t('reports.average_bill')}
                       </span>
                       <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5 block">
                         {typeof emp.averageBill === "number"
@@ -189,10 +191,10 @@ export default function EmployeeSalesReportView({
 
                     <div>
                       <span className="text-[11px] text-slate-400 block font-medium">
-                        บิลยกเลิก
+                        {t('reports.cancelled_bills')}
                       </span>
                       <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5 block">
-                        {emp.cancelledBills || 0} บิล
+                        {emp.cancelledBills || 0} {t('reports.bill_unit')}
                       </span>
                     </div>
                   </div>
@@ -221,14 +223,14 @@ export default function EmployeeSalesReportView({
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" />
                         <span className="text-slate-600 dark:text-slate-400 text-xs font-medium">
-                          เงินสด {cashAmount.toLocaleString()}
+                          {t('payment.cash')} {cashAmount.toLocaleString()}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[#ef4444] shrink-0" />
                         <span className="text-slate-600 dark:text-slate-400 text-xs font-medium">
-                          เงินโอน {transferAmount.toLocaleString()}
+                          {t('payment.qr_code')} {transferAmount.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -253,11 +255,11 @@ export default function EmployeeSalesReportView({
                               />
                             </svg>
                             <span className="font-medium text-[11px]">
-                              จำนวนที่ขาย
+                              {t('reports.items_sold_count')}
                             </span>
                           </div>
                           <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                            {emp.totalItemsSold} ชิ้น
+                            {emp.totalItemsSold} {t('pos.piece_unit')}
                           </span>
                         </div>
 
@@ -277,13 +279,13 @@ export default function EmployeeSalesReportView({
 
                       <div className="space-y-1.5 text-xs pt-1 border-t border-slate-100 dark:border-slate-800/80">
                         <div className="flex items-center justify-between text-slate-500 pt-1">
-                          <span>ยอดสินค้า</span>
+                          <span>{t('reports.product_total')}</span>
                           <span className="font-medium text-slate-700 dark:text-slate-300">
                             {emp.totalSales.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
-                          <span>ยอดขายทั้งหมด</span>
+                          <span>{t('reports.tab_total')}</span>
                           <span>{emp.totalSales.toLocaleString()}</span>
                         </div>
                       </div>
@@ -298,7 +300,7 @@ export default function EmployeeSalesReportView({
                               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
                           }`}
                         >
-                          <span>สินค้าที่ขาย</span>
+                          <span>{t('reports.sold_products')}</span>
                           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-600 font-bold">
                             {emp.soldProducts.length}
                           </span>
@@ -313,7 +315,7 @@ export default function EmployeeSalesReportView({
                               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
                           }`}
                         >
-                          <span>รายการบิล</span>
+                          <span>{t('reports.order_bills')}</span>
                           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-600 font-bold">
                             {emp.orders.length}
                           </span>
@@ -324,7 +326,7 @@ export default function EmployeeSalesReportView({
                         <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                           {emp.soldProducts.length === 0 ? (
                             <div className="py-6 text-center text-xs text-slate-400">
-                              ไม่มีรายการสินค้า
+                              {t('reports.no_items')}
                             </div>
                           ) : (
                             emp.soldProducts.map((p) => (
@@ -371,7 +373,7 @@ export default function EmployeeSalesReportView({
                         <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                           {emp.orders.length === 0 ? (
                             <div className="py-6 text-center text-xs text-slate-400">
-                              ไม่มีรายการบิล
+                              {t('reports.no_bills')}
                             </div>
                           ) : (
                             emp.orders.map((o, idx) => {
@@ -401,10 +403,10 @@ export default function EmployeeSalesReportView({
                                         <span>{o.formattedTime}</span>
                                         <span>·</span>
                                         <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 font-medium text-[10px]">
-                                          {o.paymentMethodLabel || "เงินสด"}
+                                          {o.paymentMethodLabel || t('payment.cash')}
                                         </span>
                                         <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-medium text-[10px]">
-                                          {o.tableName || "ขายหน้าร้าน"}
+                                          {o.tableName || t('pos.counter_sale')}
                                         </span>
                                       </div>
 

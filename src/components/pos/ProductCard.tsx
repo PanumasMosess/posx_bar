@@ -3,6 +3,7 @@
 import { ProductCardProps } from "@/lib/interface";
 import Image from "next/image";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ProductCard({
   product,
@@ -10,6 +11,7 @@ export default function ProductCard({
   onAdd,
   onEdit,
 }: ProductCardProps) {
+  const { t } = useTranslation();
   // 🌟 ดึงข้อมูลการตั้งค่าองค์กรและฟังก์ชันฟอร์แมตเงินจาก Context
   const { settings } = useOrgSettings();
   const currencyCode = settings?.currencyCode || "LAK";
@@ -79,7 +81,7 @@ export default function ProductCard({
               onEdit();
             }}
             className="absolute top-2 right-2 z-20 w-7 h-7 rounded-xl bg-slate-900/60 hover:bg-sky-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 active:scale-90 shadow-md"
-            title="แก้ไขสินค้า"
+            title={t("common.edit")}
           >
             <svg
               className="w-3.5 h-3.5"
@@ -102,7 +104,7 @@ export default function ProductCard({
           <div className="absolute bottom-2 left-2 z-10">
             <span className="px-2 py-0.5 rounded-lg bg-sky-500/90 backdrop-blur-md text-white text-[9px] font-bold shadow-xs flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-              มีตัวเลือก
+              {t("pos.options")}
             </span>
           </div>
         )}
@@ -112,7 +114,7 @@ export default function ProductCard({
       <div className="pt-2.5 px-1 flex items-center justify-between gap-2 z-10">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 truncate uppercase tracking-wider mb-0.5">
-            {product.category?.name || "ทั่วไป"}
+            {product.category?.name || t("pos.all_categories")}
           </p>
           <h3
             className={`font-bold text-xs sm:text-sm truncate transition-colors leading-snug ${
@@ -129,7 +131,7 @@ export default function ProductCard({
         <button
           type="button"
           className="w-8 h-8 rounded-xl bg-pos-bg group-hover:bg-gradient-to-tr group-hover:from-sky-600 group-hover:to-cyan-500 group-hover:text-white border border-pos-border group-hover:border-transparent text-pos-text active:scale-90 flex items-center justify-center font-bold text-lg shadow-2xs transition-all shrink-0"
-          title="เพิ่มลงรายการ"
+          title={t("pos.add_to_cart")}
         >
           +
         </button>

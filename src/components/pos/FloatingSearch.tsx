@@ -2,12 +2,13 @@
 
 import { FloatingSearchProps } from "@/lib/interface";
 import { useState, useRef, useEffect } from "react";
-
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function FloatingSearch({
   searchTerm,
   setSearchTerm,
 }: FloatingSearchProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(
     null,
@@ -60,57 +61,65 @@ export default function FloatingSearch({
     const target = e.target as HTMLElement;
     if (
       target.tagName === "INPUT" ||
-      target.closest("button[data-close-btn]")
+      target.closest("button") ||
+      target.getAttribute("data-close-btn")
     ) {
       return;
     }
 
     isDraggingRef.current = false;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
-    elementStartPos.current = { ...currentPosRef.current };
 
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - dragStartPos.current.x;
-      const deltaY = moveEvent.clientY - dragStartPos.current.y;
+    if (position) {
+      elementStartPos.current = { ...position };
+    }
 
-      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-        isDraggingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.buttons !== 1) return;
+
+    const dx = e.clientX - dragStartPos.current.x;
+    const dy = e.clientY - dragStartPos.current.y;
+
+    if (Math.hypot(dx, dy) > 6) {
+      isDraggingRef.current = true;
+    }
+
+    if (isDraggingRef.current) {
+      let newX = elementStartPos.current.x + dx;
+      let newY = elementStartPos.current.y + dy;
+
+      if (typeof window !== "undefined") {
+        const padding = 16;
+        const elemWidth = isOpen ? 320 : 48;
+        const elemHeight = 48;
+
+        newX = Math.max(
+          padding,
+          Math.min(newX, window.innerWidth - elemWidth - padding),
+        );
+        newY = Math.max(
+          padding,
+          Math.min(newY, window.innerHeight - elemHeight - padding),
+        );
       }
 
-      if (isDraggingRef.current) {
-        const currentWidth = isOpen
-          ? Math.min(window.innerWidth * 0.85, 320)
-          : 56;
+      const nextPos = { x: newX, y: newY };
+      currentPosRef.current = nextPos;
+      setPosition(nextPos);
+    }
+  };
 
-        const maxAllowedX = Math.max(16, window.innerWidth - currentWidth - 16);
-        // 🌟 จำกัดขอบล่างไม่ให้โดน Navigation / Floating Bar มือถือบัง
-        const isMobile = window.innerWidth < 768;
-        const maxAllowedY = Math.max(
-          16,
-          window.innerHeight - (isMobile ? 130 : 80),
-        );
+  const handlePointerUp = (e: React.PointerEvent) => {
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
 
-        const newX = Math.max(
-          16,
-          Math.min(maxAllowedX, elementStartPos.current.x + deltaX),
-        );
-        const newY = Math.max(
-          16,
-          Math.min(maxAllowedY, elementStartPos.current.y + deltaY),
-        );
-
-        currentPosRef.current = { x: newX, y: newY };
-        setPosition({ x: newX, y: newY });
-      }
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 50);
   };
 
   if (!position) return null;
@@ -118,25 +127,28 @@ export default function FloatingSearch({
   return (
     <div
       style={{
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         position: "fixed",
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        touchAction: "none",
+        top: 0,
+        left: 0,
+        zIndex: 50,
       }}
-      /* 🌟 ดัน z-index ขึ้นมาที่ z-[90] เหนือ Floating Bar และปุ่มอื่นๆ */
-      className="z-[90] select-none"
+      className="touch-none select-none"
     >
       <div className="relative">
         {!isOpen ? (
-          /* ปุ่มค้นหากลม */
+          /* ปุ่มวงกลมไอคอนแว่นขยาย */
           <button
+            type="button"
             onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
             onClick={toggleOpen}
-            className="w-14 h-14 bg-gradient-to-tr from-sky-600 to-cyan-500 text-white rounded-full shadow-2xl shadow-sky-500/50 flex items-center justify-center hover:scale-105 active:scale-95 cursor-grab active:cursor-grabbing outline-none border-none transition-transform"
-            title="ลากเพื่อย้ายตำแหน่ง / คลิกเพื่อค้นหา"
+            className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-600 to-cyan-500 text-white shadow-xl shadow-sky-500/30 flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-transform"
+            title={t("pos.search_placeholder")}
           >
             <svg
-              className="w-6 h-6 pointer-events-none"
+              className="w-5 h-5 pointer-events-none"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
@@ -176,7 +188,7 @@ export default function FloatingSearch({
             <input
               autoFocus
               type="text"
-              placeholder="ค้นหา ชื่อ, รหัส, ราคา..."
+              placeholder={t("pos.search_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-sm text-pos-text placeholder-slate-400 py-1 w-full font-medium cursor-text min-w-0"

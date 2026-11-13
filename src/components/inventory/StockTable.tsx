@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { StockTableProps } from "@/lib/types";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function StockTable({ products, isPending, onToggleTrack, onOpenAdjustModal }: StockTableProps) {
+  const { t, language } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -27,6 +29,8 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
     setCurrentPage(1);
   };
 
+  const locale = language === "th" ? "th-TH" : "en-US";
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in flex flex-col">
       {/* ส่วนค้นหา */}
@@ -37,13 +41,13 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
           </svg>
           <input
             type="text"
-            placeholder="ค้นหาชื่อ หรือรหัสสินค้า..."
+            placeholder={t("inventory.search_code_or_name")}
             value={searchQuery}
             onChange={handleSearch}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition"
           />
         </div>
-        {isPending && <span className="text-xs font-bold text-sky-500 animate-pulse">กำลังอัปเดต...</span>}
+        {isPending && <span className="text-xs font-bold text-sky-500 animate-pulse">{t("inventory.updating")}</span>}
       </div>
 
       {/* ตารางสินค้า */}
@@ -51,10 +55,10 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
             <tr>
-              <th className="px-6 py-4">รหัส / สินค้า</th>
-              <th className="px-6 py-4 text-center">เปิดนับสต๊อก</th>
-              <th className="px-6 py-4 text-right">คงเหลือ</th>
-              <th className="px-6 py-4 text-center">จัดการ</th>
+              <th className="px-6 py-4">{t("inventory.code_product")}</th>
+              <th className="px-6 py-4 text-center">{t("inventory.track_stock_col")}</th>
+              <th className="px-6 py-4 text-right">{t("inventory.stock_remaining")}</th>
+              <th className="px-6 py-4 text-center">{t("inventory.manage_col")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -69,9 +73,9 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
                     </div>
                     <div>
                       <p className="font-bold text-slate-800">
-                        {product.name} {!product.isActive && <span className="text-[10px] text-rose-500 border border-rose-200 px-1.5 py-0.5 rounded ml-2">(ปิดขาย)</span>}
+                        {product.name} {!product.isActive && <span className="text-[10px] text-rose-500 border border-rose-200 px-1.5 py-0.5 rounded ml-2">({t("inventory.closed_sale")})</span>}
                       </p>
-                      <p className="text-xs text-slate-400 font-mono mt-0.5">{product.code || "ไม่มีรหัส"}</p>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{product.code || t("inventory.no_code")}</p>
                     </div>
                   </div>
                 </td>
@@ -92,7 +96,7 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
                 <td className="px-6 py-4 text-right">
                   {product.isTrackStock ? (
                     <span className={`font-black text-lg ${product.stock <= 5 ? "text-rose-500" : "text-emerald-600"}`}>
-                      {product.stock.toLocaleString()}
+                      {product.stock.toLocaleString(locale)}
                     </span>
                   ) : (
                     <span className="text-slate-300 font-bold">-</span>
@@ -105,14 +109,14 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
                     disabled={!product.isTrackStock || isPending}
                     className="text-sky-500 hover:text-sky-600 font-bold text-sm disabled:opacity-30 disabled:cursor-not-allowed bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition"
                   >
-                    ปรับยอด
+                    {t("inventory.adjust_btn")}
                   </button>
                 </td>
               </tr>
             ))}
             {paginatedProducts.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-10 text-slate-400">ไม่พบสินค้าที่คุณค้นหา</td>
+                <td colSpan={4} className="text-center py-10 text-slate-400">{t("inventory.product_not_found")}</td>
               </tr>
             )}
           </tbody>
@@ -123,7 +127,10 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
       {totalPages > 1 && (
         <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
           <p className="text-xs text-slate-500 font-medium">
-            แสดงรายการที่ {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, filteredProducts.length)} จากทั้งหมด {filteredProducts.length} รายการ
+            {t("inventory.showing_items")
+              .replace("{start}", String(startIndex + 1))
+              .replace("{end}", String(Math.min(startIndex + itemsPerPage, filteredProducts.length)))
+              .replace("{total}", String(filteredProducts.length))}
           </p>
           <div className="flex gap-2">
             <button
@@ -131,17 +138,19 @@ export default function StockTable({ products, isPending, onToggleTrack, onOpenA
               disabled={currentPage === 1}
               className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ก่อนหน้า
+              {t("inventory.prev_page")}
             </button>
             <div className="flex items-center px-3 text-xs font-bold text-slate-700">
-              หน้า {currentPage} / {totalPages}
+              {t("inventory.page_indicator")
+                .replace("{current}", String(currentPage))
+                .replace("{total}", String(totalPages))}
             </div>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ถัดไป
+              {t("inventory.next_page")}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import KitchenOrderItem from "./KitchenOrderItem";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface KitchenOrderCardProps {
   order: any;
@@ -22,6 +23,7 @@ export default function KitchenOrderCard({
   onServeItem,
   onServeAll,
 }: KitchenOrderCardProps) {
+  const { t } = useTranslation();
   const elapsed = getElapsedTimeMinutes(order.createdAt);
   const isUrgent = elapsed >= 15;
   const isWarning = elapsed >= 10 && elapsed < 15;
@@ -29,7 +31,7 @@ export default function KitchenOrderCard({
   const tableName =
     order.qrcode?.tableName ||
     order.customerName ||
-    `บิล #${order.orderNumber.split("-").pop()}`;
+    `${t("kitchen.bill_prefix")}${order.orderNumber.split("-").pop()}`;
 
   return (
     <div
@@ -62,8 +64,8 @@ export default function KitchenOrderCard({
           </div>
           <p className="text-xs text-pos-text/60 mt-0.5 font-semibold">
             {order.orderType === "TAKE_AWAY"
-              ? "🛍️ สั่งกลับบ้าน"
-              : "🍽️ ทานที่ร้าน"}
+              ? t("kitchen.takeaway_badge")
+              : t("kitchen.dinein_badge")}
           </p>
         </div>
 
@@ -104,8 +106,8 @@ export default function KitchenOrderCard({
         >
           <span>
             {processingId === order.id
-              ? "กำลังบันทึก..."
-              : "✅ เสิร์ฟครบแล้วทั้งบิล"}
+              ? t("common.saving")
+              : `✅ ${t("kitchen.serve_all_btn")}`}
           </span>
         </button>
       </div>

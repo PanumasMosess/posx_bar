@@ -2,6 +2,7 @@
 
 import ReportDateSelector from "./ReportDateSelector";
 import { ReportTabKey, ReportSidebarProps } from "@/lib/types";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ReportSidebar({
   activeTab,
@@ -13,14 +14,16 @@ export default function ReportSidebar({
   onCustomDateChange,
   className = "",
 }: ReportSidebarProps) {
+  const { t } = useTranslation();
+
   const groups = [
     {
-      title: "ยอดขาย",
+      title: t("reports.group_sales"),
       items: [
         {
           key: "total" as ReportTabKey,
-          title: "ยอดขายทั้งหมด",
-          subtitle: "ยอดขาย/โอน · บิลเฉลี่ย · รายชั่วโมง",
+          title: t("reports.tab_total"),
+          subtitle: t("reports.tab_total_sub"),
           icon: (
             <path
               strokeLinecap="round"
@@ -32,8 +35,8 @@ export default function ReportSidebar({
         },
         {
           key: "product" as ReportTabKey,
-          title: "ยอดขายตามสินค้า",
-          subtitle: "ขายดี - ขายไม่ดี ตามจำนวน ยอดขาย หรือกำไร",
+          title: t("reports.tab_product"),
+          subtitle: t("reports.tab_product_sub"),
           icon: (
             <path
               strokeLinecap="round"
@@ -45,8 +48,8 @@ export default function ReportSidebar({
         },
         {
           key: "employee" as ReportTabKey,
-          title: "ยอดขายตามพนักงาน",
-          subtitle: "แยกยอดขายและจำนวนบิลต่อคน",
+          title: t("reports.tab_employee"),
+          subtitle: t("reports.tab_employee_sub"),
           icon: (
             <path
               strokeLinecap="round"
@@ -59,12 +62,12 @@ export default function ReportSidebar({
       ],
     },
     {
-      title: "บิล",
+      title: t("reports.group_bills"),
       items: [
         {
           key: "bills" as ReportTabKey,
-          title: "รายการบิล / ใบเสร็จ",
-          subtitle: "ค้นหาและดูบิลรายใบ แยกตามช่องทางชำระ",
+          title: t("reports.tab_bills"),
+          subtitle: t("reports.tab_bills_sub"),
           icon: (
             <path
               strokeLinecap="round"

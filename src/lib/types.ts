@@ -42,32 +42,44 @@ export interface ShopInfo {
 export const PERMISSION_CONFIG: {
   key: keyof Permissions;
   label: string;
+  labelEn: string;
   desc: string;
+  descEn: string;
 }[] = [
   {
     key: "accessPos",
     label: "เข้าใช้งานหน้า POS",
+    labelEn: "Access POS Screen",
     desc: "สามารถเข้าถึงหน้าจอรับออเดอร์และคิดเงินได้",
+    descEn: "Access order taking and checkout screen",
   },
   {
     key: "cancelRefund",
     label: "ยกเลิกและคืนบิล",
+    labelEn: "Cancel & Refund Bills",
     desc: "สามารถยกเลิกออเดอร์ที่สั่งไปแล้วหรือคืนเงินได้",
+    descEn: "Cancel submitted orders or issue refunds",
   },
   {
     key: "accessExpenses",
     label: "จัดการรายจ่าย",
+    labelEn: "Manage Expenses",
     desc: "เข้าถึงหน้าบันทึกรายจ่ายประจำวันของร้าน",
+    descEn: "Access daily expense recording",
   },
   {
     key: "accessReports",
     label: "ดูรายงาน",
+    labelEn: "View Reports",
     desc: "สามารถเข้าถึงหน้าดูสรุปยอดขายและรายงานต่างๆ",
+    descEn: "Access sales summaries and reports",
   },
   {
     key: "accessSettings",
     label: "การตั้งค่าระบบ",
+    labelEn: "System Settings",
     desc: "เข้าถึงหน้าตั้งค่าร้านค้าและจัดการพนักงานได้",
+    descEn: "Access shop settings and employee management",
   },
 ];
 

@@ -8,12 +8,14 @@ import FormOption from "./FormOption";
 import FormCategory from "./FormCategory";
 import FormProduct from "./FormProduct";
 import ToastAlert from "@/components/ToastAlert";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function ProductFormModal({
   onClose,
   initialCategories = [],
 }: ProductFormModalProps) {
+  const { t } = useTranslation();
   // 🌟 1. ดึงข้อมูลจาก Context มาเตรียมไว้
   const { employeeId, organizationId } = useEmployee();
 
@@ -69,14 +71,14 @@ export default function ProductFormModal({
         setToast({
           isOpen: true,
           type: "success",
-          message: "เพิ่มสินค้าเรียบร้อยแล้ว!",
+          message: t("product_form.product_created_success"),
         });
         setTimeout(() => onClose(), 1500);
       } else {
         setToast({
           isOpen: true,
           type: "error",
-          message: "เกิดข้อผิดพลาดในการเพิ่มสินค้า",
+          message: t("product_form.product_create_failed"),
         });
       }
     });
@@ -104,7 +106,7 @@ export default function ProductFormModal({
         setToast({
           isOpen: true,
           type: "error",
-          message: "สร้างหมวดหมู่ไม่สำเร็จ",
+          message: t("product_form.category_create_failed"),
         });
       }
     });

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import ReceiptDetailModal from "./ReceiptDetailModal";
 
 import { BillsReceiptsReportViewProps } from "@/lib/types";
@@ -14,6 +15,7 @@ export default function BillsReceiptsReportView({
   onPaymentMethodFilterChange,
   isMobile = false,
 }: BillsReceiptsReportViewProps) {
+  const { t, isThai } = useTranslation();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
 
@@ -42,7 +44,7 @@ export default function BillsReceiptsReportView({
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
-              รายการบิล / ใบเสร็จ
+              {t('reports.tab_bills')}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {data?.dateRangeText || ""}
@@ -52,7 +54,7 @@ export default function BillsReceiptsReportView({
 
         <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-pos-border">
           <span className="text-[11px] font-medium text-slate-400 block">
-            ยอดขายทั้งหมด
+            {t('reports.tab_total')}
           </span>
           <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             {(data?.totalSales || 0).toLocaleString()}
@@ -87,7 +89,7 @@ export default function BillsReceiptsReportView({
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="ค้นหาเลขบิล ชื่อลูกค้า/โต๊ะ หรือชื่อสินค้า..."
+            placeholder={t('reports.search_bills_placeholder')}
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-pos-surface border border-pos-border text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
           />
         </div>
@@ -103,7 +105,7 @@ export default function BillsReceiptsReportView({
                 : "bg-pos-surface text-slate-600 dark:text-slate-300 border border-pos-border hover:bg-slate-50"
             }`}
           >
-            ทั้งหมด {data?.counts?.all || 0}
+            {t('reports.all_bills_tab').replace('{count}', String(data?.counts?.all || 0))}
           </button>
 
           <button
@@ -115,7 +117,7 @@ export default function BillsReceiptsReportView({
                 : "bg-pos-surface text-slate-600 dark:text-slate-300 border border-pos-border hover:bg-slate-50"
             }`}
           >
-            เงินสด {data?.counts?.cash || 0}
+            {t('reports.cash_bills_tab').replace('{count}', String(data?.counts?.cash || 0))}
           </button>
 
           <button
@@ -127,7 +129,7 @@ export default function BillsReceiptsReportView({
                 : "bg-pos-surface text-slate-600 dark:text-slate-300 border border-pos-border hover:bg-slate-50"
             }`}
           >
-            เงินโอน {data?.counts?.qr || 0}
+            {t('reports.qr_bills_tab').replace('{count}', String(data?.counts?.qr || 0))}
           </button>
         </div>
 
@@ -135,14 +137,14 @@ export default function BillsReceiptsReportView({
         <div className="space-y-6 pt-2">
           {(data?.dateGroups || []).length === 0 ? (
             <div className="bg-pos-surface border border-pos-border p-12 rounded-2xl text-center text-xs text-slate-400">
-              ไม่พบรายการบิลในช่วงเวลานี้
+              {t('reports.no_bills')}
             </div>
           ) : (
             data.dateGroups.map((group) => (
               <div key={group.dateKey} className="space-y-2.5">
                 {/* Date Header */}
                 <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">
-                  {group.dateTitleThai}
+                  {isThai ? group.dateTitleThai : group.dateKey}
                 </h4>
 
                 {/* Bills in this date */}
@@ -240,4 +242,3 @@ export default function BillsReceiptsReportView({
     </div>
   );
 }
-

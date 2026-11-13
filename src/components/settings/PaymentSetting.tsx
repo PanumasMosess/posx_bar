@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/lib/language/LanguageContext';
 import { useEmployee } from '@/components/providers/EmployeeContext';
 import {
   getPaymentSettingsAction,
@@ -170,8 +171,31 @@ const DEFAULT_CHANNELS: PaymentChannel[] = [
 
 /* ==================== Main Component ==================== */
 export default function PaymentSetting() {
+  const { t, isThai } = useTranslation();
   const { organizationId } = useEmployee();
   const storageKey = `posx_payment_channels_${organizationId || 'default'}`;
+
+  const getDisplayTitle = (ch: PaymentChannel) => {
+    if (ch.id === 'cash') return isThai ? 'เงินสด' : 'Cash';
+    if (ch.id === 'transfer') return isThai ? 'โอนเงิน' : 'Transfer';
+    if (ch.id === 'credit') return isThai ? 'บัตรเครดิต' : 'Credit Card';
+    if (ch.id === 'split') return isThai ? 'ผสม 2 ช่องทาง' : 'Split Payment';
+    if (ch.id === 'custom') return ch.config?.customName || (isThai ? 'ช่องทางอื่น' : 'Custom');
+    return ch.title;
+  };
+
+  const getDisplaySubtext = (sub?: string) => {
+    if (!sub) return '';
+    if (sub === 'ยังไม่ได้ตั้งค่า') return isThai ? 'ยังไม่ได้ตั้งค่า' : 'Not configured';
+    if (sub.startsWith('ค่าธรรมเนียม')) return sub.replace('ค่าธรรมเนียม', isThai ? 'ค่าธรรมเนียม' : 'Fee');
+    if (sub.includes('สแกน QR Code พร้อมเพย์')) return isThai ? 'สแกน QR Code พร้อมเพย์' : 'Scan PromptPay QR';
+    if (sub.startsWith('พร้อมเพย์:')) return sub.replace('พร้อมเพย์:', isThai ? 'พร้อมเพย์:' : 'PromptPay:');
+    if (sub.startsWith('เลขบัตร:')) return sub.replace('เลขบัตร:', isThai ? 'เลขบัตร:' : 'ID Card:');
+    if (sub.startsWith('บัญชี:')) return sub.replace('บัญชี:', isThai ? 'บัญชี:' : 'Account:');
+    if (sub === 'ตั้งชื่อเอง') return isThai ? 'ตั้งชื่อเอง' : 'Custom name';
+    if (sub.includes('เช่น คนละครึ่งคู่กับเงินสด')) return isThai ? 'เช่น คนละครึ่งคู่กับเงินสด' : 'e.g. Cash + Transfer';
+    return sub;
+  };
 
   const [channels, setChannels] = useState<PaymentChannel[]>(() => {
     if (typeof window !== 'undefined') {
@@ -332,7 +356,7 @@ export default function PaymentSetting() {
   // Delete / Remove channel
   const handleDeleteChannel = async (e: React.MouseEvent, id: string, title: string) => {
     e.stopPropagation();
-    if (confirm(`คุณต้องการลบช่องทาง "${title}" หรือไม่?`)) {
+    if (confirm(isThai ? `คุณต้องการลบช่องทาง "${title}" หรือไม่?` : `Are you sure you want to delete "${title}"?`)) {
       const targetChannel = channels.find((c) => c.id === id);
 
       // หากเป็นการลบช่องทางบัตรเครดิต ให้อัปเดต creditCardFee เป็น null ใน DB
@@ -349,7 +373,7 @@ export default function PaymentSetting() {
 
       setChannels((prev) => prev.filter((c) => c.id !== id));
       if (expandedId === id) setExpandedId(null);
-      showToast(`ลบช่องทาง "${title}" สำเร็จ`, 'success');
+      showToast(isThai ? `ลบช่องทาง "${title}" สำเร็จ` : `Deleted "${title}" successfully`, 'success');
     }
   };
 
@@ -377,7 +401,7 @@ export default function PaymentSetting() {
         });
 
         if (!res.success) {
-          showToast(res.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+          showToast(res.error || (isThai ? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' : 'Error saving settings'), 'error');
           return;
         }
 
@@ -386,7 +410,7 @@ export default function PaymentSetting() {
         }
       } catch (err) {
         console.error('Save payment settings error:', err);
-        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+        showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' : 'Error saving settings', 'error');
         return;
       } finally {
         setIsSaving(false);
@@ -413,7 +437,7 @@ export default function PaymentSetting() {
       })
     );
 
-    showToast('บันทึกข้อมูลโอนเงินเรียบร้อยแล้ว', 'success');
+    showToast(isThai ? 'บันทึกข้อมูลโอนเงินเรียบร้อยแล้ว' : 'Transfer settings saved successfully', 'success');
   };
 
   // Credit Card Auto-save Timeout Ref
@@ -462,7 +486,7 @@ export default function PaymentSetting() {
             organizationId: Number(organizationId),
             creditCardFee: feeNum,
           });
-          showToast(`บันทึกค่าธรรมเนียม ${feeNum}% เรียบร้อยแล้ว`, 'success');
+          showToast(isThai ? `บันทึกค่าธรรมเนียม ${feeNum}% เรียบร้อยแล้ว` : `Fee ${feeNum}% saved successfully`, 'success');
         } catch (err) {
           console.error('Auto-save credit fee error:', err);
         }
@@ -489,7 +513,7 @@ export default function PaymentSetting() {
         return c;
       })
     );
-    showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+    showToast(isThai ? 'บันทึกข้อมูลเรียบร้อยแล้ว' : 'Settings saved successfully', 'success');
   };
 
   // Handle QR Image Upload (ทำเหมือน FormProduct.tsx)
@@ -497,13 +521,13 @@ export default function PaymentSetting() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showToast('ขนาดรูปภาพต้องไม่เกิน 5MB', 'error');
+        showToast(isThai ? 'ขนาดรูปภาพต้องไม่เกิน 5MB' : 'Image size must not exceed 5MB', 'error');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         setTransferQrImage(reader.result as string);
-        showToast('เลือกรูป QR เรียบร้อยแล้ว (กดบันทึกเพื่ออัปเดต)', 'success');
+        showToast(isThai ? 'เลือกรูป QR เรียบร้อยแล้ว (กดบันทึกเพื่ออัปเดต)' : 'QR image selected (click save to update)', 'success');
       };
       reader.readAsDataURL(file);
     }
@@ -513,7 +537,7 @@ export default function PaymentSetting() {
   const removeImage = () => {
     setTransferQrImage('');
     if (fileInputRef.current) fileInputRef.current.value = '';
-    showToast('ลบรูป QR เรียบร้อยแล้ว (กดบันทึกเพื่ออัปเดต)', 'success');
+    showToast(isThai ? 'ลบรูป QR เรียบร้อยแล้ว (กดบันทึกเพื่ออัปเดต)' : 'QR image deleted (click save to update)', 'success');
   };
 
   // Add Channel from Modal
@@ -521,7 +545,7 @@ export default function PaymentSetting() {
     if (type === 'credit') {
       const exists = channels.some((c) => c.type === 'credit');
       if (exists) {
-        showToast('มีช่องทางบัตรเครดิตอยู่แล้ว', 'error');
+        showToast(isThai ? 'มีช่องทางบัตรเครดิตอยู่แล้ว' : 'Credit card channel already exists', 'error');
         return;
       }
 
@@ -548,11 +572,11 @@ export default function PaymentSetting() {
       setExpandedId(newChannel.id);
       setCreditFee(3);
       setIsAddModalOpen(false);
-      showToast('เพิ่มช่องทางบัตรเครดิตเรียบร้อยแล้ว', 'success');
+      showToast(isThai ? 'เพิ่มช่องทางบัตรเครดิตเรียบร้อยแล้ว' : 'Credit card channel added', 'success');
     } else if (type === 'split') {
       const exists = channels.some((c) => c.type === 'split');
       if (exists) {
-        showToast('มีช่องทางผสม 2 ช่องทางอยู่แล้ว', 'error');
+        showToast(isThai ? 'มีช่องทางผสม 2 ช่องทางอยู่แล้ว' : 'Split payment channel already exists', 'error');
         return;
       }
       const newChannel: PaymentChannel = {
@@ -566,13 +590,13 @@ export default function PaymentSetting() {
       setChannels((prev) => [...prev, newChannel]);
       setExpandedId(newChannel.id);
       setIsAddModalOpen(false);
-      showToast('เพิ่มช่องทางผสมเรียบร้อยแล้ว', 'success');
+      showToast(isThai ? 'เพิ่มช่องทางผสมเรียบร้อยแล้ว' : 'Split payment channel added', 'success');
     } else if (type === 'custom') {
       const newChannel: PaymentChannel = {
         id: `custom_${Date.now()}`,
         type: 'custom',
         title: 'ช่องทางอื่น',
-        subtext: 'ตั้งชื่อเอง เช่น คนละครึ่ง',
+        subtext: 'ตั้งชื่อเอง',
         canExpand: true,
         config: { customName: 'ช่องทางอื่น' },
       };
@@ -580,7 +604,7 @@ export default function PaymentSetting() {
       setExpandedId(newChannel.id);
       setCustomChannelName('ช่องทางอื่น');
       setIsAddModalOpen(false);
-      showToast('เพิ่มช่องทางอื่นเรียบร้อยแล้ว', 'success');
+      showToast(isThai ? 'เพิ่มช่องทางอื่นเรียบร้อยแล้ว' : 'Custom channel added', 'success');
     }
   };
 
@@ -606,8 +630,8 @@ export default function PaymentSetting() {
       <div className="w-full rounded-2xl sm:rounded-3xl border border-pos-border dark:border-slate-500/40 bg-pos-surface shadow-2xs overflow-hidden transition-colors duration-300">
         {channels.length === 0 ? (
           <div className="p-8 text-center text-slate-400 dark:text-slate-500">
-            <p className="text-sm font-semibold">ยังไม่มีช่องทางการชำระเงิน</p>
-            <p className="text-xs mt-1">กดปุ่ม &quot;เพิ่มช่องทาง&quot; ด้านล่างเพื่อเพิ่ม</p>
+            <p className="text-sm font-semibold">{isThai ? "ยังไม่มีช่องทางการชำระเงิน" : "No payment methods configured"}</p>
+            <p className="text-xs mt-1">{isThai ? "กดปุ่ม \"เพิ่มช่องทาง\" ด้านล่างเพื่อเพิ่ม" : "Click \"Add Method\" below to add"}</p>
           </div>
         ) : (
           channels.map((ch, index) => {
@@ -639,11 +663,11 @@ export default function PaymentSetting() {
                     {/* Title & Subtitle */}
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-pos-text leading-tight truncate">
-                        {ch.title}
+                        {getDisplayTitle(ch)}
                       </p>
                       {ch.subtext && (
                         <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                          {ch.subtext}
+                          {getDisplaySubtext(ch.subtext)}
                         </p>
                       )}
                     </div>
@@ -660,7 +684,7 @@ export default function PaymentSetting() {
                       <button
                         type="button"
                         onClick={(e) => handleDeleteChannel(e, ch.id, ch.title)}
-                        title={`ลบช่องทาง ${ch.title}`}
+                        title={isThai ? `ลบช่องทาง ${getDisplayTitle(ch)}` : `Delete ${getDisplayTitle(ch)}`}
                         className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
                       >
                         <CloseIcon className="w-4 h-4" />
@@ -684,7 +708,7 @@ export default function PaymentSetting() {
                         }`}
                       >
                         <PhoneIcon className="w-4 h-4" />
-                        <span>เบอร์โทร</span>
+                        <span>{isThai ? "เบอร์โทร" : "Phone"}</span>
                       </button>
 
                       <button
@@ -697,7 +721,7 @@ export default function PaymentSetting() {
                         }`}
                       >
                         <CardIcon className="w-4 h-4" />
-                        <span>เลขบัตร</span>
+                        <span>{isThai ? "เลขบัตร" : "ID Card"}</span>
                       </button>
 
                       <button
@@ -710,7 +734,7 @@ export default function PaymentSetting() {
                         }`}
                       >
                         <ImageIcon className="w-4 h-4" />
-                        <span>รูป QR</span>
+                        <span>{isThai ? "รูป QR" : "QR Image"}</span>
                       </button>
                     </div>
 
@@ -722,7 +746,7 @@ export default function PaymentSetting() {
                             type="text"
                             value={promptPayNumber}
                             onChange={(e) => setPromptPayNumber(e.target.value)}
-                            placeholder="เบอร์โทรศัพท์ (พร้อมเพย์)"
+                            placeholder={isThai ? "เบอร์โทรศัพท์ (พร้อมเพย์)" : "Phone number (PromptPay)"}
                             className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs font-mono"
                           />
                         </div>
@@ -730,7 +754,7 @@ export default function PaymentSetting() {
                           type="text"
                           value={transferAccountName}
                           onChange={(e) => setTransferAccountName(e.target.value)}
-                          placeholder="ชื่อบัญชี (แสดงใต้ QR)"
+                          placeholder={isThai ? "ชื่อบัญชี (แสดงใต้ QR)" : "Account name (shown under QR)"}
                           className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs"
                         />
                       </div>
@@ -744,7 +768,7 @@ export default function PaymentSetting() {
                             type="text"
                             value={promptPayNumber}
                             onChange={(e) => setPromptPayNumber(e.target.value)}
-                            placeholder="เลขบัตรประชาชน"
+                            placeholder={isThai ? "เลขบัตรประชาชน" : "National ID number"}
                             className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs font-mono"
                           />
                         </div>
@@ -752,7 +776,7 @@ export default function PaymentSetting() {
                           type="text"
                           value={transferAccountName}
                           onChange={(e) => setTransferAccountName(e.target.value)}
-                          placeholder="ชื่อบัญชี (แสดงใต้ QR)"
+                          placeholder={isThai ? "ชื่อบัญชี (แสดงใต้ QR)" : "Account name (shown under QR)"}
                           className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs"
                         />
                       </div>
@@ -791,7 +815,7 @@ export default function PaymentSetting() {
                                       fileInputRef.current?.click();
                                     }}
                                     className="p-2 bg-white text-sky-600 rounded-full hover:bg-sky-50 transition shadow-sm cursor-pointer"
-                                    title="เปลี่ยนรูป"
+                                    title={t("product_form.change_image")}
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -804,7 +828,7 @@ export default function PaymentSetting() {
                                       removeImage();
                                     }}
                                     className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition shadow-sm cursor-pointer"
-                                    title="ลบรูป"
+                                    title={t("product_form.delete_image")}
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -813,17 +837,17 @@ export default function PaymentSetting() {
                                 </div>
                               </div>
                               <p className="text-xs text-sky-600 dark:text-sky-400 font-semibold mt-1">
-                                แตะเพื่อเปลี่ยนรูป QR
+                                {isThai ? "แตะเพื่อเปลี่ยนรูป QR" : "Tap to change QR image"}
                               </p>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-2.5 text-center">
                               <QrTransferIcon className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-sky-500 transition" />
                               <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-                                แตะเพื่ออัปโหลดรูป QR
+                                {isThai ? "แตะเพื่ออัปโหลดรูป QR" : "Tap to upload QR image"}
                               </p>
                               <p className="text-[11px] text-slate-400">
-                                รองรับไฟล์ JPG, PNG (สูงสุด 5MB)
+                                {isThai ? "รองรับไฟล์ JPG, PNG (สูงสุด 5MB)" : "Supports JPG, PNG (max 5MB)"}
                               </p>
                             </div>
                           )}
@@ -843,13 +867,13 @@ export default function PaymentSetting() {
 
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                            ชื่อบัญชี (แสดงใต้ QR Code)
+                            {isThai ? "ชื่อบัญชี (แสดงใต้ QR Code)" : "Account Name (shown under QR Code)"}
                           </label>
                           <input
                             type="text"
                             value={transferAccountName}
                             onChange={(e) => setTransferAccountName(e.target.value)}
-                            placeholder="ชื่อบัญชี (แสดงใต้ QR)"
+                            placeholder={isThai ? "ชื่อบัญชี (แสดงใต้ QR)" : "Account name (shown under QR)"}
                             className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs"
                           />
                         </div>
@@ -866,10 +890,10 @@ export default function PaymentSetting() {
                       {isSaving ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>กำลังบันทึก...</span>
+                          <span>{t("common.saving")}</span>
                         </>
                       ) : (
-                        <span>บันทึก</span>
+                        <span>{t("common.save")}</span>
                       )}
                     </button>
                   </div>
@@ -881,10 +905,10 @@ export default function PaymentSetting() {
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="text-xs sm:text-sm font-semibold text-pos-text">
-                          ค่าธรรมเนียมบัตรเครดิต
+                          {isThai ? "ค่าธรรมเนียมบัตรเครดิต" : "Credit Card Fee"}
                         </p>
                         <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                          กำหนดค่าเริ่มต้น ปรับได้รายบิล
+                          {isThai ? "กำหนดค่าเริ่มต้น ปรับได้รายบิล" : "Default fee, adjustable per bill"}
                         </p>
                       </div>
 
@@ -910,21 +934,19 @@ export default function PaymentSetting() {
                 {isExpanded && ch.type === 'split' && (
                   <div className="px-4 pb-5 pt-3 sm:px-6 space-y-3 animate-fadeIn border-t border-pos-border/60 dark:border-slate-500/30 bg-pos-bg/30">
                     <p className="text-xs sm:text-sm font-semibold text-pos-text">
-                      การชำระแบบผสม (Split Payment)
+                      {isThai ? "การชำระแบบผสม (Split Payment)" : "Split Payment"}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500">
-                      เปิดใช้งานการแบ่งยอดชำระ เช่น แบ่งจ่ายเงินสดส่วนหนึ่งและโอนเงินอีกส่วนหนึ่ง บนหน้าจอรับชำระเงิน
+                      {isThai ? "เปิดใช้งานการแบ่งยอดชำระ เช่น แบ่งจ่ายเงินสดส่วนหนึ่งและโอนเงินอีกส่วนหนึ่ง บนหน้าจอรับชำระเงิน" : "Enable split payment on checkout screen (e.g. part cash, part transfer)"}
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setExpandedId(null);
-                        showToast('บันทึกการตั้งค่าสำเร็จ', 'success');
+                        showToast(isThai ? 'บันทึกการตั้งค่าสำเร็จ' : 'Settings saved successfully', 'success');
                       }}
                       className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-xs transition active:scale-[0.99] cursor-pointer"
-                    >
-                      บันทึก
-                    </button>
+                    >{t("common.save")}</button>
                   </div>
                 )}
 
@@ -933,13 +955,13 @@ export default function PaymentSetting() {
                   <div className="px-4 pb-5 pt-3 sm:px-6 space-y-3 animate-fadeIn border-t border-pos-border/60 dark:border-slate-500/30 bg-pos-bg/30">
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                        ชื่อช่องทางชำระเงิน
+                        {isThai ? "ชื่อช่องทางชำระเงิน" : "Payment Method Name"}
                       </label>
                       <input
                         type="text"
                         value={customChannelName}
                         onChange={(e) => setCustomChannelName(e.target.value)}
-                        placeholder="เช่น คนละครึ่ง, บัตรสวัสดิการ, TrueMoney"
+                        placeholder={isThai ? "เช่น คนละครึ่ง, บัตรสวัสดิการ, TrueMoney" : "e.g. Welfare card, TrueMoney, Voucher"}
                         className="w-full px-4 py-2.5 rounded-2xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition shadow-2xs"
                       />
                     </div>
@@ -947,9 +969,7 @@ export default function PaymentSetting() {
                       type="button"
                       onClick={() => handleSaveCustom(ch.id)}
                       className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-xs transition active:scale-[0.99] cursor-pointer"
-                    >
-                      บันทึก
-                    </button>
+                    >{t("common.save")}</button>
                   </div>
                 )}
               </div>
@@ -964,18 +984,16 @@ export default function PaymentSetting() {
         onClick={() => setIsAddModalOpen(true)}
         className="w-full py-3.5 rounded-2xl bg-pos-surface hover:bg-pos-hover border border-pos-border dark:border-slate-500/40 text-pos-text font-semibold text-sm transition active:scale-[0.99] cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
       >
-        <span>เพิ่มช่องทาง</span>
+        <span>{isThai ? "+ เพิ่มช่องทาง" : "+ Add Method"}</span>
       </button>
 
-      {/* ==================== Modal: เลือกช่องทางที่ต้องการเพิ่ม ==================== */}
+      {/* ==================== Modal: {isThai ? "เลือกช่องทางที่ต้องการเพิ่ม" : "Select Method to Add"} ==================== */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-pos-surface rounded-3xl shadow-2xl w-full max-w-sm border border-pos-border dark:border-slate-500/40 overflow-hidden animate-scaleUp">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 flex items-center justify-between border-b border-pos-border dark:border-slate-500/40">
-              <h3 className="font-bold text-base text-pos-text">
-                เลือกช่องทางที่ต้องการเพิ่ม
-              </h3>
+              <h3 className="font-bold text-base text-pos-text">{isThai ? "เลือกช่องทางที่ต้องการเพิ่ม" : "Select Method to Add"}</h3>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -998,11 +1016,9 @@ export default function PaymentSetting() {
                       <CardIcon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">
-                        บัตรเครดิต
-                      </p>
+                      <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">{isThai ? "บัตรเครดิต" : "Credit Card"}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                        รูดบัตรผ่านเครื่องของร้าน
+                        {isThai ? "รูดบัตรผ่านเครื่องของร้าน" : "Card payment via terminal"}
                       </p>
                     </div>
                   </div>
@@ -1023,12 +1039,8 @@ export default function PaymentSetting() {
                     <SplitBranchIcon className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">
-                      ผสม 2 ช่องทาง
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                      เช่น คนละครึ่งคู่กับเงินสด
-                    </p>
+                    <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">{isThai ? "ผสม 2 ช่องทาง" : "Split 2 Methods"}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{isThai ? "เช่น คนละครึ่งคู่กับเงินสด" : "e.g. Cash + Transfer"}</p>
                   </div>
                 </div>
 
@@ -1047,12 +1059,8 @@ export default function PaymentSetting() {
                     <WalletIcon className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">
-                      ช่องทางอื่น
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                      ตั้งชื่อเอง เช่น คนละครึ่ง
-                    </p>
+                    <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">{isThai ? "ช่องทางอื่น" : "Other Method"}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{isThai ? "ตั้งชื่อเอง เช่น คนละครึ่ง" : "Custom name, e.g. Voucher"}</p>
                   </div>
                 </div>
 

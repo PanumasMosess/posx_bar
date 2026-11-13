@@ -10,9 +10,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import { logoutAction } from "@/lib/actions/authActions";
 import LogoutLoadingModal from "../auth/LogoutLoadingModal";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); // 🌟 Dropdown สำหรับ Logout / PIN
   const [mounted, setMounted] = useState(false);
@@ -103,7 +105,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
               </span>
               <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse mr-1"></span>
-                <span className="hidden xs:inline">ออนไลน์</span>
+                <span className="hidden xs:inline">{t('header.online')}</span>
               </span>
             </div>
           </div>
@@ -138,22 +140,22 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
               <span className="text-xs font-mono font-extrabold hidden sm:inline">
                 {activeShift
                   ? activeShift.shiftNumber.split("-").pop()
-                  : "ปิดกะ"}
+                  : t('header.close_shift')}
               </span>
             </button>
 
             {/* Tooltip */}
             <div className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col gap-0.5 whitespace-nowrap bg-slate-900 text-white text-[11px] font-medium py-1.5 px-3 rounded-xl shadow-xl z-50 pointer-events-none border border-slate-800 animate-fade-in">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold">สถานะกะ:</span>
+                <span className="font-bold">{t('shift.title')}:</span>
                 <span
                   className={`font-mono font-bold ${
                     activeShift ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
                   {activeShift
-                    ? `เปิดอยู่ (${activeShift.shiftNumber})`
-                    : "ยังไม่ได้เปิดกะ"}
+                    ? `${t('header.active')} (${activeShift.shiftNumber})`
+                    : t('shift.shift_not_open')}
                 </span>
               </div>
             </div>
@@ -168,7 +170,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
               <button
                 onClick={toggleThemeMenu}
                 className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-pos-surface border border-pos-border flex items-center gap-1 text-pos-text hover:bg-pos-hover transition-colors active:scale-95 shadow-xs cursor-pointer"
-                title="เปลี่ยนธีมระบบ"
+                title={t('header.theme_system')}
               >
                 <span className="text-xs sm:text-sm">
                   {!mounted
@@ -191,7 +193,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                     className="w-full p-2 rounded-xl flex items-center justify-between text-left hover:bg-pos-hover transition cursor-pointer"
                   >
                     <span className="text-xs font-bold text-pos-text">
-                      ☀️ Light Mode
+                      ☀️ {t('header.theme_light')}
                     </span>
                   </button>
                   <button
@@ -202,7 +204,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                     className="w-full p-2 rounded-xl flex items-center justify-between text-left hover:bg-pos-hover transition cursor-pointer"
                   >
                     <span className="text-xs font-bold text-pos-text">
-                      🌊 Ocean Cyan
+                      🌊 Ocean Teal
                     </span>
                   </button>
                   <button
@@ -213,7 +215,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                     className="w-full p-2 rounded-xl flex items-center justify-between text-left hover:bg-pos-hover transition cursor-pointer"
                   >
                     <span className="text-xs font-bold text-pos-text">
-                      🌙 Dark Mode
+                      🌙 {t('header.theme_dark')}
                     </span>
                   </button>
                 </div>
@@ -226,7 +228,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                 type="button"
                 onClick={toggleUserMenu}
                 className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-pos-surface border border-pos-border hover:bg-pos-hover text-pos-text font-bold flex items-center gap-2 shadow-2xs active:scale-95 transition-all duration-200 cursor-pointer"
-                title="โปรไฟล์และตัวเลือกล็อกเอาท์"
+                title={t('header.staff')}
               >
                 <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 font-black text-[11px] flex items-center justify-center shrink-0">
                   {currentEmployee?.name
@@ -235,7 +237,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-extrabold tracking-tight line-clamp-1 max-w-[90px] sm:max-w-[120px] text-pos-text leading-tight">
-                    {currentEmployee?.name || "ยังไม่ระบุพนักงาน"}
+                    {currentEmployee?.name || t('header.staff')}
                   </span>
                 </div>
                 <svg
@@ -261,15 +263,15 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                   {/* Header รายละเอียดแคชเชียร์ */}
                   <div className="px-3 py-2.5 rounded-xl bg-pos-hover/60 border border-pos-border/50">
                     <p className="text-[10px] font-black font-mono tracking-wider text-slate-400 uppercase">
-                      แคชเชียร์ประจำเครื่อง
+                      {t('header.cashier')}
                     </p>
                     <p className="text-sm font-black text-pos-text truncate mt-0.5">
-                      {currentEmployee?.name || "ไม่พบข้อมูลพนักงาน"}
+                      {currentEmployee?.name || t('header.staff')}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                       <p className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
-                        ตำแหน่ง: {currentEmployee?.role || "พนักงานทั่วไป"}
+                        {t('common.details')}: {currentEmployee?.role || t('header.staff')}
                       </p>
                     </div>
                   </div>
@@ -284,7 +286,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                       <span className="text-base group-hover:scale-110 transition-transform">
                         🔑
                       </span>
-                      <span>สลับพนักงาน (กรอก PIN)</span>
+                      <span>{t('header.switch_staff')}</span>
                     </div>
                     <span className="text-slate-400 text-[10px]">➔</span>
                   </button>
@@ -299,7 +301,7 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
                       <span className="text-base group-hover:scale-110 transition-transform">
                         🏢
                       </span>
-                      <span>ออกจากระบบร้านค้า</span>
+                      <span>{t('header.logout')}</span>
                     </div>
                     <span className="text-rose-400 text-[10px]">➔</span>
                   </button>
@@ -310,12 +312,15 @@ export default function Header({ onToggleCart }: { onToggleCart: () => void }) {
         </div>
       </header>
 
-      {/* Modal จัดการเปิด/ปิดกะ */}
-      <ShiftModal
-        isOpen={isShiftModalOpen}
-        onClose={() => setIsShiftModalOpen(false)}
-      />
+      {/* Modal เปิด/ปิดกะ */}
+      {isShiftModalOpen && (
+        <ShiftModal
+          isOpen={isShiftModalOpen}
+          onClose={() => setIsShiftModalOpen(false)}
+        />
+      )}
 
+      {/* Modal สปินเนอร์ตอนกำลังออกจากระบบ */}
       <LogoutLoadingModal isOpen={isLoggingOut} />
     </>
   );

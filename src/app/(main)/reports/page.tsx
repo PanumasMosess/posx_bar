@@ -25,8 +25,10 @@ import {
   getBillsReceiptsReportAction,
 } from "@/lib/actions/actionsReports";
 import { exportReportToExcel } from "@/components/reports/exportReportExcel";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ReportsPage() {
+  const { t, isThai } = useTranslation();
   const { settings } = useOrgSettings();
   const { activeOrgId } = useEmployee();
   const organizationId = activeOrgId || settings?.organizationId || 1;
@@ -139,10 +141,10 @@ export default function ReportsPage() {
   };
 
   const reportTitles: { [key in ReportTabKey]?: string } = {
-    total: "ยอดขายทั้งหมด",
-    product: "ยอดขายตามสินค้า",
-    employee: "ยอดขายตามพนักงาน",
-    bills: "รายการบิล / ใบเสร็จ",
+    total: t('reports.tab_total'),
+    product: t('reports.tab_product'),
+    employee: t('reports.tab_employee'),
+    bills: t('reports.tab_bills'),
   };
 
   const currentData = dataMap[activeTab];
@@ -171,7 +173,7 @@ export default function ReportsPage() {
     } else if (tab === "bills") {
       fileName = `bills-${dateCode}`;
     } else {
-      const tabName = reportTitles[tab] || "รายงาน";
+      const tabName = reportTitles[tab] || t('reports.title');
       fileName = `${tabName}_${period}_${dateCode}`;
     }
 
@@ -179,6 +181,7 @@ export default function ReportsPage() {
       ...data,
       shopName: orgName,
       productFilterMode,
+      isThai,
     };
     exportReportToExcel(tab, enrichedData, fileName);
   };
@@ -221,7 +224,7 @@ export default function ReportsPage() {
             {!currentData || isPending ? (
               <div className="flex flex-col items-center justify-center py-24 text-slate-400 space-y-3">
                 <div className="w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs font-medium">กำลังโหลดรายงาน...</span>
+                <span className="text-xs font-medium">{t('reports.loading_report')}</span>
               </div>
             ) : (
               <>
@@ -260,7 +263,7 @@ export default function ReportsPage() {
             disabled={!currentData || isPending}
             className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-semibold border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition active:scale-95 disabled:opacity-50 shadow-xs"
           >
-            ดูตัวอย่างไฟล์
+            {t('reports.preview_file')}
           </button>
 
           <button
@@ -282,7 +285,7 @@ export default function ReportsPage() {
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            ดาวน์โหลด Excel (.xlsx)
+            {t('reports.download_excel')}
           </button>
         </div>
       </div>
@@ -312,9 +315,9 @@ export default function ReportsPage() {
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <span className="text-sm font-semibold text-teal-100 block">ยอดขาย</span>
+              <span className="text-sm font-semibold text-teal-100 block">{t('reports.total_sales_title')}</span>
               <span className="text-xs text-teal-200 block mt-0.5">
-                {totalData?.completedBills ?? 0} บิล
+                {totalData?.completedBills ?? 0} {t('reports.bill_unit')}
               </span>
             </div>
             <div className="text-3xl sm:text-4xl font-black tracking-tight text-white">
@@ -329,10 +332,10 @@ export default function ReportsPage() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
-                <span>จำนวนที่ขาย</span>
+                <span>{t('reports.items_sold_count')}</span>
               </div>
               <span className="font-bold text-white text-sm">
-                {(totalData?.totalItemsSold ?? 0).toLocaleString()} ชิ้น
+                {(totalData?.totalItemsSold ?? 0).toLocaleString()} {t('pos.piece_unit')}
               </span>
             </div>
 
@@ -349,7 +352,7 @@ export default function ReportsPage() {
                 ))
               ) : (
                 <span className="bg-[#074b55] text-teal-100 text-[11px] px-2.5 py-0.5 rounded-full font-medium">
-                  สินค้า 0
+                  {t('reports.product_zero')}
                 </span>
               )}
             </div>
@@ -372,7 +375,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between text-xs pt-1">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316] inline-block shrink-0" />
-                <span className="text-teal-100 text-[11px] font-medium">ต้นทุนขาย</span>
+                <span className="text-teal-100 text-[11px] font-medium">{t('reports.cost_of_sales')}</span>
                 <span className="bg-[#074b55] text-[10px] px-1.5 py-0.2 rounded-full text-teal-200 font-medium">
                   {totalData?.costPercentage ?? 0}%
                 </span>
@@ -385,7 +388,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#a3e635] inline-block shrink-0" />
-                <span className="text-teal-100 text-[11px] font-medium">กำไรขั้นต้น</span>
+                <span className="text-teal-100 text-[11px] font-medium">{t('reports.gross_profit')}</span>
                 <span className="bg-[#074b55] text-[10px] px-1.5 py-0.2 rounded-full text-teal-200 font-medium">
                   {totalData?.profitPercentage ?? 0}%
                 </span>
@@ -399,7 +402,7 @@ export default function ReportsPage() {
 
         {/* Section title  */}
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 pt-1">
-          ยอดขาย
+          {t('reports.total_sales_title')}
         </h3>
 
         {/* Menu List Card  */}
@@ -418,10 +421,10 @@ export default function ReportsPage() {
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  ยอดขายทั้งหมด
+                  {t('reports.tab_total')}
                 </h4>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  ยอดสด/โอน · บิลเฉลี่ย · รายชั่วโมง
+                  {t('reports.sales_summary_subtitle')}
                 </p>
               </div>
             </div>
@@ -447,10 +450,10 @@ export default function ReportsPage() {
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  ยอดขายตามสินค้า
+                  {t('reports.tab_product')}
                 </h4>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  ขายดี-ขายไม่ดี ตามจำนวน ยอดขาย หรือกำไร
+                  {t('reports.product_sales_subtitle')}
                 </p>
               </div>
             </div>
@@ -474,15 +477,15 @@ export default function ReportsPage() {
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  ยอดขายตามพนักงาน
+                  {t('reports.tab_employee')}
                 </h4>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  แยกยอดและจำนวนบิลต่อคน
+                  {t('reports.employee_sales_subtitle')}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-slate-500 font-medium text-xs shrink-0">
-              <span>{totalData?.activeEmployeesCount ?? 1} คน</span>
+              <span>{totalData?.activeEmployeesCount ?? 1} {t('reports.staff_unit')}</span>
               <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
@@ -503,15 +506,15 @@ export default function ReportsPage() {
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  รายการบิล / ใบเสร็จ
+                  {t('reports.tab_bills')}
                 </h4>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  ค้นหาและดูรายละเอียดบิลย้อนหลัง
+                  {t('reports.bills_receipts_subtitle')}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-slate-500 font-medium text-xs shrink-0">
-              <span>{totalData?.completedBills ?? 0} บิล</span>
+              <span>{totalData?.completedBills ?? 0} {t('reports.bill_unit')}</span>
               <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
@@ -589,7 +592,7 @@ export default function ReportsPage() {
               {isPending && !dataMap[mobileActiveReport] ? (
                 <div className="py-20 flex flex-col items-center justify-center text-slate-400 space-y-3">
                   <div className="w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-medium">กำลังโหลดรายงาน...</span>
+                  <span className="text-xs font-medium">{t('reports.loading_report')}</span>
                 </div>
               ) : (
                 <>
@@ -628,7 +631,7 @@ export default function ReportsPage() {
                 onClick={() => handleDownloadExcelForTab(mobileActiveReport)}
                 className="w-full py-3.5 rounded-2xl text-sm font-bold bg-[#0d7482] hover:bg-[#0b6470] text-white shadow-sm transition active:scale-[0.99] flex items-center justify-center text-center"
               >
-                ดาวน์โหลด Excel (.xlsx)
+                {t('reports.download_excel')}
               </button>
             </div>
           </div>
@@ -639,7 +642,7 @@ export default function ReportsPage() {
       <ReportPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        title={reportTitles[activeTab] || "รายงาน"}
+        title={reportTitles[activeTab] || t('reports.title')}
         reportType={activeTab}
         data={
           currentData

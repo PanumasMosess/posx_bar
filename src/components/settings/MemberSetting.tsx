@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from '@/lib/language/LanguageContext';
 import {
   getMembersAction,
   getMemberStatsAction,
@@ -126,6 +127,7 @@ function TableViewIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 /* ==================== Main Component ==================== */
 export default function MemberSetting({ organizationId: propOrgId }: { organizationId?: number }) {
+  const { t, isThai } = useTranslation();
   const { organizationId: contextOrgId, employeeId } = useEmployee();
   const orgId = propOrgId || contextOrgId || 0;
 
@@ -283,7 +285,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       }
     } catch (error) {
       console.error('Error loading member data:', error);
-      showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลสมาชิก', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการโหลดข้อมูลสมาชิก' : 'Failed to load member data', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -333,16 +335,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgId) {
-      showToast('ไม่พบรหัสร้านค้า', 'error');
+      showToast(isThai ? 'ไม่พบรหัสร้านค้า' : 'Shop ID not found', 'error');
       return;
     }
 
     if (!memberForm.phone.trim()) {
-      showToast('กรุณาระบุเบอร์โทรศัพท์', 'error');
+      showToast(isThai ? 'กรุณาระบุเบอร์โทรศัพท์' : 'Please enter phone number', 'error');
       return;
     }
     if (!memberForm.firstName.trim()) {
-      showToast('กรุณาระบุชื่อจริง', 'error');
+      showToast(isThai ? 'กรุณาระบุชื่อจริง' : 'Please enter first name', 'error');
       return;
     }
 
@@ -362,11 +364,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         });
 
         if (res.success) {
-          showToast(res.message || 'เพิ่มสมาชิกใหม่สำเร็จ', 'success');
+          showToast(res.message || (isThai ? 'เพิ่มสมาชิกใหม่สำเร็จ' : 'Member created successfully'), 'success');
           setIsMemberModalOpen(false);
           loadData();
         } else {
-          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+          showToast(res.message || (isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred'), 'error');
         }
       } else {
         // Edit mode
@@ -384,16 +386,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         });
 
         if (res.success) {
-          showToast(res.message || 'บันทึกการแก้ไขสำเร็จ', 'success');
+          showToast(res.message || (isThai ? 'บันทึกการแก้ไขสำเร็จ' : 'Member updated successfully'), 'success');
           setIsMemberModalOpen(false);
           loadData();
         } else {
-          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+          showToast(res.message || (isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred'), 'error');
         }
       }
     } catch (err: any) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' : 'Failed to save data', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -413,16 +415,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
     try {
       const res = await deleteMemberAction(memberToDelete.id, orgId);
       if (res.success) {
-        showToast('ลบสมาชิกเรียบร้อยแล้ว', 'success');
+        showToast(isThai ? 'ลบสมาชิกเรียบร้อยแล้ว' : 'Member deleted successfully', 'success');
         setIsDeleteModalOpen(false);
         setMemberToDelete(null);
         loadData();
       } else {
-        showToast(res.message || 'ไม่สามารถลบสมาชิกได้', 'error');
+        showToast(res.message || (isThai ? 'ไม่สามารถลบสมาชิกได้' : 'Failed to delete member'), 'error');
       }
     } catch (err: any) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาดในการลบสมาชิก', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการลบสมาชิก' : 'Error deleting member', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -448,7 +450,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
     const numAmount = Number(adjustForm.amount);
     if (!numAmount || numAmount <= 0) {
-      showToast('กรุณาระบุจำนวนที่มากกว่า 0', 'error');
+      showToast(isThai ? 'กรุณาระบุจำนวนที่มากกว่า 0' : 'Please enter amount greater than 0', 'error');
       return;
     }
 
@@ -465,15 +467,15 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       });
 
       if (res.success) {
-        showToast(res.message || 'ปรับปรุงยอดสำเร็จ', 'success');
+        showToast(res.message || (isThai ? 'ปรับปรุงยอดสำเร็จ' : 'Balance adjusted successfully'), 'success');
         setIsAdjustModalOpen(false);
         loadData();
       } else {
-        showToast(res.message || 'เกิดข้อผิดพลาดในการปรับยอด', 'error');
+        showToast(res.message || (isThai ? 'เกิดข้อผิดพลาดในการปรับยอด' : 'Failed to adjust balance'), 'error');
       }
     } catch (err: any) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาด', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -510,7 +512,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
     e.preventDefault();
     if (!orgId) return;
     if (!tierForm.name.trim()) {
-      showToast('กรุณาระบุชื่อระดับสมาชิก', 'error');
+      showToast(isThai ? 'กรุณาระบุชื่อระดับสมาชิก' : 'Please enter tier name', 'error');
       return;
     }
 
@@ -526,11 +528,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         });
 
         if (res.success) {
-          showToast('สร้างระดับสมาชิกสำเร็จ', 'success');
+          showToast(isThai ? 'สร้างระดับสมาชิกสำเร็จ' : 'Tier created successfully', 'success');
           setIsTierModalOpen(false);
           loadData();
         } else {
-          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+          showToast(res.message || (isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred'), 'error');
         }
       } else {
         if (!editingTier) return;
@@ -544,36 +546,36 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         });
 
         if (res.success) {
-          showToast('อัปเดตระดับสมาชิกสำเร็จ', 'success');
+          showToast(isThai ? 'อัปเดตระดับสมาชิกสำเร็จ' : 'Tier updated successfully', 'success');
           setIsTierModalOpen(false);
           loadData();
         } else {
-          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+          showToast(res.message || (isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred'), 'error');
         }
       }
     } catch (err: any) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาด', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteTier = async (tier: MemberTier) => {
-    if (!confirm(`คุณต้องการลบระดับ "${tier.name}" ใช่หรือไม่? (สมาชิกในระดับนี้จะถูกปรับเป็นทั่วไป)`)) {
+    if (!confirm(isThai ? `คุณต้องการลบระดับ "${tier.name}" ใช่หรือไม่? (สมาชิกในระดับนี้จะถูกปรับเป็นทั่วไป)` : `Are you sure you want to delete tier "${tier.name}"? (Members in this tier will be reset to General)`)) {
       return;
     }
 
     try {
       const res = await deleteMemberTierAction(tier.id, orgId);
       if (res.success) {
-        showToast('ลบระดับสมาชิกสำเร็จ', 'success');
+        showToast(isThai ? 'ลบระดับสมาชิกสำเร็จ' : 'Tier deleted successfully', 'success');
         loadData();
       } else {
-        showToast(res.message || 'ไม่สามารถลบได้', 'error');
+        showToast(res.message || (isThai ? 'ไม่สามารถลบได้' : 'Failed to delete'), 'error');
       }
     } catch (err) {
-      showToast('เกิดข้อผิดพลาดในการลบระดับสมาชิก', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการลบระดับสมาชิก' : 'Error deleting tier', 'error');
     }
   };
 
@@ -602,7 +604,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
       setHasMoreHistory(res.hasMore ?? false);
     } catch (err) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาดในการโหลดประวัติ', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการโหลดประวัติ' : 'Failed to load history', 'error');
     } finally {
       setIsLoadingHistory(false);
     }
@@ -695,13 +697,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           </div>
           <div className="min-w-0">
             <h2 className="text-sm sm:text-base font-bold text-pos-text flex items-center gap-2 truncate">
-              <span>ระบบสมาชิก</span>
+              <span>{isThai ? 'ระบบสมาชิก' : 'Member System'}</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
-                {stats.totalMembers} คน
+                {stats.totalMembers} {isThai ? 'คน' : 'members'}
               </span>
             </h2>
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
-              จัดการสมาชิก แต้มสะสม และเครดิตเงินสด
+              {isThai ? 'จัดการสมาชิก แต้มสะสม และเครดิตเงินสด' : 'Manage members, reward points, and store credits'}
             </p>
           </div>
         </div>
@@ -717,10 +719,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-pos-text'
                 }`}
-              title="มุมมองการ์ด (เหมาะกับแท็บเล็ต/มือถือ)"
+              title={isThai ? 'มุมมองการ์ด (เหมาะกับแท็บเล็ต/มือถือ)' : 'Card view (suited for tablet/mobile)'}
             >
               <CardViewIcon className="w-3.5 h-3.5" />
-              <span>การ์ด</span>
+              <span>{isThai ? 'การ์ด' : 'Card'}</span>
             </button>
             <button
               type="button"
@@ -729,10 +731,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-2xs font-bold'
                 : 'text-slate-400 hover:text-pos-text'
                 }`}
-              title="มุมมองตาราง (เหมาะกับหน้าจอคอม)"
+              title={isThai ? 'มุมมองตาราง (เหมาะกับหน้าจอคอม)' : 'Table view (suited for desktop)'}
             >
               <TableViewIcon className="w-3.5 h-3.5" />
-              <span>ตาราง</span>
+              <span>{isThai ? 'ตาราง' : 'Table'}</span>
             </button>
           </div>
 
@@ -742,7 +744,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-98 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer shrink-0"
           >
             <PlusIcon className="w-4 h-4" />
-            <span>เพิ่มสมาชิกใหม่</span>
+            <span>{isThai ? 'เพิ่มสมาชิกใหม่' : 'Add New Member'}</span>
           </button>
         </div>
       </div>
@@ -752,45 +754,45 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         {/* Total Members */}
         <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">สมาชิกทั้งหมด</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{isThai ? 'สมาชิกทั้งหมด' : 'Total Members'}</span>
             <div className="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
               <UserGroupIcon className="w-3.5 h-3.5" />
             </div>
           </div>
           <p className="text-base sm:text-xl font-black text-pos-text mt-0.5">{stats.totalMembers.toLocaleString()}</p>
           <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
-            ใช้งานปกติ {stats.activeMembers} คน
+            {isThai ? `ใช้งานปกติ ${stats.activeMembers} คน` : `Active ${stats.activeMembers}`}
           </p>
         </div>
 
         {/* Total Tiers */}
         <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">ระดับสมาชิก</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{isThai ? 'ระดับสมาชิก' : 'Member Tiers'}</span>
             <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <StarIcon className="w-3.5 h-3.5" />
             </div>
           </div>
-          <p className="text-base sm:text-xl font-black text-pos-text mt-0.5">{tiers.length} ระดับ</p>
-          <p className="text-[10px] text-slate-400 font-medium truncate">สิทธิประโยชน์สมาชิก</p>
+          <p className="text-base sm:text-xl font-black text-pos-text mt-0.5">{tiers.length} {isThai ? 'ระดับ' : 'Tiers'}</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">{isThai ? 'สิทธิประโยชน์สมาชิก' : 'Member benefits'}</p>
         </div>
 
         {/* Total Points */}
         <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">แต้มสะสมรวม</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{isThai ? 'แต้มสะสมรวม' : 'Total Points'}</span>
             <div className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <span className="text-[10px] font-bold">PT</span>
             </div>
           </div>
           <p className="text-base sm:text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{stats.totalPoints.toLocaleString()}</p>
-          <p className="text-[10px] text-slate-400 font-medium truncate">แต้มที่ถืออยู่</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">{isThai ? 'แต้มที่ถืออยู่' : 'Current held points'}</p>
         </div>
 
         {/* Total Credit Balance */}
         <div className="p-2.5 sm:p-3 rounded-xl bg-pos-surface border border-pos-border shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">เครดิตกระเป๋ารวม</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{isThai ? 'เครดิตกระเป๋ารวม' : 'Total Wallet Credits'}</span>
             <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <WalletIcon className="w-3.5 h-3.5" />
             </div>
@@ -798,7 +800,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           <p className="text-base sm:text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
             {currencySymbol}{stats.totalCreditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </p>
-          <p className="text-[10px] text-slate-400 font-medium truncate">เงินที่เติมไว้ในระบบ</p>
+          <p className="text-[10px] text-slate-400 font-medium truncate">{isThai ? 'เงินที่เติมไว้ในระบบ' : 'Total deposited balance'}</p>
         </div>
       </div>
 
@@ -814,7 +816,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               }`}
           >
             <UserGroupIcon className="w-4 h-4" />
-            <span>รายชื่อสมาชิก ({stats.totalMembers})</span>
+            <span>{isThai ? `รายชื่อสมาชิก (${stats.totalMembers})` : `Members (${stats.totalMembers})`}</span>
           </button>
           <button
             type="button"
@@ -825,7 +827,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               }`}
           >
             <StarIcon className="w-4 h-4" />
-            <span>ระดับสมาชิก ({tiers.length})</span>
+            <span>{isThai ? `ระดับสมาชิก (${tiers.length})` : `Tiers (${tiers.length})`}</span>
           </button>
         </div>
       </div>
@@ -849,7 +851,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="ค้นหาเบอร์โทร หรือ ชื่อสมาชิก..."
+                placeholder={isThai ? 'ค้นหาเบอร์โทร หรือ ชื่อสมาชิก...' : 'Search by phone or name...'}
                 className="w-full pl-9 pr-9 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text placeholder-slate-400 focus:outline-none focus:border-sky-500 transition"
               />
               {searchQuery && (
@@ -879,9 +881,9 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   style={{ backgroundImage: 'none' }}
                   className="appearance-none bg-none w-full pl-2.5 pr-7 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
                 >
-                  <option value="ALL">สถานะทั้งหมด</option>
-                  <option value="ACTIVE">ใช้งานปกติ</option>
-                  <option value="INACTIVE">ระงับการใช้</option>
+                  <option value="ALL">{isThai ? 'สถานะทั้งหมด' : 'All Status'}</option>
+                  <option value="ACTIVE">{isThai ? 'ใช้งานปกติ' : 'Active'}</option>
+                  <option value="INACTIVE">{isThai ? 'ระงับการใช้' : 'Inactive'}</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400">
                   <ChevronDownIcon className="w-3.5 h-3.5" />
@@ -899,7 +901,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   style={{ backgroundImage: 'none' }}
                   className="appearance-none bg-none w-full pl-2.5 pr-7 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer truncate"
                 >
-                  <option value="ALL">ระดับทั้งหมด</option>
+                  <option value="ALL">{isThai ? 'ระดับทั้งหมด' : 'All Tiers'}</option>
                   {tiers.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
@@ -916,16 +918,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           {/* Members Content Container */}
           {isLoading ? (
             <div className="py-16 text-center text-slate-400 text-sm rounded-2xl bg-pos-surface border border-pos-border">
-              กำลังโหลดข้อมูลสมาชิก...
+              {isThai ? 'กำลังโหลดข้อมูลสมาชิก...' : 'Loading members...'}
             </div>
           ) : members.length === 0 ? (
             <div className="py-16 text-center px-4 rounded-2xl bg-pos-surface border border-pos-border">
               <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
                 <UserGroupIcon className="w-6 h-6" />
               </div>
-              <p className="text-sm font-semibold text-pos-text">ไม่พบข้อมูลสมาชิก</p>
+              <p className="text-sm font-semibold text-pos-text">{isThai ? 'ไม่พบข้อมูลสมาชิก' : 'No members found'}</p>
               <p className="text-xs text-slate-400 mt-1">
-                {searchQuery ? 'ลองเปลี่ยนคำค้นหา หรือล้างตัวกรอง' : 'กดปุ่ม "เพิ่มสมาชิกใหม่" ด้านบนเพื่อเริ่มสร้างสมาชิกคนแรก'}
+                {searchQuery ? (isThai ? 'ลองเปลี่ยนคำค้นหา หรือล้างตัวกรอง' : 'Try changing search query or clear filters') : (isThai ? 'กดปุ่ม "เพิ่มสมาชิกใหม่" ด้านบนเพื่อเริ่มสร้างสมาชิกคนแรก' : 'Click "Add New Member" above to get started')}
               </p>
             </div>
           ) : (
@@ -967,9 +969,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <span>{member.tier.name}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
-                                ทั่วไป
-                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">{isThai ? 'ทั่วไป' : 'General'}</span>
                             )}
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${isInactive
@@ -978,7 +978,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                              <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
+                              <span>{isInactive ? (isThai ? 'ระงับการใช้' : 'Inactive') : (isThai ? 'ใช้งานปกติ' : 'Active')}</span>
                             </span>
                           </div>
                         </div>
@@ -988,9 +988,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                           {/* Points */}
                           <div className="p-2.5 rounded-xl bg-indigo-500/5 dark:bg-indigo-950/20 border border-indigo-500/15 flex items-center justify-between gap-1.5">
                             <div className="min-w-0">
-                              <span className="text-[10px] text-indigo-600/70 dark:text-indigo-400/70 font-semibold block truncate">
-                                แต้มสะสม
-                              </span>
+                              <span className="text-[10px] text-indigo-600/70 dark:text-indigo-400/70 font-semibold block truncate">{isThai ? 'แต้มสะสม' : 'Points'}</span>
                               <span className="text-xs sm:text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono">
                                 {member.points.toLocaleString()} <span className="text-[10px] font-bold">PT</span>
                               </span>
@@ -999,19 +997,17 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               type="button"
                               onClick={() => handleOpenAdjust(member, 'POINT')}
                               className="px-2 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer transition shrink-0"
-                              title="ปรับแต้มสะสม"
+                              title={isThai ? 'ปรับแต้มสะสม' : 'Adjust points'}
                             >
                               <span>＋</span>
-                              <span>ปรับ</span>
+                              <span>{isThai ? 'ปรับ' : 'Adjust'}</span>
                             </button>
                           </div>
 
                           {/* Credit */}
                           <div className="p-2.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/15 flex items-center justify-between gap-1.5">
                             <div className="min-w-0">
-                              <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-semibold block truncate">
-                                เครดิตร้านค้า
-                              </span>
+                              <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-semibold block truncate">{isThai ? 'เครดิตร้านค้า' : 'Store Credit'}</span>
                               <span className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
                                 {currencySymbol}{member.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                               </span>
@@ -1020,10 +1016,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               type="button"
                               onClick={() => handleOpenAdjust(member, 'CREDIT')}
                               className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer transition shrink-0"
-                              title="เติม/หักเครดิต"
+                              title={isThai ? 'เติม/หักเครดิต' : 'Top-up/Deduct credit'}
                             >
                               <span>＋</span>
-                              <span>เติม</span>
+                              <span>{isThai ? 'เติม' : 'Top-up'}</span>
                             </button>
                           </div>
                         </div>
@@ -1036,7 +1032,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                             className="px-3 py-1.5 rounded-xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
                           >
                             <HistoryIcon className="w-3.5 h-3.5 text-sky-500" />
-                            <span>ประวัติ</span>
+                            <span>{isThai ? 'ประวัติ' : 'History'}</span>
                           </button>
 
                           <div className="flex items-center gap-1.5">
@@ -1046,7 +1042,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               className="px-3 py-1.5 rounded-xl bg-pos-bg hover:bg-amber-500/10 border border-pos-border hover:border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
                             >
                               <EditIcon className="w-3.5 h-3.5" />
-                              <span>แก้ไข</span>
+                              <span>{isThai ? 'แก้ไข' : 'Edit'}</span>
                             </button>
                             <button
                               type="button"
@@ -1054,7 +1050,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5 cursor-pointer transition active:scale-98"
                             >
                               <TrashIcon className="w-3.5 h-3.5" />
-                              <span>ลบ</span>
+                              <span>{isThai ? 'ลบ' : 'Delete'}</span>
                             </button>
                           </div>
                         </div>
@@ -1070,13 +1066,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   <table className="min-w-[760px] w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
                       <tr className="border-b border-pos-border bg-pos-bg/70 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
-                        <th className="py-3 px-4 whitespace-nowrap">สมาชิก</th>
-                        <th className="py-3 px-3 whitespace-nowrap">เบอร์โทรศัพท์</th>
-                        <th className="py-3 px-3 whitespace-nowrap">ระดับ</th>
-                        <th className="py-3 px-3 text-right whitespace-nowrap">แต้มสะสม</th>
-                        <th className="py-3 px-3 text-right whitespace-nowrap">เครดิตคงเหลือ</th>
-                        <th className="py-3 px-3 text-center whitespace-nowrap">สถานะ</th>
-                        <th className="py-3 px-4 text-center whitespace-nowrap">จัดการ</th>
+                        <th className="py-3 px-4 whitespace-nowrap">{isThai ? 'สมาชิก' : 'Member'}</th>
+                        <th className="py-3 px-3 whitespace-nowrap">{isThai ? 'เบอร์โทรศัพท์' : 'Phone Number'}</th>
+                        <th className="py-3 px-3 whitespace-nowrap">{isThai ? 'ระดับ' : 'Tier'}</th>
+                        <th className="py-3 px-3 text-right whitespace-nowrap">{isThai ? 'แต้มสะสม' : 'Points'}</th>
+                        <th className="py-3 px-3 text-right whitespace-nowrap">{isThai ? 'เครดิตคงเหลือ' : 'Wallet Credit'}</th>
+                        <th className="py-3 px-3 text-center whitespace-nowrap">{isThai ? 'สถานะ' : 'Status'}</th>
+                        <th className="py-3 px-4 text-center whitespace-nowrap">{isThai ? 'จัดการ' : 'Actions'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-pos-border">
@@ -1116,7 +1112,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                   {member.tier.name}
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-xs px-2 py-0.5 rounded-full bg-slate-500/10 border border-slate-500/20">ทั่วไป</span>
+                                <span className="text-slate-400 text-xs px-2 py-0.5 rounded-full bg-slate-500/10 border border-slate-500/20">{isThai ? 'ทั่วไป' : 'General'}</span>
                               )}
                             </td>
 
@@ -1128,7 +1124,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAdjust(member, 'POINT')}
-                                  title="ปรับแต้มสะสม"
+                                  title={isThai ? 'ปรับแต้มสะสม' : 'Adjust points'}
                                   className="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 flex items-center justify-center text-[11px] font-bold cursor-pointer transition"
                                 >
                                   ＋
@@ -1144,7 +1140,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAdjust(member, 'CREDIT')}
-                                  title="เติม/หักเครดิต"
+                                  title={isThai ? 'เติม/หักเครดิต' : 'Top-up/Deduct credit'}
                                   className="w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-[11px] font-bold cursor-pointer transition"
                                 >
                                   ＋
@@ -1160,7 +1156,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                   }`}
                               >
                                 <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                                <span>{isInactive ? 'ระงับการใช้' : 'ใช้งานปกติ'}</span>
+                                <span>{isInactive ? (isThai ? 'ระงับการใช้' : 'Inactive') : (isThai ? 'ใช้งานปกติ' : 'Active')}</span>
                               </span>
                             </td>
 
@@ -1169,7 +1165,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <button
                                   type="button"
                                   onClick={() => handleOpenHistory(member)}
-                                  title="ประวัติการเคลื่อนไหวแต้ม/เครดิต"
+                                  title={isThai ? 'ประวัติการเคลื่อนไหวแต้ม/เครดิต' : 'Points/Credits History'}
                                   className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-pos-hover transition cursor-pointer"
                                 >
                                   <HistoryIcon className="w-4 h-4" />
@@ -1177,7 +1173,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditMember(member)}
-                                  title="แก้ไขข้อมูลสมาชิก"
+                                  title={isThai ? 'แก้ไขข้อมูลสมาชิก' : 'Edit Member Info'}
                                   className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-pos-hover transition cursor-pointer"
                                 >
                                   <EditIcon className="w-4 h-4" />
@@ -1185,7 +1181,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDelete(member)}
-                                  title="ลบสมาชิก"
+                                  title={isThai ? 'ลบสมาชิก' : 'Delete Member'}
                                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition cursor-pointer"
                                 >
                                   <TrashIcon className="w-4 h-4" />
@@ -1208,11 +1204,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {/* Left: Summary & Page Size */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-slate-500 dark:text-slate-400">
                 <span className="whitespace-nowrap">
-                  แสดง <strong className="text-pos-text font-bold">{Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}</strong> จาก <strong className="text-pos-text font-bold">{totalCount}</strong> คน
+                  {isThai ? <>แสดง <strong className="text-pos-text font-bold">{Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}</strong> จาก <strong className="text-pos-text font-bold">{totalCount}</strong> คน</> : <>Showing <strong className="text-pos-text font-bold">{Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}</strong> of <strong className="text-pos-text font-bold">{totalCount}</strong></>}
                 </span>
                 <span className="text-slate-300 dark:text-slate-700">|</span>
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
-                  <span>ต่อหน้า:</span>
+                  <span>{isThai ? 'ต่อหน้า:' : 'Per page:'}</span>
                   <div className="relative">
                     <select
                       value={pageSize}
@@ -1242,7 +1238,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage(1)}
                   className="w-8 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center shrink-0"
-                  title="หน้าแรก"
+                  title={isThai ? 'หน้าแรก' : 'First page'}
                 >
                   «
                 </button>
@@ -1251,22 +1247,22 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   className="px-2.5 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
-                  title="ก่อนหน้า"
+                  title={isThai ? 'ก่อนหน้า' : 'Previous page'}
                 >
                   <span>‹</span>
-                  <span className="hidden sm:inline">ก่อนหน้า</span>
+                  <span className="hidden sm:inline">{isThai ? 'ก่อนหน้า' : 'Previous'}</span>
                 </button>
                 <div className="px-2.5 sm:px-3 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-bold whitespace-nowrap flex items-center justify-center text-xs">
-                  หน้า {currentPage} / {Math.max(1, totalPages)}
+                  {isThai ? `หน้า ${currentPage} / ${Math.max(1, totalPages)}` : `Page ${currentPage} of ${Math.max(1, totalPages)}`}
                 </div>
                 <button
                   type="button"
                   disabled={currentPage >= totalPages || isLoading}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   className="px-2.5 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center gap-1 shrink-0 whitespace-nowrap"
-                  title="ถัดไป"
+                  title={isThai ? 'ถัดไป' : 'Next page'}
                 >
-                  <span className="hidden sm:inline">ถัดไป</span>
+                  <span className="hidden sm:inline">{isThai ? 'ถัดไป' : 'Next'}</span>
                   <span>›</span>
                 </button>
                 <button
@@ -1274,7 +1270,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   disabled={currentPage >= totalPages || isLoading}
                   onClick={() => setCurrentPage(totalPages)}
                   className="w-8 h-8 rounded-lg border border-pos-border bg-pos-bg hover:bg-pos-hover disabled:opacity-40 disabled:cursor-not-allowed text-pos-text font-bold cursor-pointer transition flex items-center justify-center shrink-0"
-                  title="หน้าสุดท้าย"
+                  title={isThai ? 'หน้าสุดท้าย' : 'Last page'}
                 >
                   »
                 </button>
@@ -1291,9 +1287,9 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
         <div className="space-y-3.5">
           <div className="p-4 rounded-2xl bg-pos-surface border border-pos-border shadow-xs flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-pos-text">ระดับสมาชิก (Member Tiers)</h3>
+              <h3 className="font-bold text-sm sm:text-base text-pos-text">{isThai ? 'ระดับสมาชิก (Member Tiers)' : 'Member Tiers'}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                กำหนดระดับสมาชิกเพื่อมอบสิทธิพิเศษ เช่น ส่วนลดค่าอาหาร และตัวคูณแต้มสะสม
+                {isThai ? 'กำหนดระดับสมาชิกเพื่อมอบสิทธิพิเศษ เช่น ส่วนลดค่าอาหาร และตัวคูณแต้มสะสม' : 'Define member tiers to grant special perks like discounts and point multipliers'}
               </p>
             </div>
             <button
@@ -1302,7 +1298,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition"
             >
               <PlusIcon className="w-4 h-4" />
-              <span>เพิ่มระดับ</span>
+              <span>{isThai ? 'เพิ่มระดับ' : 'Add Tier'}</span>
             </button>
           </div>
 
@@ -1310,8 +1306,8 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             {tiers.length === 0 ? (
               <div className="col-span-full py-12 text-center bg-pos-surface rounded-2xl border border-pos-border">
                 <StarIcon className="w-8 h-8 text-amber-500/50 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-pos-text">ยังไม่มีระดับสมาชิก</p>
-                <p className="text-xs text-slate-400 mt-0.5">กดปุ่ม &quot;เพิ่มระดับ&quot; ด้านบนเพื่อสร้างระดับแรก (เช่น Silver, Gold)</p>
+                <p className="text-sm font-semibold text-pos-text">{isThai ? 'ยังไม่มีระดับสมาชิก' : 'No tiers defined yet'}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{isThai ? 'กดปุ่ม "เพิ่มระดับ" ด้านบนเพื่อสร้างระดับแรก (เช่น Silver, Gold)' : 'Click "Add Tier" above to create your first tier (e.g. Silver, Gold)'}</p>
               </div>
             ) : (
               tiers.map((tier) => (
@@ -1326,7 +1322,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                         <h4 className="font-bold text-base text-pos-text">{tier.name}</h4>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        สมาชิกในระดับนี้: {tier._count?.members || 0} คน
+                        {isThai ? `สมาชิกในระดับนี้: ${tier._count?.members || 0} คน` : `Members in this tier: ${tier._count?.members || 0}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1349,15 +1345,15 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-pos-border/60 text-center">
                     <div className="p-2 rounded-xl bg-pos-bg">
-                      <span className="block text-[10px] text-slate-400 font-semibold">ยอดใช้สะสม</span>
+                      <span className="block text-[10px] text-slate-400 font-semibold">{isThai ? 'ยอดใช้สะสม' : 'Min Spend'}</span>
                       <span className="text-xs font-black text-pos-text">{currencySymbol}{tier.minSpending.toLocaleString()}</span>
                     </div>
                     <div className="p-2 rounded-xl bg-pos-bg">
-                      <span className="block text-[10px] text-slate-400 font-semibold">ตัวคูณแต้ม</span>
+                      <span className="block text-[10px] text-slate-400 font-semibold">{isThai ? 'ตัวคูณแต้ม' : 'Multiplier'}</span>
                       <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">{tier.pointMultiplier}x</span>
                     </div>
                     <div className="p-2 rounded-xl bg-pos-bg">
-                      <span className="block text-[10px] text-slate-400 font-semibold">ส่วนลด</span>
+                      <span className="block text-[10px] text-slate-400 font-semibold">{isThai ? 'ส่วนลด' : 'Discount'}</span>
                       <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{tier.discountPercent}%</span>
                     </div>
                   </div>
@@ -1381,7 +1377,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   <UserGroupIcon className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-pos-text">
-                  {modalMode === 'add' ? 'เพิ่มสมาชิกใหม่' : 'แก้ไขข้อมูลสมาชิก'}
+                  {modalMode === 'add' ? (isThai ? 'เพิ่มสมาชิกใหม่' : 'Add New Member') : (isThai ? 'แก้ไขข้อมูลสมาชิก' : 'Edit Member')}
                 </h3>
               </div>
               <button
@@ -1398,14 +1394,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {/* Phone (เบอร์โทรศัพท์) */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  เบอร์โทรศัพท์ <span className="text-rose-500">*</span>
+                  {isThai ? 'เบอร์โทรศัพท์' : 'Phone Number'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
                   required
                   value={memberForm.phone}
                   onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
-                  placeholder="เช่น 0812345678"
+                  placeholder={isThai ? 'เช่น 0812345678' : 'e.g. 0812345678'}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500 font-mono"
                 />
               </div>
@@ -1414,26 +1410,26 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    ชื่อจริง <span className="text-rose-500">*</span>
+                    {isThai ? 'ชื่อจริง' : 'First Name'} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={memberForm.firstName}
                     onChange={(e) => setMemberForm({ ...memberForm, firstName: e.target.value })}
-                    placeholder="เช่น สมชาย"
+                    placeholder={isThai ? 'เช่น สมชาย' : 'e.g. Somchai'}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    นามสกุล
+                    {isThai ? "นามสกุล" : "Last Name"}
                   </label>
                   <input
                     type="text"
                     value={memberForm.lastName}
                     onChange={(e) => setMemberForm({ ...memberForm, lastName: e.target.value })}
-                    placeholder="เช่น ใจดี"
+                    placeholder={isThai ? 'เช่น ใจดี' : 'e.g. Jaidee'}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500"
                   />
                 </div>
@@ -1442,7 +1438,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {/* Member Tier (ระดับสมาชิก) */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  ระดับสมาชิก
+                  {isThai ? "ระดับสมาชิก" : "Member Tier"}
                 </label>
                 <div className="relative">
                   <select
@@ -1451,10 +1447,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     style={{ backgroundImage: 'none' }}
                     className="appearance-none bg-none w-full pl-3.5 pr-9 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-sky-500 cursor-pointer"
                   >
-                    <option value="">สมาชิกทั่วไป (ไม่มีระดับ)</option>
+                    <option value="">{isThai ? 'สมาชิกทั่วไป (ไม่มีระดับ)' : 'General Member (No Tier)'}</option>
                     {tiers.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} (ลด {t.discountPercent}% · คูณแต้ม {t.pointMultiplier}x)
+                        {t.name} ({isThai ? `ลด ${t.discountPercent}% · คูณแต้ม ${t.pointMultiplier}x` : `Discount ${t.discountPercent}% · ${t.pointMultiplier}x Points`})
                       </option>
                     ))}
                   </select>
@@ -1469,7 +1465,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 <div className="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-pos-bg/80 border border-pos-border/70">
                   <div>
                     <label className="block text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-1">
-                      แต้มเริ่มต้น
+                      {isThai ? "แต้มเริ่มต้น" : "Initial Points"}
                     </label>
                     <input
                       type="number"
@@ -1482,7 +1478,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                      เครดิตเริ่มต้น ({currencySymbol})
+                      {isThai ? `เครดิตเริ่มต้น (${currencySymbol})` : `Initial Credit (${currencySymbol})`}
                     </label>
                     <input
                       type="number"
@@ -1501,7 +1497,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {modalMode === 'edit' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    สถานะการใช้งาน
+                    {isThai ? "สถานะการใช้งาน" : "Status"}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -1512,7 +1508,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                         : 'bg-pos-bg border-pos-border text-slate-400'
                         }`}
                     >
-                      ใช้งานปกติ (ACTIVE)
+                      {isThai ? 'ใช้งานปกติ (ACTIVE)' : 'Active'}
                     </button>
                     <button
                       type="button"
@@ -1522,7 +1518,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                         : 'bg-pos-bg border-pos-border text-slate-400'
                         }`}
                     >
-                      ระงับการใช้ (INACTIVE)
+                      {isThai ? 'ระงับการใช้ (INACTIVE)' : 'Inactive'}
                     </button>
                   </div>
                 </div>
@@ -1535,14 +1531,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   onClick={() => setIsMemberModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl border border-pos-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-pos-hover cursor-pointer"
                 >
-                  ยกเลิก
+                  {isThai ? "ยกเลิก" : "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-bold shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : modalMode === 'add' ? 'เพิ่มสมาชิก' : 'บันทึกการแก้ไข'}
+                  {isSubmitting ? (isThai ? 'กำลังบันทึก...' : 'Saving...') : modalMode === 'add' ? (isThai ? 'เพิ่มสมาชิก' : 'Add Member') : (isThai ? 'บันทึกการแก้ไข' : 'Save Changes')}
                 </button>
               </div>
             </form>
@@ -1559,10 +1555,10 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             <div className="p-4 sm:p-5 border-b border-pos-border flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-base text-pos-text">
-                  {adjustForm.walletType === 'POINT' ? 'ปรับแต้มสะสม' : 'ปรับเครดิตเงินสด'}
+                  {adjustForm.walletType === 'POINT' ? (isThai ? 'ปรับแต้มสะสม' : 'Adjust Points') : (isThai ? 'ปรับเครดิตเงินสด' : 'Adjust Cash Credit')}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  สมาชิก: {adjustTargetMember.firstName} ({adjustTargetMember.phone})
+                  {isThai ? `สมาชิก: ${adjustTargetMember.firstName} (${adjustTargetMember.phone})` : `Member: ${adjustTargetMember.firstName} (${adjustTargetMember.phone})`}
                 </p>
               </div>
               <button
@@ -1585,7 +1581,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     : 'bg-pos-bg border-pos-border text-slate-400'
                     }`}
                 >
-                  ＋ เพิ่ม (Top-up/Earn)
+                  {isThai ? '＋ เพิ่ม (Top-up/Earn)' : '＋ Add (Top-up/Earn)'}
                 </button>
                 <button
                   type="button"
@@ -1595,16 +1591,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     : 'bg-pos-bg border-pos-border text-slate-400'
                     }`}
                 >
-                  － ลด (Deduct/Redeem)
+                  {isThai ? '－ ลด (Deduct/Redeem)' : '－ Deduct (Deduct/Redeem)'}
                 </button>
               </div>
 
               {/* Current Balance Notice */}
               <div className="p-3 rounded-xl bg-pos-bg text-center">
-                <span className="text-[11px] text-slate-400 block font-semibold">ยอดปัจจุบัน</span>
+                <span className="text-[11px] text-slate-400 block font-semibold">{isThai ? 'ยอดปัจจุบัน' : 'Current Balance'}</span>
                 <span className="text-lg font-black text-pos-text">
                   {adjustForm.walletType === 'POINT'
-                    ? `${adjustTargetMember.points.toLocaleString()} แต้ม`
+                    ? `${adjustTargetMember.points.toLocaleString()} ${isThai ? 'แต้ม' : 'pts'}`
                     : `${currencySymbol}${adjustTargetMember.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                 </span>
               </div>
@@ -1612,7 +1608,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {/* Amount */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  จำนวน {adjustForm.walletType === 'POINT' ? 'แต้ม' : `เงิน (${currencySymbol})`} <span className="text-rose-500">*</span>
+                  {isThai ? `จำนวน ${adjustForm.walletType === 'POINT' ? 'แต้ม' : `เงิน (${currencySymbol})`}` : `Amount of ${adjustForm.walletType === 'POINT' ? 'Points' : `Credit (${currencySymbol})`}`} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -1642,13 +1638,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {/* Note */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  หมายเหตุ / เหตุผล
+                  {isThai ? "หมายเหตุ / เหตุผล" : "Note / Reason"}
                 </label>
                 <input
                   type="text"
                   value={adjustForm.note}
                   onChange={(e) => setAdjustForm({ ...adjustForm, note: e.target.value })}
-                  placeholder="เช่น เติมเงินสดหน้าร้าน, แลกของรางวัล"
+                  placeholder={isThai ? 'เช่น เติมเงินสดหน้าร้าน, แลกของรางวัล' : 'e.g. In-store top-up, reward redemption'}
                   className="w-full px-3.5 py-2 rounded-xl bg-pos-bg border border-pos-border text-xs text-pos-text focus:outline-none focus:border-sky-500"
                 />
               </div>
@@ -1660,14 +1656,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   onClick={() => setIsAdjustModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl border border-pos-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-pos-hover cursor-pointer"
                 >
-                  ยกเลิก
+                  {isThai ? "ยกเลิก" : "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'กำลังทำรายการ...' : 'ยืนยันทำรายการ'}
+                  {isSubmitting ? (isThai ? 'กำลังทำรายการ...' : 'Processing...') : (isThai ? 'ยืนยันทำรายการ' : 'Confirm Transaction')}
                 </button>
               </div>
             </form>
@@ -1683,7 +1679,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
           <div className="w-full max-w-sm bg-pos-surface rounded-3xl shadow-2xl border border-pos-border overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-pos-border flex items-center justify-between">
               <h3 className="font-bold text-base text-pos-text">
-                {tierModalMode === 'add' ? 'เพิ่มระดับสมาชิกใหม่' : 'แก้ไขระดับสมาชิก'}
+                {tierModalMode === 'add' ? (isThai ? 'เพิ่มระดับสมาชิกใหม่' : 'Add New Tier') : (isThai ? 'แก้ไขระดับสมาชิก' : 'Edit Tier')}
               </h3>
               <button
                 type="button"
@@ -1697,21 +1693,21 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             <form onSubmit={handleSaveTier} className="p-4 sm:p-5 space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  ชื่อระดับ <span className="text-rose-500">*</span>
+                  {isThai ? 'ชื่อระดับ' : 'Tier Name'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={tierForm.name}
                   onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
-                  placeholder="เช่น Silver, Gold, VIP"
+                  placeholder={isThai ? 'เช่น Silver, Gold, VIP' : 'e.g. Silver, Gold, VIP'}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  ยอดใช้จ่ายสะสมขั้นต่ำ ({currencySymbol})
+                  {isThai ? `ยอดใช้จ่ายสะสมขั้นต่ำ (${currencySymbol})` : `Min Accumulated Spending (${currencySymbol})`}
                 </label>
                 <input
                   type="number"
@@ -1725,7 +1721,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    ตัวคูณแต้ม
+                    {isThai ? "ตัวคูณแต้ม" : "Point Multiplier"}
                   </label>
                   <input
                     type="number"
@@ -1738,7 +1734,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    ส่วนลด (%)
+                    {isThai ? "ส่วนลด (%)" : "Discount (%)"}
                   </label>
                   <input
                     type="number"
@@ -1758,14 +1754,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   onClick={() => setIsTierModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl border border-pos-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-pos-hover cursor-pointer"
                 >
-                  ยกเลิก
+                  {isThai ? "ยกเลิก" : "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกระดับ'}
+                  {isSubmitting ? (isThai ? 'กำลังบันทึก...' : 'Saving...') : (isThai ? 'บันทึกระดับ' : 'Save Tier')}
                 </button>
               </div>
             </form>
@@ -1784,16 +1780,16 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-pos-text">ยืนยันการลบสมาชิก?</h3>
+              <h3 className="text-base font-bold text-pos-text">{isThai ? 'ยืนยันการลบสมาชิก?' : 'Confirm Member Deletion?'}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                คุณแน่ใจหรือไม่ว่าต้องการลบ{' '}
+                {isThai ? 'คุณแน่ใจหรือไม่ว่าต้องการลบ ' : 'Are you sure you want to delete '}
                 <span className="font-bold text-pos-text">
                   &quot;{memberToDelete.firstName} {memberToDelete.lastName || ''}&quot;
                 </span>{' '}
                 ({memberToDelete.phone}) ?
               </p>
               <p className="text-[11px] text-rose-500 font-medium mt-1">
-                การกระทำนี้จะลบประวัติแต้มและเครดิตของสมาชิกท่านนี้ด้วย และไม่สามารถกู้คืนได้
+                {isThai ? 'การกระทำนี้จะลบประวัติแต้มและเครดิตของสมาชิกท่านนี้ด้วย และไม่สามารถกู้คืนได้' : 'This will also delete the points and credits history for this member and cannot be undone.'}
               </p>
             </div>
 
@@ -1806,15 +1802,15 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 }}
                 className="px-4 py-2.5 rounded-xl border border-pos-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-pos-hover cursor-pointer"
               >
-                ยกเลิก
-              </button>
+                  {isThai ? "ยกเลิก" : "Cancel"}
+                </button>
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleConfirmDelete}
                 className="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-xs disabled:opacity-50 cursor-pointer"
               >
-                {isSubmitting ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                {isSubmitting ? (isThai ? 'กำลังลบ...' : 'Deleting...') : (isThai ? 'ยืนยันลบ' : 'Confirm Delete')}
               </button>
             </div>
           </div>
@@ -1836,11 +1832,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-sm sm:text-base text-pos-text truncate">
-                      ประวัติธุรกรรมสมาชิก
+                      {isThai ? "ประวัติธุรกรรมสมาชิก" : "Member Transaction History"}
                     </h3>
                     {totalHistoryCount > 0 && (
                       <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 whitespace-nowrap">
-                        ทั้งหมด {totalHistoryCount} รายการ
+                        {isThai ? `ทั้งหมด ${totalHistoryCount} รายการ` : `Total ${totalHistoryCount} transactions`}
                       </span>
                     )}
                   </div>
@@ -1855,7 +1851,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                 type="button"
                 onClick={() => setIsHistoryModalOpen(false)}
                 className="w-8 h-8 rounded-full text-slate-400 hover:text-pos-text hover:bg-pos-hover flex items-center justify-center cursor-pointer transition shrink-0 ml-2"
-                title="ปิดหน้าต่าง"
+                title={isThai ? 'ปิดหน้าต่าง' : 'Close window'}
               >
                 <CloseIcon className="w-4 h-4" />
               </button>
@@ -1865,14 +1861,14 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
             <div className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-pos-bg/60 border-b border-pos-border/70 flex items-center justify-between text-xs shrink-0 flex-wrap gap-2">
               <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 text-[11px]">แต้มปัจจุบัน:</span>
+                  <span className="text-slate-400 text-[11px]">{isThai ? 'แต้มปัจจุบัน:' : 'Current Points:'}</span>
                   <strong className="text-indigo-600 dark:text-indigo-400 font-mono font-bold text-xs sm:text-sm">
-                    {historyMember.points.toLocaleString()} แต้ม
+                    {historyMember.points.toLocaleString()} {isThai ? 'แต้ม' : 'pts'}
                   </strong>
                 </div>
                 <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 text-[11px]">เครดิตคงเหลือ:</span>
+                  <span className="text-slate-400 text-[11px]">{isThai ? 'เครดิตคงเหลือ:' : 'Credit Balance:'}</span>
                   <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs sm:text-sm">
                     {currencySymbol}{historyMember.creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </strong>
@@ -1880,7 +1876,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               </div>
               <div className="text-[11px] text-slate-400 font-medium">
                 {transactions.length > 0 && (
-                  <span>แสดง <strong className="text-pos-text">{transactions.length}</strong> / {totalHistoryCount} รายการ</span>
+                  <span>{isThai ? <>แสดง <strong className="text-pos-text">{transactions.length}</strong> / {totalHistoryCount} รายการ</> : <>Showing <strong className="text-pos-text">{transactions.length}</strong> / {totalHistoryCount} transactions</>}</span>
                 )}
               </div>
             </div>
@@ -1894,15 +1890,15 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
               {isLoadingHistory ? (
                 <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-3">
                   <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="font-medium text-slate-500 dark:text-slate-400">กำลังโหลด 10 รายการแรก...</span>
+                  <span className="font-medium text-slate-500 dark:text-slate-400">{isThai ? 'กำลังโหลด 10 รายการแรก...' : 'Loading first 10 transactions...'}</span>
                 </div>
               ) : transactions.length === 0 ? (
                 <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
                   <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-1">
                     <HistoryIcon className="w-6 h-6" />
                   </div>
-                  <p className="font-bold text-sm text-pos-text">ยังไม่มีประวัติการทำรายการ</p>
-                  <p className="text-[11px] text-slate-400">เมื่อมีการให้แต้ม ตัดแต้ม หรือเติมเครดิต ประวัติจะแสดงที่นี่</p>
+                  <p className="font-bold text-sm text-pos-text">{isThai ? 'ยังไม่มีประวัติการทำรายการ' : 'No transaction history yet'}</p>
+                  <p className="text-[11px] text-slate-400">{isThai ? 'เมื่อมีการให้แต้ม ตัดแต้ม หรือเติมเครดิต ประวัติจะแสดงที่นี่' : 'History will appear here when points are earned, redeemed, or credit is added'}</p>
                 </div>
               ) : (
                 <>
@@ -1915,19 +1911,19 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                     let typeLabel: string = tx.type;
                     let typeBg = 'bg-slate-500/15 text-slate-600 dark:text-slate-400';
                     if (tx.type === 'EARN') {
-                      typeLabel = 'ได้รับแต้ม';
+                      typeLabel = isThai ? 'ได้รับแต้ม' : 'Points Earned';
                       typeBg = 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400';
                     } else if (tx.type === 'REDEEM') {
-                      typeLabel = 'แลกแต้ม';
+                      typeLabel = isThai ? 'แลกแต้ม' : 'Points Redeemed';
                       typeBg = 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
                     } else if (tx.type === 'TOPUP') {
-                      typeLabel = 'เติมเครดิต';
+                      typeLabel = isThai ? 'เติมเครดิต' : 'Credit Top-up';
                       typeBg = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
                     } else if (tx.type === 'SPEND') {
-                      typeLabel = isPoint ? 'ใช้แต้ม' : 'ชำระเงิน';
+                      typeLabel = isPoint ? (isThai ? 'ใช้แต้ม' : 'Points Used') : (isThai ? 'ชำระเงิน' : 'Payment');
                       typeBg = 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
                     } else if (tx.type === 'REFUND') {
-                      typeLabel = 'คืนเงิน/คืนแต้ม';
+                      typeLabel = isThai ? 'คืนเงิน/คืนแต้ม' : 'Refund/Points Restored';
                       typeBg = 'bg-sky-500/15 text-sky-600 dark:text-sky-400';
                     }
 
@@ -1942,7 +1938,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                               {typeLabel}
                             </span>
                             <span className="font-bold text-pos-text truncate">
-                              {tx.note || (isPoint ? 'ปรับปรุงแต้ม' : 'ปรับปรุงเครดิต')}
+                              {tx.note || (isPoint ? (isThai ? 'ปรับปรุงแต้ม' : 'Adjusted points') : (isThai ? 'ปรับปรุงเครดิต' : 'Adjusted credit'))}
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
@@ -1950,13 +1946,13 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                             {tx.employee?.name && (
                               <>
                                 <span>·</span>
-                                <span>โดย {tx.employee.name}</span>
+                                <span>{isThai ? `โดย ${tx.employee.name}` : `by ${tx.employee.name}`}</span>
                               </>
                             )}
                             {tx.orderId && (
                               <>
                                 <span>·</span>
-                                <span className="font-mono">บิล #{tx.orderId}</span>
+                                <span className="font-mono">{isThai ? `บิล #${tx.orderId}` : `Bill #${tx.orderId}`}</span>
                               </>
                             )}
                           </p>
@@ -1971,11 +1967,11 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                           >
                             {isPositive ? '+' : ''}
                             {isPoint
-                              ? `${Math.floor(tx.amount)} แต้ม`
+                              ? `${Math.floor(tx.amount)} ${isThai ? 'แต้ม' : 'pts'}`
                               : `${currencySymbol}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                           </span>
                           <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
-                            คงเหลือ: {isPoint ? `${Math.floor(tx.balanceAfter)} แต้ม` : `${currencySymbol}${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                            {isThai ? 'คงเหลือ: ' : 'Balance: '}{isPoint ? `${Math.floor(tx.balanceAfter)} ${isThai ? 'แต้ม' : 'pts'}` : `${currencySymbol}${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                           </span>
                         </div>
                       </div>
@@ -1989,7 +1985,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   {isLoadingMoreHistory && (
                     <div className="py-3.5 px-4 rounded-2xl bg-sky-500/5 border border-sky-500/15 flex items-center justify-center gap-2.5 text-xs text-sky-600 dark:text-sky-400 font-semibold animate-fadeIn">
                       <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                      <span>กำลังโหลดเพิ่มอีก 10 รายการ... ({transactions.length}/{totalHistoryCount})</span>
+                      <span>{isThai ? `กำลังโหลดเพิ่มอีก 10 รายการ... (${transactions.length}/${totalHistoryCount})` : `Loading 10 more... (${transactions.length}/${totalHistoryCount})`}</span>
                     </div>
                   )}
 
@@ -2001,7 +1997,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                         onClick={handleLoadMoreHistory}
                         className="w-full py-3 px-4 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-2xs"
                       >
-                        <span>⬇ เลื่อนลง หรือแตะที่นี่เพื่อโหลดเพิ่มอีก 10 รายการ</span>
+                        <span>{isThai ? '⬇ เลื่อนลง หรือแตะที่นี่เพื่อโหลดเพิ่มอีก 10 รายการ' : '⬇ Scroll down or tap here to load 10 more'}</span>
                         <span className="text-[11px] font-normal text-slate-400">
                           ({transactions.length}/{totalHistoryCount})
                         </span>
@@ -2012,7 +2008,7 @@ export default function MemberSetting({ organizationId: propOrgId }: { organizat
                   {/* End of List */}
                   {!hasMoreHistory && transactions.length > 0 && !isLoadingMoreHistory && (
                     <div className="py-3 text-center text-xs text-slate-400 font-medium border-t border-pos-border/40 mt-2">
-                      ✓ แสดงครบทุกรายการแล้ว ({transactions.length} จากทั้งหมด {totalHistoryCount} รายการ)
+                      ✓ แสดงครบทุกรายการแล้ว ({transactions.length} จาก{isThai ? `ทั้งหมด ${totalHistoryCount} รายการ` : `Total ${totalHistoryCount} transactions`})
                     </div>
                   )}
                 </>

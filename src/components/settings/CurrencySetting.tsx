@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { updateCurrencyAction, getShopProfileSettings } from '@/lib/actions/actionsSettings';
 import { useEmployee } from '@/components/providers/EmployeeContext';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 export interface CurrencyItem {
   code: string;
@@ -84,6 +85,7 @@ export default function CurrencySetting({
   onSelectCurrency,
 }: CurrencySettingProps) {
   const { organizationId: contextOrgId } = useEmployee();
+  const { t } = useTranslation();
   const orgId = propOrgId || contextOrgId || 0;
 
   const [search, setSearch] = useState('');
@@ -133,7 +135,7 @@ export default function CurrencySetting({
 
   const handleSelect = async (cur: CurrencyItem) => {
     if (!orgId) {
-      showToast('ไม่พบข้อมูลองค์กร กรุณาลองใหม่อีกครั้ง', 'error');
+      showToast(t('auth.org_not_found'), 'error');
       return;
     }
 
@@ -141,18 +143,18 @@ export default function CurrencySetting({
     setSelectedCode(cur.code);
     setIsSaving(true);
 
-    const formattedLabel = cur.code === 'THB' ? 'บาท · THB' : `${cur.symbol} · ${cur.code}`;
+    const formattedLabel = `${cur.symbol} · ${cur.code}`;
 
     try {
       await updateCurrencyAction(orgId, cur.code);
-      showToast(`อัปเดตสกุลเงินเป็น ${cur.code} เรียบร้อยแล้ว`, 'success');
+      showToast(`${t('common.success')}: ${cur.code}`, 'success');
       if (onSelectCurrency) {
         onSelectCurrency(cur.code, formattedLabel);
       }
     } catch (error) {
       console.error('Failed to update currency:', error);
       setSelectedCode(previousCode);
-      showToast('เกิดข้อผิดพลาดในการบันทึกสกุลเงิน', 'error');
+      showToast(t('common.error'), 'error');
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +188,7 @@ export default function CurrencySetting({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="พิมพ์รหัสหรือชื่อสกุลเงิน เช่น USD"
+          placeholder={t('settings.search_currency_placeholder')}
           className="w-full pl-9 pr-4 py-2 rounded-2xl bg-pos-bg border border-pos-border text-xs sm:text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
         />
         {search && (
@@ -202,7 +204,7 @@ export default function CurrencySetting({
 
       {isLoading ? (
         <div className="w-full py-10 text-center text-slate-400 dark:text-slate-500 bg-pos-bg rounded-2xl border border-dashed border-pos-border">
-          <p className="text-xs font-medium animate-pulse">กำลังโหลดข้อมูลสกุลเงิน...</p>
+          <p className="text-xs font-medium animate-pulse">{t('common.loading')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
@@ -248,8 +250,8 @@ export default function CurrencySetting({
 
       {!isLoading && filteredCurrencies.length === 0 && (
         <div className="w-full py-10 text-center text-slate-400 dark:text-slate-500 bg-pos-surface rounded-2xl border border-dashed border-pos-border">
-          <p className="text-xs font-medium">ไม่พบสกุลเงินที่ค้นหา &ldquo;{search}&rdquo;</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">ลองพิมพ์ด้วยรหัสย่อ เช่น THB, USD หรือ EUR</p>
+          <p className="text-xs font-medium">{t('settings.currency_not_found')} &ldquo;{search}&rdquo;</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{t('settings.currency_search_hint')}</p>
         </div>
       )}
     </div>

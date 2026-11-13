@@ -3,8 +3,8 @@ import prisma from "@/lib/prisma";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ใบเสร็จรับเงินออนไลน์",
-  description: "รายละเอียดใบเสร็จรับเงินของคุณ",
+  title: "Online Receipt | ใบเสร็จรับเงินออนไลน์",
+  description: "Receipt Details | รายละเอียดใบเสร็จรับเงินของคุณ",
 };
 
 export default async function ReceiptOnlinePage({
@@ -17,8 +17,9 @@ export default async function ReceiptOnlinePage({
 
   if (!orderId || isNaN(orderId)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-bold p-4 text-center">
-        รหัสใบเสร็จไม่ถูกต้อง
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-500 font-bold p-4 text-center">
+        <p>รหัสใบเสร็จไม่ถูกต้อง</p>
+        <p className="text-sm font-normal text-slate-400 mt-1">Invalid Receipt ID</p>
       </div>
     );
   }
@@ -41,8 +42,9 @@ export default async function ReceiptOnlinePage({
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-bold p-4 text-center">
-        ไม่พบข้อมูลใบเสร็จนี้ในระบบ
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-500 font-bold p-4 text-center">
+        <p>ไม่พบข้อมูลใบเสร็จนี้ในระบบ</p>
+        <p className="text-sm font-normal text-slate-400 mt-1">Receipt not found in system</p>
       </div>
     );
   }

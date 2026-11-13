@@ -3,12 +3,14 @@
 import { useState } from "react";
 import ProductFormModal from "./form/ProductFormModal";
 import { ExtendedCategoryPillsProps } from "@/lib/interface";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function CategoryPills({
   initialCategories = [],
   selectedCategoryId = null,
   onSelectCategory,
 }: ExtendedCategoryPillsProps) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSelect = (id: number | null) => {
@@ -31,7 +33,7 @@ export default function CategoryPills({
                 : "bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700"
             }`}
           >
-            <span>ทั้งหมด</span>
+            <span>{t("pos.all_categories")}</span>
           </button>
 
           {/* ปุ่มรายการหมวดหมู่ */}
@@ -58,7 +60,7 @@ export default function CategoryPills({
           <button
             onClick={() => setIsModalOpen(true)}
             className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-sky-600 flex items-center justify-center font-bold hover:bg-sky-50 shadow-xs transition active:scale-95"
-            title="เพิ่มสินค้าใหม่"
+            title={t("pos.new_product")}
           >
             +
           </button>

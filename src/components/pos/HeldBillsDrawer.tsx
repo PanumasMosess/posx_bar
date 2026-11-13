@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface HeldBillsDrawerProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function HeldBillsDrawer({
   onClose,
   onSelectToPay,
 }: HeldBillsDrawerProps) {
+  const { t, language } = useTranslation();
   const { heldBills, resumeBill, deleteBill, fetchHeldBills } = useCart();
 
   const [deletingBillId, setDeletingBillId] = useState<number | null>(null);
@@ -149,7 +151,7 @@ export default function HeldBillsDrawer({
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-          กำลังเข้าครัว
+          {t('pos.to_kitchen')}
         </span>
       );
     }
@@ -158,7 +160,7 @@ export default function HeldBillsDrawer({
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-          ส่งแล้ว
+          {t('pos.sent')}
         </span>
       );
     }
@@ -166,7 +168,7 @@ export default function HeldBillsDrawer({
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-pos-surface border border-pos-border text-pos-text/60 shrink-0">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-        ฉบับร่าง
+        {t('pos.draft')}
       </span>
     );
   };
@@ -203,10 +205,10 @@ export default function HeldBillsDrawer({
             </div>
             <div>
               <h3 className="font-bold text-base text-pos-text">
-                บิลที่พักไว้
+                {t('pos.held_bills_title')}
               </h3>
               <p className="text-xs font-medium text-pos-text/60">
-                {heldBills.length} บิลรอดำเนินการ
+                {t('pos.held_bills_pending').replace('{count}', String(heldBills.length))}
               </p>
             </div>
           </div>
@@ -247,7 +249,7 @@ export default function HeldBillsDrawer({
                   d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
-              <p className="text-base font-medium">ไม่มีบิลที่พักไว้</p>
+              <p className="text-base font-medium">{t('pos.no_held_bills')}</p>
             </div>
           ) : (
             heldBills.map((bill: any) => {
@@ -298,14 +300,11 @@ export default function HeldBillsDrawer({
                       </div>
 
                       <p className="text-[11px] text-pos-text/60">
-                        ผู้ทำรายการ:{" "}
-                        <span className="font-medium text-pos-text/80">
-                          {bill.createdBy || "พนักงาน"}
-                        </span>
+                        {t('pos.created_by_staff').replace('{name}', bill.createdBy || t('header.staff'))}
                       </p>
                       <p className="text-[11px] text-pos-text/60 mt-0.5">
-                        {displayItems.length} รายการ •{" "}
-                        {new Date(bill.heldAt).toLocaleTimeString("th-TH", {
+                        {displayItems.length} {t('pos.items_unit')} •{" "}
+                        {new Date(bill.heldAt).toLocaleTimeString(language === "th" ? "th-TH" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -327,7 +326,7 @@ export default function HeldBillsDrawer({
                         subItem.product?.title ||
                         subItem.name ||
                         subItem.title ||
-                        "สินค้า";
+                        t("pos.product_default_name");
                       const subImage =
                         subItem.product?.image ||
                         subItem.product?.img ||
@@ -386,7 +385,7 @@ export default function HeldBillsDrawer({
                       onClick={() => onSelectToPay(bill.id)}
                       className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-105 active:scale-95 text-white text-xs font-bold transition shadow-md"
                     >
-                      ชำระเงิน
+                      {t("cart.checkout_btn")}
                     </button>
                     <button
                       onClick={() => {
@@ -395,12 +394,12 @@ export default function HeldBillsDrawer({
                       }}
                       className="flex-1 py-2 rounded-xl bg-pos-surface hover:bg-pos-hover border border-pos-border text-xs font-bold text-pos-text active:scale-95 transition-colors shadow-sm"
                     >
-                      คืนบิล
+                      {t("pos.restore_bill")}
                     </button>
                     <button
                       onClick={() => setDeletingBillId(Number(bill.id))}
                       className="w-10 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-800/50 text-rose-500 flex items-center justify-center active:scale-95 transition-colors"
-                      title="ลบบิลนี้ทิ้ง"
+                      title={t("pos.delete_bill_tooltip")}
                     >
                       <svg
                         className="w-4 h-4"
@@ -426,8 +425,8 @@ export default function HeldBillsDrawer({
 
       <ConfirmDeleteModal
         isOpen={deletingBillId !== null}
-        title="ยืนยันการลบบิลที่พักไว้"
-        message="คุณต้องการลบบิลนี้ออกจากระบบใช่หรือไม่? เมื่อลบแล้วจะไม่สามารถกู้คืนได้"
+        title={t("pos.delete_held_bill_title")}
+        message={t("pos.delete_held_bill_msg")}
         onConfirm={handleConfirmDeleteBill}
         onClose={() => setDeletingBillId(null)}
         isPending={isDeleting}

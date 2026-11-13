@@ -1,8 +1,11 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from '@/components/providers/LanguageContext';
 
 export default function SettingsEmptyView() {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 text-center animate-fadeIn select-none">
       <div className="flex flex-col items-center">
@@ -16,7 +19,7 @@ export default function SettingsEmptyView() {
           </svg>
         </div>
         <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium tracking-wide">
-          เลือกหัวข้อจากรายการทางซ้าย
+          {t('settings.empty_hint')}
         </p>
       </div>
     </div>

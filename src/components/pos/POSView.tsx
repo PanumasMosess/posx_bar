@@ -9,8 +9,10 @@ import FloatingSearch from "./FloatingSearch";
 import { deleteProductFromDB } from "@/lib/actions/actionsPos";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
 import { useCart } from "../providers/CartContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function POSView({ categories, products }: POSViewProps) {
+  const { t } = useTranslation();
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
     null,
   );
@@ -103,7 +105,7 @@ export default function POSView({ categories, products }: POSViewProps) {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <span className="font-semibold text-sm">กำลังโหลด...</span>
+          <span className="font-semibold text-sm">{t('common.loading')}</span>
         </div>
       )}
 
@@ -119,8 +121,8 @@ export default function POSView({ categories, products }: POSViewProps) {
 
       <ConfirmDeleteModal
         isOpen={!!productToDelete}
-        title="ลบสินค้านี้ใช่หรือไม่?"
-        message={`คุณต้องการลบ "${productToDelete?.name}" ออกจากระบบถาวรใช่ไหม?`}
+        title={t('pos.confirm_delete_product_title')}
+        message={t('pos.confirm_delete_product_msg').replace('{name}', productToDelete?.name || '')}
         onClose={() => setProductToDelete(null)}
         isPending={isDeleting}
         onConfirm={async () => {
