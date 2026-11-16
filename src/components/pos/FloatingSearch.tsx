@@ -14,12 +14,12 @@ export default function FloatingSearch({
     null,
   );
 
+  const isPointerDownRef = useRef(false);
   const isDraggingRef = useRef(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const elementStartPos = useRef({ x: 0, y: 0 });
   const currentPosRef = useRef({ x: 16, y: 300 });
 
-  // เช็คว่าปุ่มอยู่ครึ่งซ้ายหรือครึ่งขวาของหน้าจอ
   const isLeftSide =
     typeof window !== "undefined"
       ? (position?.x || 0) < window.innerWidth / 2
@@ -27,7 +27,6 @@ export default function FloatingSearch({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 🌟 ขยับตำแหน่ง Y ตั้งต้นให้สูงขึ้นเพื่อหลบ Floating Bar มือถือด้านล่าง
       const isMobile = window.innerWidth < 768;
       const initialPos = {
         x: 16,
@@ -59,14 +58,12 @@ export default function FloatingSearch({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
-    if (
-      target.tagName === "INPUT" ||
-      target.closest("button") ||
-      target.getAttribute("data-close-btn")
-    ) {
+    // ยกเว้นเฉพาะช่องพิมพ์ข้อความและปุ่มกากบาทปิด
+    if (target.tagName === "INPUT" || target.closest("[data-close-btn]")) {
       return;
     }
 
+    isPointerDownRef.current = true;
     isDraggingRef.current = false;
     dragStartPos.current = { x: e.clientX, y: e.clientY };
 
@@ -74,11 +71,13 @@ export default function FloatingSearch({
       elementStartPos.current = { ...position };
     }
 
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (e.buttons !== 1) return;
+    if (!isPointerDownRef.current) return;
 
     const dx = e.clientX - dragStartPos.current.x;
     const dy = e.clientY - dragStartPos.current.y;
@@ -93,8 +92,9 @@ export default function FloatingSearch({
 
       if (typeof window !== "undefined") {
         const padding = 16;
-        const elemWidth = isOpen ? 320 : 48;
-        const elemHeight = 48;
+        const el = e.currentTarget as HTMLElement;
+        const elemWidth = el.offsetWidth || (isOpen ? 320 : 48);
+        const elemHeight = el.offsetHeight || 48;
 
         newX = Math.max(
           padding,
@@ -113,6 +113,8 @@ export default function FloatingSearch({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    isPointerDownRef.current = false;
+
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
@@ -143,6 +145,7 @@ export default function FloatingSearch({
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             onClick={toggleOpen}
             className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-600 to-cyan-500 text-white shadow-xl shadow-sky-500/30 flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-transform"
             title={t("pos.search_placeholder")}
@@ -162,9 +165,12 @@ export default function FloatingSearch({
             </svg>
           </button>
         ) : (
-          /* แถบช่องค้นหา */
+          /* แถบช่องค้นหา (ลากย้ายตำแหน่งได้เช่นกัน) */
           <div
             onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             className={`bg-pos-surface p-1.5 rounded-full shadow-2xl border border-pos-border flex items-center gap-2 w-[80vw] sm:w-[320px] max-w-sm cursor-grab active:cursor-grabbing animate-in zoom-in-95 duration-150 ${
               isLeftSide ? "origin-left" : "origin-right"
             }`}
