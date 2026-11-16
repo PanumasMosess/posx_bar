@@ -4,12 +4,14 @@ import { useState } from "react";
 import { loginAction } from "@/lib/actions/authActions";
 import EmployeePinModal from "@/components/auth/EmployeePinModal";
 import { useEmployee } from "../providers/EmployeeContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface SigninFormProps {
   onSuccess?: () => void;
 }
 
 export default function SigninForm({ onSuccess }: SigninFormProps) {
+  const { t } = useTranslation();
   const [orgCode, setOrgCode] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -70,10 +72,10 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
           <span>🏢</span> ENTERPRISE POS LOGIN
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
-          เข้าสู่ระบบ
+          {t("auth.signin_title")}
         </h2>
         <p className="text-sm sm:text-base text-slate-500 font-semibold">
-          กรอกชื่อบริษัท/ร้านค้า และรหัสผ่านเพื่อเข้าใช้งาน
+          {t("auth.signin_subtitle")}
         </p>
       </div>
 
@@ -87,7 +89,7 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <label className="block text-xs sm:text-sm font-black text-slate-700 tracking-wide uppercase">
-            บริษัท / ร้านค้า <span className="text-rose-500">*</span>
+            {t("auth.company_name")} <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -96,7 +98,7 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
               disabled={isLoading}
               value={orgCode}
               onChange={(e) => setOrgCode(e.target.value)}
-              placeholder="เช่น 18BAR"
+              placeholder="18BAR"
               className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-base font-black font-mono uppercase outline-none focus:border-sky-500"
             />
           </div>
@@ -105,7 +107,7 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-xs sm:text-sm font-black text-slate-700 tracking-wide uppercase">
-              รหัสผ่าน (Password) <span className="text-rose-500">*</span>
+              {t("auth.password")} <span className="text-rose-500">*</span>
             </label>
           </div>
           <div className="relative">
@@ -135,7 +137,7 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
             disabled={isLoading}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black text-base shadow-lg transition-all"
           >
-            {isLoading ? "กำลังตรวจสอบสิทธิ์..." : "เข้าสู่ระบบ POSX ➔"}
+            {isLoading ? t("auth.signing_in") : `${t("auth.signin_title")} ➔`}
           </button>
         </div>
       </form>

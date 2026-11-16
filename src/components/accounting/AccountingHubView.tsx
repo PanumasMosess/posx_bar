@@ -3,6 +3,7 @@
 import React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import {
   AccountingTabKey,
   AccountingHubViewProps,
@@ -26,6 +27,7 @@ export default function AccountingHubView({
 }: AccountingHubViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
 
@@ -48,27 +50,27 @@ export default function AccountingHubView({
   }[] = [
     {
       key: "member_payment",
-      label: "รับชำระหนี้ / เครดิต",
-      sub: "จัดการลูกหนี้ · อายุหนี้ AR · บันทึกชำระ",
+      label: t("accounting.tab_member_payment"),
+      sub: t("accounting.tab_member_payment_sub"),
       icon: "💳",
       badge: initialMembers.filter((m) => m.creditBalance < 0).length,
     },
     {
       key: "history",
-      label: "รายการเดินบัญชี",
-      sub: "Statement · เงินเข้า-ออก · ตรวจสอบ",
+      label: t("accounting.tab_history"),
+      sub: t("accounting.tab_history_sub"),
       icon: "🏛️",
     },
     {
       key: "profit_loss",
-      label: "สรุปกำไร-ขาดทุน",
-      sub: "รายรับจากการขาย · รายจ่ายจริง",
+      label: t("accounting.tab_profit_loss"),
+      sub: t("accounting.tab_profit_loss_sub"),
       icon: "📊",
     },
     {
       key: "report",
-      label: "รายงานภาพรวมบัญชี",
-      sub: "P&L Breakdown · กราฟแท่ง · สัดส่วน",
+      label: t("accounting.tab_report"),
+      sub: t("accounting.tab_report_sub"),
       icon: "📈",
     },
   ];
@@ -83,10 +85,10 @@ export default function AccountingHubView({
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-pos-text leading-tight">
-              ระบบบัญชีและการเงิน (Accounting)
+              {t("accounting.hub_title")}
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-              จัดการบัญชีร้านค้า, สรุปผลกำไร-ขาดทุน, ติดตามอายุหนี้ลูกหนี้ และตรวจสอบ Statement
+              {t("accounting.hub_subtitle")}
             </p>
           </div>
         </div>
@@ -94,10 +96,10 @@ export default function AccountingHubView({
         {/* Quick info badges */}
         <div className="flex items-center gap-2 text-xs">
           <span className="px-3 py-1 rounded-lg bg-pos-bg border border-pos-border font-medium text-slate-500">
-            จำนวนบัญชี: <strong className="text-pos-text">{accounts.length}</strong> บัญชี
+            {t("accounting.accounts_count").replace("{count}", String(accounts.length))}
           </span>
           <span className="px-3 py-1 rounded-lg bg-pos-bg border border-pos-border font-medium text-slate-500">
-            ยอดคงเหลือรวม:{" "}
+            {t("accounting.total_balance")}{" "}
             <strong className="text-emerald-500">
               {accounts.reduce((s, a) => s + (a.balance || 0), 0).toLocaleString()} {currency}
             </strong>
@@ -132,7 +134,7 @@ export default function AccountingHubView({
         <div className="hidden lg:flex w-[280px] xl:w-[310px] shrink-0 flex-col gap-2">
           <div className="bg-pos-surface border border-pos-border rounded-2xl shadow-xs p-3 space-y-1">
             <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 py-1.5">
-              เมนูระบบบัญชี
+              {t("accounting.menu_title")}
             </p>
             {navTabs.map((tab) => {
               const isActive = activeTab === tab.key;

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState } from "react";
 import { searchMemberDB } from "@/lib/actions/actionsMember";
 import { useEmployee } from "./EmployeeContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export interface Member {
   id: string;
@@ -32,6 +33,7 @@ const MemberContext = createContext<MemberContextType>({
 });
 
 export function MemberProvider({ children }: { children: React.ReactNode }) {
+  const { isThai } = useTranslation();
   const { organizationId } = useEmployee();
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isSearchingMember, setIsSearchingMember] = useState(false);
@@ -39,7 +41,7 @@ export function MemberProvider({ children }: { children: React.ReactNode }) {
 
   const searchMember = async (query: string): Promise<boolean> => {
     if (!query.trim()) {
-      setSearchError("กรุณากรอกเบอร์โทรหรือชื่อสมาชิก");
+      setSearchError(isThai ? "กรุณากรอกเบอร์โทรหรือชื่อสมาชิก" : "Please enter phone number or member name");
       return false;
     }
 
@@ -55,13 +57,13 @@ export function MemberProvider({ children }: { children: React.ReactNode }) {
         setIsSearchingMember(false);
         return true;
       } else {
-        setSearchError(res.message || "ไม่พบสมาชิก");
+        setSearchError(res.message ? (isThai ? res.message : "Member not found") : (isThai ? "ไม่พบสมาชิก" : "Member not found"));
         setIsSearchingMember(false);
         return false;
       }
     } catch (err) {
       console.error(err);
-      setSearchError("เกิดข้อผิดพลาดในการค้นหา");
+      setSearchError(isThai ? "เกิดข้อผิดพลาดในการค้นหา" : "An error occurred while searching");
       setIsSearchingMember(false);
       return false;
     }

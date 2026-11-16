@@ -9,12 +9,14 @@ import {
   AccountTransactionItem,
 } from "@/lib/types";
 import SettingAccountingPage from "./accounting/SettingAccountingPage";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface AccountingSettingProps {
   organizationId: number;
 }
 
 export default function AccountingSetting({ organizationId }: AccountingSettingProps) {
+  const { t } = useTranslation();
   const { employeeId } = useEmployee();
   const [data, setData] = useState<{
     accounts: AccountItem[];
@@ -63,7 +65,7 @@ export default function AccountingSetting({ organizationId }: AccountingSettingP
     return (
       <div className="flex flex-col items-center justify-center p-16 text-slate-400">
         <div className="w-8 h-8 border-3 border-sky-500 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs font-medium">กำลังโหลดข้อมูลบัญชีและการเงิน...</p>
+        <p className="text-xs font-medium">{t("accounting.loading_data")}</p>
       </div>
     );
   }
@@ -71,7 +73,7 @@ export default function AccountingSetting({ organizationId }: AccountingSettingP
   if (!data) {
     return (
       <div className="p-8 text-center text-slate-500 text-xs">
-        ไม่พบข้อมูลบัญชี กรุณาลองใหม่อีกครั้ง
+        {t("accounting.no_data")}
       </div>
     );
   }

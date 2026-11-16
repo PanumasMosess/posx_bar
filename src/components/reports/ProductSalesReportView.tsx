@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import { ProductSalesReportViewProps } from "@/lib/types";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ProductSalesReportView({
   data,
@@ -11,6 +12,7 @@ export default function ProductSalesReportView({
   onFilterModeChange,
   isMobile = false,
 }: ProductSalesReportViewProps) {
+  const { t } = useTranslation();
   const [internalFilterMode, setInternalFilterMode] = useState<"best" | "worst">("best");
   const filterMode = controlledFilterMode ?? internalFilterMode;
 
@@ -65,7 +67,7 @@ export default function ProductSalesReportView({
           </div>
           <div>
             <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">
-              ยอดขายตามสินค้า
+              {t('reports.tab_product')}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
               {data?.dateRangeText || ""}
@@ -75,7 +77,7 @@ export default function ProductSalesReportView({
 
         <div className="text-right">
           <span className="text-[11px] font-medium text-slate-400 block">
-            ยอดขายทั้งหมด
+            {t('reports.tab_total')}
           </span>
           <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             {(data?.totalSales || 0).toLocaleString()}
@@ -94,7 +96,7 @@ export default function ProductSalesReportView({
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
           }`}
         >
-          ขายดี
+          {t('reports.best_seller')}
         </button>
         <button
           type="button"
@@ -105,7 +107,7 @@ export default function ProductSalesReportView({
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
           }`}
         >
-          ขายไม่ดี
+          {t('reports.worst_seller')}
         </button>
       </div>
 
@@ -119,7 +121,7 @@ export default function ProductSalesReportView({
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
           }`}
         >
-          จำนวน
+          {t('reports.qty_filter')}
         </button>
         <button
           type="button"
@@ -130,7 +132,7 @@ export default function ProductSalesReportView({
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
           }`}
         >
-          ยอดขาย
+          {t('reports.sales_filter')}
         </button>
         <button
           type="button"
@@ -141,18 +143,18 @@ export default function ProductSalesReportView({
               : "text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium"
           }`}
         >
-          กำไร
+          {t('reports.profit_filter')}
         </button>
       </div>
 
       {filterMode === "worst" && (
         <div className="space-y-2 pt-1">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 px-1">
-            เป็นการจัดอันดับจากรายงานในด้านบนรวมสินค้าที่มียอดขายเป็น 0 ในช่วงเวลานี้
+            {t('reports.ranking_note')}
           </p>
           {unsoldProductsCount > 0 && (
             <div className="bg-red-50/70 dark:bg-red-950/20 border border-red-200/80 dark:border-red-900/40 rounded-xl px-4 py-2.5 text-xs text-red-500 font-medium">
-              ไม่มีการขายเลย {unsoldProductsCount} รายการ จากสินค้าทั้งหมด {allProductsCount} รายการ
+              {t('reports.unsold_products_count').replace('{count}', String(unsoldProductsCount)).replace('{total}', String(allProductsCount))}
             </div>
           )}
         </div>
@@ -161,7 +163,7 @@ export default function ProductSalesReportView({
       <div className="divide-y divide-slate-100 dark:divide-slate-800/80 pt-1">
         {currentList.length === 0 ? (
           <div className="py-16 text-center text-xs text-slate-400">
-            ไม่มีข้อมูลสินค้าในช่วงเวลานี้
+            {t('reports.no_products_period')}
           </div>
         ) : filterMode === "best" ? (
           currentList.map((prod, idx) => {
@@ -181,14 +183,14 @@ export default function ProductSalesReportView({
             let subVal = "";
 
             if (metricMode === "quantity") {
-              mainVal = `${prod.quantity} ชิ้น`;
+              mainVal = `${prod.quantity} ${t('pos.piece_unit')}`;
             } else if (metricMode === "sales") {
               mainVal = (prod.sales || 0).toLocaleString();
-              subVal = `${prod.quantity} ชิ้น`;
+              subVal = `${prod.quantity} ${t('pos.piece_unit')}`;
             } else {
               // กำไร (ตัดต้นทุนแล้ว: ยอดขาย - ต้นทุน)
               mainVal = (prod.profit || 0).toLocaleString();
-              subVal = `${prod.quantity} ชิ้น`;
+              subVal = `${prod.quantity} ${t('pos.piece_unit')}`;
             }
 
             return (
@@ -252,18 +254,18 @@ export default function ProductSalesReportView({
             let subTextUnderName = "";
 
             if (metricMode === "quantity") {
-              mainVal = `${prod.quantity} ชิ้น`;
+              mainVal = `${prod.quantity} ${t('pos.piece_unit')}`;
             } else if (metricMode === "sales") {
               mainVal = (prod.sales || 0).toLocaleString();
               if (!isUnsold) {
-                subTextUnderName = `${prod.quantity} ชิ้น`;
+                subTextUnderName = `${prod.quantity} ${t('pos.piece_unit')}`;
               }
             } else {
               // กำไร (ตัดต้นทุนแล้ว: ยอดขาย - ต้นทุน)
               // ถ้าขายไม่ได้ (ยอดขาย 0) กำไรจะเป็น 0
               mainVal = (prod.profit || 0).toLocaleString();
               if (!isUnsold) {
-                subTextUnderName = `${prod.quantity} ชิ้น`;
+                subTextUnderName = `${prod.quantity} ${t('pos.piece_unit')}`;
               }
             }
 
@@ -297,7 +299,7 @@ export default function ProductSalesReportView({
 
                     {isUnsold ? (
                       <span className="inline-block bg-red-100 dark:bg-red-950/40 text-red-500 text-[10px] font-semibold px-2 py-0.5 rounded-sm mt-0.5">
-                        ไม่มีการขาย
+                        {t('reports.no_sales')}
                       </span>
                     ) : subTextUnderName ? (
                       <span className="text-[11px] text-slate-400 block mt-0.5">

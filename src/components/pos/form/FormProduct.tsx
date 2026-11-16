@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function FormProduct({
   product,
@@ -14,6 +15,7 @@ export default function FormProduct({
   onClose,
   onDelete,
 }: any) {
+  const { t } = useTranslation();
   const [isExtraOpen, setIsExtraOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +46,7 @@ export default function FormProduct({
     <>
       <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
         <h2 className="text-lg font-bold text-slate-800">
-          {isEditMode ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}
+          {isEditMode ? t("product_form.edit_title") : t("product_form.create_title")}
         </h2>
         <button
           type="button"
@@ -92,7 +94,7 @@ export default function FormProduct({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 bg-white text-sky-600 rounded-full hover:bg-sky-50 transition"
-                  title="เปลี่ยนรูป"
+                  title={t("product_form.change_image")}
                 >
                   <svg
                     className="w-4 h-4"
@@ -112,7 +114,7 @@ export default function FormProduct({
                   type="button"
                   onClick={removeImage}
                   className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition"
-                  title="ลบรูป"
+                  title={t("product_form.delete_image")}
                 >
                   <svg
                     className="w-4 h-4"
@@ -149,7 +151,7 @@ export default function FormProduct({
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              <span className="text-xs font-medium">อัปโหลดรูปภาพ</span>
+              <span className="text-xs font-medium">{t("product_form.upload_image")}</span>
             </button>
           )}
         </div>
@@ -157,21 +159,21 @@ export default function FormProduct({
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              รหัสสินค้า (SKU)
+              {t("product_form.sku_code")}
             </label>
             <input
               type="text"
               name="code"
               value={product.code || ""}
               onChange={handleChange}
-              placeholder="เช่น M-01 (เว้นว่างได้)"
+              placeholder={t("product_form.sku_placeholder")}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
             />
           </div>
 
           <div className="col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              ชื่อสินค้า *
+              {t("product_form.product_name")}
             </label>
             <input
               required
@@ -185,7 +187,7 @@ export default function FormProduct({
 
           <div className="col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              หมวดหมู่
+              {t("product_form.category")}
             </label>
             <div className="flex gap-2">
               <select
@@ -195,7 +197,7 @@ export default function FormProduct({
                 className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white"
               >
                 <option value="" className="text-slate-500">
-                  -- เลือกหมวดหมู่ --
+                  {t("product_form.select_category")}
                 </option>
                 {categories.map((cat: any, index: number) => (
                   <option
@@ -212,14 +214,14 @@ export default function FormProduct({
                 onClick={() => setActiveModal("ADD_CATEGORY")}
                 className="px-3 bg-sky-50 text-sky-600 border border-sky-200 rounded-lg font-medium hover:bg-sky-100 transition whitespace-nowrap"
               >
-                + สร้างใหม่
+                {t("product_form.create_new")}
               </button>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              ราคา *
+              {t("product_form.price")}
             </label>
             <input
               required
@@ -232,7 +234,7 @@ export default function FormProduct({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              ต้นทุน 
+              {t("product_form.cost")}
             </label>
             <input
               type="number"
@@ -249,7 +251,7 @@ export default function FormProduct({
               onClick={() => setIsExtraOpen(!isExtraOpen)}
               className="flex items-center justify-between w-full text-sm font-bold text-slate-700 hover:text-sky-600 transition focus:outline-none"
             >
-              <span>ข้อมูลเพิ่มเติม (บาร์โค้ด, รายละเอียด)</span>
+              <span>{t("product_form.more_info")}</span>
               <svg
                 className={`w-5 h-5 transform transition-transform duration-200 ${isExtraOpen ? "rotate-180 text-sky-600" : "text-slate-400"}`}
                 fill="none"
@@ -269,27 +271,27 @@ export default function FormProduct({
               <div className="grid grid-cols-2 gap-4 mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    รหัสบาร์โค้ด / QR Code
+                    {t("product_form.barcode")}
                   </label>
                   <input
                     type="text"
                     name="barcode"
                     value={product.barcode}
                     onChange={handleChange}
-                    placeholder="สแกนหรือพิมพ์รหัส"
+                    placeholder={t("product_form.barcode_placeholder")}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 bg-white placeholder:text-slate-400"
                   />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    รายละเอียดสินค้า
+                    {t("product_form.description")}
                   </label>
                   <textarea
                     name="detail"
                     value={product.detail}
                     onChange={handleChange}
                     rows={3}
-                    placeholder="อธิบายเพิ่มเติม..."
+                    placeholder={t("product_form.description_placeholder")}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none resize-none text-slate-900 bg-white placeholder:text-slate-400"
                   ></textarea>
                 </div>
@@ -301,19 +303,19 @@ export default function FormProduct({
         <div className="border-t pt-4 mt-4">
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-bold text-slate-700">
-              กลุ่มตัวเลือกเสริม
+              {t("product_form.option_groups")}
             </label>
             <button
               type="button"
               onClick={() => setActiveModal("ADD_OPTION")}
               className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition"
             >
-              + เพิ่มตัวเลือก
+              {t("product_form.add_options")}
             </button>
           </div>
           {optionGroups.length === 0 ? (
             <p className="text-xs text-slate-400 italic">
-              ยังไม่มีกลุ่มตัวเลือก
+              {t("product_form.no_options")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -327,12 +329,12 @@ export default function FormProduct({
                       <b className="text-slate-800">{g.name}</b>
                       {g.isRequired && (
                         <span className="text-[10px] bg-red-100 text-red-600 font-semibold px-1.5 py-0.5 rounded">
-                          บังคับเลือก
+                          {t("product_form.required_choice")}
                         </span>
                       )}
                       {g.allowMultiple && (
                         <span className="text-[10px] bg-sky-100 text-sky-600 font-semibold px-1.5 py-0.5 rounded">
-                          หลายข้อ
+                          {t("product_form.multiple_choices")}
                         </span>
                       )}
                     </div>
@@ -347,7 +349,7 @@ export default function FormProduct({
                       }
                       className="text-red-500 text-xs hover:underline"
                     >
-                      ลบ
+                      {t("common.delete")}
                     </button>
                   </div>
 
@@ -381,7 +383,7 @@ export default function FormProduct({
               onClick={onDelete}
               disabled={isPending}
               className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-bold hover:bg-rose-100 hover:text-rose-700 transition disabled:opacity-50 flex items-center justify-center shrink-0"
-              title="ลบสินค้า"
+              title={t("product_form.delete_product")}
             >
               <svg
                 className="w-5 h-5"
@@ -406,10 +408,10 @@ export default function FormProduct({
             className="flex-1 w-full py-2 bg-gradient-to-r from-sky-600 to-cyan-500 text-white rounded-xl font-bold transition disabled:opacity-50"
           >
             {isPending
-              ? "กำลังบันทึก..."
+              ? t("common.saving")
               : isEditMode
-                ? "แก้ไขสินค้า"
-                : "บันทึกสินค้า"}
+                ? t("product_form.edit_title")
+                : t("product_form.save_product")}
           </button>
         </div>
       </form>

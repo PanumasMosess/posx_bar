@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/lib/language/LanguageContext';
 import QRCode from 'qrcode';
 import { useEmployee } from '@/components/providers/EmployeeContext';
 import {
@@ -39,6 +40,7 @@ function CopyIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 /* ==================== QR Code Helper Components ==================== */
 function QRThumb({ url }: { url: string }) {
+  const { isThai } = useTranslation();
   const [dataUrl, setDataUrl] = useState<string>('');
 
   useEffect(() => {
@@ -75,6 +77,7 @@ function QRBigCard({
   tableName: string;
   shopName: string;
 }) {
+  const { isThai } = useTranslation();
   const [dataUrl, setDataUrl] = useState<string>('');
 
   useEffect(() => {
@@ -99,7 +102,7 @@ function QRBigCard({
     // เปลี่ยนธีมเป็น PosX (น้ำเงินเข้ม/เทาเข้ม) แทนสีน้ำตาล
     <div className="w-full max-w-[270px] mx-auto bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-col items-center gap-5 border border-slate-700">
       <h4 className="font-bold text-lg text-white tracking-wide truncate max-w-full text-center">
-        {shopName || 'ร้านค้า'}
+        {shopName || (isThai ? 'ร้านค้า' : 'Store')}
       </h4>
 
       <div className="relative p-2 bg-white rounded-xl shadow-md w-full aspect-square flex items-center justify-center">
@@ -119,7 +122,7 @@ function QRBigCard({
 
       <div className="flex flex-col items-center gap-0.5 w-full text-center">
         <p className="text-sm font-bold text-sky-400 tracking-wider mt-1">
-          สแกนเพื่อสั่งอาหาร
+          {isThai ? 'สแกนเพื่อสั่งอาหาร' : 'Scan to Order'}
         </p>
         <p className="text-[9px] font-medium text-slate-500 tracking-widest opacity-70 mt-1.5 uppercase">
           Powered by PosX
@@ -131,10 +134,11 @@ function QRBigCard({
 
 /* ==================== Main Component ==================== */
 export default function ScanSetting() {
+  const { t, isThai } = useTranslation();
   const { organizationId: contextOrgId } = useEmployee();
   const orgId = contextOrgId || 1;
 
-  const [shopName, setShopName] = useState('ร้านค้า');
+  const [shopName, setShopName] = useState('');
   const [isQrAccordionOpen, setIsQrAccordionOpen] = useState(false);
   const [showAddQrModal, setShowAddQrModal] = useState(false);
   const [selectedQR, setSelectedQR] = useState<{ id: number; tableName: string; isActive: boolean } | null>(null);
@@ -176,7 +180,7 @@ export default function ScanSetting() {
       if (shopProfile?.name) setShopName(shopProfile.name);
     } catch (error) {
       console.error('Failed to load QR codes:', error);
-      showToast('ไม่สามารถดึงข้อมูล QR Code ได้', 'error');
+      showToast(isThai ? 'ไม่สามารถดึงข้อมูล QR Code ได้' : 'Failed to fetch QR codes', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -212,8 +216,12 @@ export default function ScanSetting() {
 
   const previewSummary =
     creationMode === 'batch'
-      ? `จะได้ ${count} โต๊ะ : ${prefix ? prefix : ''}${formatNum(fromVal)} ถึง ${prefix ? prefix : ''}${formatNum(toVal)}`
-      : `โต๊ะเลขที่ : ${singleTableNum.trim() || 'ยังไม่ได้ระบุ'}`;
+      ? (isThai
+          ? `จะได้ ${count} โต๊ะ : ${prefix ? prefix : ''}${formatNum(fromVal)} ถึง ${prefix ? prefix : ''}${formatNum(toVal)}`
+          : `Will create ${count} tables: ${prefix ? prefix : ''}${formatNum(fromVal)} to ${prefix ? prefix : ''}${formatNum(toVal)}`)
+      : (isThai
+          ? `โต๊ะเลขที่ : ${singleTableNum.trim() || 'ยังไม่ได้ระบุ'}`
+          : `Table No. : ${singleTableNum.trim() || 'Not specified'}`);
 
   // Handle Save (Add QR)
   const handleSaveAdd = async () => {
@@ -222,7 +230,7 @@ export default function ScanSetting() {
       if (creationMode === 'single') {
         const name = singleTableNum.trim();
         if (!name) {
-          showToast('กรุณาระบุเลขโต๊ะ', 'error');
+          showToast(isThai ? 'กรุณาระบุเลขโต๊ะ' : 'Please specify table number', 'error');
           setIsSubmitting(false);
           return;
         }
@@ -230,15 +238,15 @@ export default function ScanSetting() {
           organizationId: orgId,
           tableName: name,
         });
-        showToast(`สร้าง QR โต๊ะ "${name}" สำเร็จ`, 'success');
+        showToast(isThai ? `สร้าง QR โต๊ะ "${name}" สำเร็จ` : `Created QR for table "${name}"`, 'success');
       } else {
         if (count <= 0) {
-          showToast('จำนวนโต๊ะต้องมากกว่า 0', 'error');
+          showToast(isThai ? 'จำนวนโต๊ะต้องมากกว่า 0' : 'Table count must be greater than 0', 'error');
           setIsSubmitting(false);
           return;
         }
         if (count > 200) {
-          showToast('สามารถสร้างได้สูงสุด 200 โต๊ะต่อครั้ง', 'error');
+          showToast(isThai ? 'สามารถสร้างได้สูงสุด 200 โต๊ะต่อครั้ง' : 'Maximum 200 tables at a time', 'error');
           setIsSubmitting(false);
           return;
         }
@@ -250,7 +258,7 @@ export default function ScanSetting() {
           organizationId: orgId,
           tableNames: names,
         });
-        showToast(`สร้าง QR สำเร็จ ${res.createdCount} โต๊ะ (ซ้ำ ${res.skippedCount} โต๊ะ)`, 'success');
+        showToast(isThai ? `สร้าง QR สำเร็จ ${res.createdCount} โต๊ะ (ซ้ำ ${res.skippedCount} โต๊ะ)` : `Created ${res.createdCount} QR tables (skipped ${res.skippedCount} duplicates)`, 'success');
       }
 
       setShowAddQrModal(false);
@@ -258,7 +266,7 @@ export default function ScanSetting() {
       await fetchQRCodes();
     } catch (error: any) {
       console.error(error);
-      showToast(error.message || 'เกิดข้อผิดพลาดในการบันทึก', 'error');
+      showToast(error.message || (isThai ? 'เกิดข้อผิดพลาดในการบันทึก' : 'Error saving QR code'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -271,10 +279,10 @@ export default function ScanSetting() {
       const nextStatus = !currentStatus;
       setQrList((prev) => prev.map((q) => (q.id === id ? { ...q, isActive: nextStatus } : q)));
       await toggleQRCodeStatusAction(id, nextStatus);
-      showToast(`${nextStatus ? 'เปิดรับออเดอร์' : 'ปิดรับออเดอร์'} โต๊ะ "${tableName}" แล้ว`, 'success');
+      showToast(isThai ? `${nextStatus ? 'เปิดรับออเดอร์' : 'ปิดรับออเดอร์'} โต๊ะ "${tableName}" แล้ว` : `Table "${tableName}" is now ${nextStatus ? 'Open' : 'Closed'}`, 'success');
     } catch (error) {
       console.error(error);
-      showToast('เกิดข้อผิดพลาดในการเปลี่ยนสถานะ', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ' : 'Error updating status', 'error');
       fetchQRCodes();
     }
   };
@@ -290,18 +298,18 @@ export default function ScanSetting() {
     if (!selectedQR) return;
     const trimmed = editTableName.trim();
     if (!trimmed) {
-      showToast('กรุณาระบุเลขโต๊ะ', 'error');
+      showToast(isThai ? 'กรุณาระบุเลขโต๊ะ' : 'Please specify table number', 'error');
       return;
     }
     setIsSubmitting(true);
     try {
       await updateQRCodeAction(selectedQR.id, { tableName: trimmed });
-      showToast(`อัปเดตข้อมูลโต๊ะ "${trimmed}" สำเร็จ`, 'success');
+      showToast(isThai ? `อัปเดตข้อมูลโต๊ะ "${trimmed}" สำเร็จ` : `Updated table "${trimmed}"`, 'success');
       setSelectedQR(null);
       await fetchQRCodes();
     } catch (error: any) {
       console.error(error);
-      showToast(error.message || 'เกิดข้อผิดพลาดในการอัปเดต', 'error');
+      showToast(error.message || (isThai ? 'เกิดข้อผิดพลาดในการอัปเดต' : 'Error updating table'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -349,7 +357,7 @@ export default function ScanSetting() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = 'bold 50px sans-serif';
-      ctx.fillText(currentShopName || 'ร้านค้า', canvasWidth / 2, 80);
+      ctx.fillText(currentShopName || (isThai ? 'ร้านค้า' : 'Store'), canvasWidth / 2, 80);
 
       // 6. วาดกรอบสีขาวสี่เหลี่ยมสำหรับวาง QR Code
       const qrBoxSize = 640;
@@ -391,7 +399,7 @@ export default function ScanSetting() {
       // 10. เขียนข้อความ "สแกนเพื่อสั่งอาหาร" ให้ชัดเจน
       ctx.fillStyle = brandColor; // สี sky-400
       ctx.font = 'bold 36px sans-serif';
-      ctx.fillText('สแกนเพื่อสั่งอาหาร', canvasWidth / 2, 860);
+      ctx.fillText(isThai ? 'สแกนเพื่อสั่งอาหาร' : 'Scan to Order', canvasWidth / 2, 860);
 
       // 11. เขียนชื่อแบรนด์ PosX แบบเล็กลงเหมือนลายน้ำ
       ctx.fillStyle = '#475569'; // สี slate-600 (เทาเข้ม) ให้ดูกลืนไปกับพื้นหลัง
@@ -402,13 +410,13 @@ export default function ScanSetting() {
       const finalDataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = finalDataUrl;
-      a.download = `QR_โต๊ะ_${tableName}.png`;
+      a.download = `QR_${isThai ? 'โต๊ะ' : 'Table'}_${tableName}.png`;
       a.click();
 
-      showToast('ดาวน์โหลด QR Code เรียบร้อยแล้ว', 'success');
+      showToast(isThai ? 'ดาวน์โหลด QR Code เรียบร้อยแล้ว' : 'QR code downloaded', 'success');
     } catch (err) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาดในการดาวน์โหลด', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการดาวน์โหลด' : 'Download error', 'error');
     }
   };
 
@@ -416,7 +424,7 @@ export default function ScanSetting() {
   const handleCopyLink = (url: string) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url);
-      showToast('คัดลอกลิงก์สำเร็จแล้ว', 'success');
+      showToast(isThai ? 'คัดลอกลิงก์สำเร็จแล้ว' : 'Link copied', 'success');
     }
   };
 
@@ -424,8 +432,8 @@ export default function ScanSetting() {
   const scanMenuItems = [
     {
       id: 'open-close-order',
-      title: 'การเปิด-ปิดรับออเดอร์',
-      desc: 'กำหนดเอง',
+      title: isThai ? 'การเปิด-ปิดรับออเดอร์' : 'Open/Close Orders',
+      desc: isThai ? 'กำหนดเอง' : 'Manual',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
@@ -434,8 +442,8 @@ export default function ScanSetting() {
     },
     {
       id: 'order-conditions',
-      title: 'เงื่อนไขการสั่ง',
-      desc: 'บังคับกรอกเบอร์โทร',
+      title: isThai ? 'เงื่อนไขการสั่ง' : 'Order Conditions',
+      desc: isThai ? 'บังคับกรอกเบอร์โทร' : 'Require Phone Number',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
@@ -444,8 +452,8 @@ export default function ScanSetting() {
     },
     {
       id: 'payment',
-      title: 'การชำระเงิน',
-      desc: 'เงินสด',
+      title: isThai ? 'การชำระเงิน' : 'Payment',
+      desc: isThai ? 'เงินสด' : 'Cash',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185z" />
@@ -454,8 +462,8 @@ export default function ScanSetting() {
     },
     {
       id: 'auto-close-bill',
-      title: 'การปิดบิลอัตโนมัติ',
-      desc: 'ไม่ได้ใช้งาน',
+      title: isThai ? 'การปิดบิลอัตโนมัติ' : 'Auto Close Bill',
+      desc: isThai ? 'ไม่ได้ใช้งาน' : 'Disabled',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="9" />
@@ -465,8 +473,8 @@ export default function ScanSetting() {
     },
     {
       id: 'display',
-      title: 'การแสดงผล',
-      desc: 'เหมือนหน้าขาย · กริด 3 คอลัมน์ · แสดงราคา',
+      title: isThai ? 'การแสดงผล' : 'Display',
+      desc: isThai ? 'เหมือนหน้าขาย · กริด 3 คอลัมน์ · แสดงราคา' : 'Same as POS · 3 Columns · Show Price',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <rect width="7" height="7" x="3" y="3" rx="1" />
@@ -478,8 +486,8 @@ export default function ScanSetting() {
     },
     {
       id: 'hide-customer-side',
-      title: 'ปิดขายฝั่งลูกค้า',
-      desc: 'ลูกค้าเห็นครบทุกรายการ',
+      title: isThai ? 'ปิดขายฝั่งลูกค้า' : 'Customer Visibility',
+      desc: isThai ? 'ลูกค้าเห็นครบทุกรายการ' : 'All items visible to customer',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
@@ -488,7 +496,7 @@ export default function ScanSetting() {
     },
     {
       id: 'promotions',
-      title: 'โปรโมชั่น',
+      title: isThai ? 'โปรโมชั่น' : 'Promotions',
       desc: '',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -499,8 +507,8 @@ export default function ScanSetting() {
     },
     {
       id: 'voice-call',
-      title: 'การเรียกคิวด้วยเสียง',
-      desc: 'ปิดอยู่',
+      title: isThai ? 'การเรียกคิวด้วยเสียง' : 'Voice Queue Calling',
+      desc: isThai ? 'ปิดอยู่' : 'Disabled',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
@@ -509,8 +517,8 @@ export default function ScanSetting() {
     },
     {
       id: 'call-notify',
-      title: 'แจ้งเตือนเมื่อลูกค้าเรียก',
-      desc: 'เปิดที่แอปเครื่องนี้',
+      title: isThai ? 'แจ้งเตือนเมื่อลูกค้าเรียก' : 'Customer Call Alert',
+      desc: isThai ? 'เปิดที่แอปเครื่องนี้' : 'Active on this device',
       icon: (
         <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -557,11 +565,11 @@ export default function ScanSetting() {
                 </p>
                 {qrList.length > 0 ? (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    {qrList.length} โต๊ะ
+                    {qrList.length} {isThai ? 'โต๊ะ' : 'tables'}
                   </p>
                 ) : (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    ยังไม่มีข้อมูลโต๊ะ
+                    {isThai ? 'ยังไม่มีข้อมูลโต๊ะ' : 'No tables yet'}
                   </p>
                 )}
               </div>
@@ -572,13 +580,11 @@ export default function ScanSetting() {
             </div>
           </div>
 
-          {/* กางลงมา: สแกนหน้าร้านและโต๊ะ + ปุ่มเพิ่ม QR + ตารางรายการโต๊ะ */}
+          {/* กางลงมา: {isThai ? 'สแกนหน้าร้านและโต๊ะ' : 'Store & Table QR Codes'} + ปุ่มเพิ่ม QR + ตารางรายการโต๊ะ */}
           {isQrAccordionOpen && (
             <div className="px-4 sm:px-6 pb-6 pt-1 bg-pos-surface animate-fadeIn space-y-4">
               <div className="text-center">
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-pos-bg px-2.5 py-1 rounded-full font-medium border border-pos-border dark:border-slate-500/30">
-                  สแกนหน้าร้านและโต๊ะ
-                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-pos-bg px-2.5 py-1 rounded-full font-medium border border-pos-border dark:border-slate-500/30">{isThai ? "สแกนหน้าร้านและโต๊ะ" : "Store & Table QR Codes"}</span>
               </div>
 
               {/* ปุ่มแถบสีเทาตรงกลางเต็มแถว */}
@@ -587,23 +593,23 @@ export default function ScanSetting() {
                 onClick={() => setShowAddQrModal(true)}
                 className="w-full py-3 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border dark:border-slate-500/40 text-pos-text font-semibold text-xs sm:text-sm transition cursor-pointer text-center shadow-2xs"
               >
-                เพิ่ม QR Code
+                {isThai ? '+ เพิ่ม QR Code' : '+ Add QR Code'}
               </button>
 
               {/* ตารางรายการโต๊ะพร้อมแถบเลื่อน */}
               {isLoading ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
-                  กำลังโหลดข้อมูล QR Code...
+                  {isThai ? 'กำลังโหลดข้อมูล QR Code...' : 'Loading QR Codes...'}
                 </div>
               ) : qrList.length === 0 ? (
                 <div className="p-6 text-center text-slate-400 text-xs">
-                  ยังไม่มี QR Code โต๊ะในระบบ กด &quot;เพิ่ม QR Code&quot; เพื่อเริ่มต้นใช้งาน
+                  {isThai ? "ยังไม่มี QR Code โต๊ะในระบบ กด \"เพิ่ม QR Code\" เพื่อเริ่มต้นใช้งาน" : "No table QR codes yet. Click \"Add QR Code\" to get started"}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-pos-border dark:border-slate-500/40 bg-pos-surface overflow-hidden shadow-2xs">
                   <div className="px-4 py-2.5 bg-pos-bg/80 border-b border-pos-border dark:border-slate-500/40 flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-500">
-                    <span>ใบ QR</span>
-                    <span>สถานะ</span>
+                    <span>{isThai ? 'ใบ QR' : 'QR Card'}</span>
+                    <span>{t('common.status')}</span>
                   </div>
 
                   <div className="max-h-[380px] overflow-y-auto custom-scroll divide-y divide-dashed divide-pos-border dark:divide-slate-500/40">
@@ -620,10 +626,10 @@ export default function ScanSetting() {
                             <QRThumb url={qrUrl} />
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400 transition truncate">
-                                โต๊ะ: {qr.tableName}
+                                {isThai ? 'โต๊ะ: ' : 'Table: '}{qr.tableName}
                               </p>
                               <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                                แตะเพื่อดู / พิมพ์ QR
+                                {isThai ? 'แตะเพื่อดู / พิมพ์ QR' : 'Tap to view / print QR'}
                               </p>
                             </div>
                           </div>
@@ -632,13 +638,13 @@ export default function ScanSetting() {
                             <button
                               type="button"
                               onClick={(e) => handleToggleStatus(e, qr.id, qr.isActive, qr.tableName)}
-                              title={qr.isActive ? 'กดเพื่อปิดรับออเดอร์' : 'กดเพื่อเปิดรับออเดอร์'}
+                              title={qr.isActive ? (isThai ? 'กดเพื่อปิดรับออเดอร์' : 'Click to close ordering') : (isThai ? 'กดเพื่อเปิดรับออเดอร์' : 'Click to open ordering')}
                               className={`py-1.5 px-3 rounded-full text-xs font-bold transition shadow-2xs cursor-pointer ${qr.isActive
                                 ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
                                 : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-100'
                                 }`}
                             >
-                              {qr.isActive ? 'เปิดรับออเดอร์' : 'ปิดรับออเดอร์'}
+                              {qr.isActive ? (isThai ? 'เปิดรับออเดอร์' : 'Ordering Open') : (isThai ? 'ปิดรับออเดอร์' : 'Ordering Closed')}
                             </button>
                           </div>
                         </div>
@@ -688,7 +694,7 @@ export default function ScanSetting() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                   </svg>
                 </div>
-                <h3 className="font-bold text-base text-pos-text">เพิ่ม QR Code</h3>
+                <h3 className="font-bold text-base text-pos-text">{isThai ? "เพิ่ม QR Code" : "Add QR Code"}</h3>
               </div>
               <button
                 type="button"
@@ -702,7 +708,7 @@ export default function ScanSetting() {
             {/* Modal Body */}
             <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto custom-scroll">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">ประเภท</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "ประเภท" : "Type"}</label>
                 <div className="grid grid-cols-2 gap-2 bg-pos-bg p-1 rounded-2xl border border-pos-border dark:border-slate-500/40">
                   <button
                     type="button"
@@ -712,7 +718,7 @@ export default function ScanSetting() {
                       : 'text-slate-400 hover:text-pos-text'
                       }`}
                   >
-                    <span>🪑</span> โต๊ะ
+                    <span>🪑</span> {isThai ? "โต๊ะ" : "Table"}
                   </button>
                   <button
                     type="button"
@@ -722,13 +728,13 @@ export default function ScanSetting() {
                       : 'text-slate-400 hover:text-pos-text'
                       }`}
                   >
-                    <span>🏪</span> หน้าร้าน
+                    <span>🏪</span> {isThai ? "หน้าร้าน" : "Counter / Storefront"}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">วิธีใช้ป้าย</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "วิธีใช้ป้าย" : "Card Usage"}</label>
                 <div className="space-y-2">
                   <div
                     onClick={() => setUsageMethod('permanent')}
@@ -737,11 +743,9 @@ export default function ScanSetting() {
                       : 'bg-pos-bg border-pos-border hover:bg-pos-hover'
                       }`}
                   >
-                    <p className={`text-xs font-bold ${usageMethod === 'permanent' ? 'text-sky-600 dark:text-sky-400' : 'text-pos-text'}`}>
-                      แปะไว้ที่โต๊ะ
-                    </p>
+                    <p className={`text-xs font-bold ${usageMethod === 'permanent' ? 'text-sky-600 dark:text-sky-400' : 'text-pos-text'}`}>{isThai ? "แปะไว้ที่โต๊ะ" : "Fixed on Table"}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      พิมพ์ครั้งเดียวแล้วติดถาวร ลูกค้าสแกนสั่งได้ทันที
+                      {isThai ? "พิมพ์ครั้งเดียวแล้วติดถาวร ลูกค้าสแกนสั่งได้ทันที" : "Print once and stick permanently. Customers scan to order immediately"}
                     </p>
                   </div>
 
@@ -752,18 +756,16 @@ export default function ScanSetting() {
                       : 'bg-pos-bg border-pos-border hover:bg-pos-hover'
                       }`}
                   >
-                    <p className={`text-xs font-bold ${usageMethod === 'new_each_time' ? 'text-sky-600 dark:text-sky-400' : 'text-pos-text'}`}>
-                      พิมพ์ใหม่ทุกครั้ง
-                    </p>
+                    <p className={`text-xs font-bold ${usageMethod === 'new_each_time' ? 'text-sky-600 dark:text-sky-400' : 'text-pos-text'}`}>{isThai ? "พิมพ์ใหม่ทุกครั้ง" : "Print per session"}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      พนักงานกดเปิดโต๊ะเพื่อออก QR ใหม่
+                      {isThai ? "พนักงานกดเปิดโต๊ะเพื่อออก QR ใหม่" : "Staff opens table to issue a fresh QR session"}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">สร้าง</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "สร้าง" : "Generation"}</label>
                 <div className="grid grid-cols-2 gap-2 bg-pos-bg p-1 rounded-2xl border border-pos-border dark:border-slate-500/40">
                   <button
                     type="button"
@@ -772,9 +774,7 @@ export default function ScanSetting() {
                       ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-xs border border-pos-border'
                       : 'text-slate-400 hover:text-pos-text'
                       }`}
-                  >
-                    ทีละใบ
-                  </button>
+                  >{isThai ? "ทีละใบ" : "Single"}</button>
                   <button
                     type="button"
                     onClick={() => setCreationMode('batch')}
@@ -782,20 +782,18 @@ export default function ScanSetting() {
                       ? 'bg-pos-surface text-sky-600 dark:text-sky-400 shadow-xs border border-pos-border'
                       : 'text-slate-400 hover:text-pos-text'
                       }`}
-                  >
-                    เป็นชุด
-                  </button>
+                  >{isThai ? "เป็นชุด" : "Batch"}</button>
                 </div>
               </div>
 
               {creationMode === 'single' ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">เลขโต๊ะ</label>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "เลขโต๊ะ" : "Table Number"}</label>
                   <input
                     type="text"
                     value={singleTableNum}
                     onChange={(e) => setSingleTableNum(e.target.value)}
-                    placeholder="เช่น 5, A1"
+                    placeholder={isThai ? "เช่น 5, A1" : "e.g. 5, A1"}
                     className="w-full px-4 py-2.5 rounded-2xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm text-pos-text focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                   />
                 </div>
@@ -803,7 +801,7 @@ export default function ScanSetting() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">จากเลข</label>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "จากเลข" : "From Number"}</label>
                       <input
                         type="number"
                         min="1"
@@ -813,7 +811,7 @@ export default function ScanSetting() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">ถึงเลข</label>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "ถึงเลข" : "To Number"}</label>
                       <input
                         type="number"
                         min="1"
@@ -825,12 +823,12 @@ export default function ScanSetting() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">ตัวนำหน้า</label>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "ตัวนำหน้า" : "Prefix"}</label>
                     <input
                       type="text"
                       value={prefix}
                       onChange={(e) => setPrefix(e.target.value)}
-                      placeholder="เช่น A (ไม่ใส่ก็ได้)"
+                      placeholder={isThai ? "เช่น A (ไม่ใส่ก็ได้)" : "e.g. A (optional)"}
                       className="w-full px-4 py-2.5 rounded-2xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm text-pos-text focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                     />
                   </div>
@@ -846,7 +844,7 @@ export default function ScanSetting() {
                       className="w-4 h-4 rounded text-sky-500 focus:ring-sky-500/20 border-pos-border cursor-pointer"
                     />
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      เติมศูนย์หน้าเลข (01, 002)
+                      {isThai ? "เติมศูนย์หน้าเลข (01, 002)" : "Pad with zeros (01, 002)"}
                     </span>
                   </div>
 
@@ -867,7 +865,7 @@ export default function ScanSetting() {
                 onClick={handleSaveAdd}
                 className="w-full py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-xs transition active:scale-[0.99] cursor-pointer disabled:opacity-50"
               >
-                {isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+                {isSubmitting ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -881,7 +879,7 @@ export default function ScanSetting() {
             {/* Header */}
             <div className="p-4 sm:p-5 border-b border-pos-border dark:border-slate-500/40 flex items-center justify-between">
               <h3 className="font-bold text-base text-pos-text">
-                โต๊ะ: {selectedQR.tableName}
+                {isThai ? "โต๊ะ: " : "Table: "}{selectedQR.tableName}
               </h3>
               <button
                 type="button"
@@ -916,31 +914,29 @@ export default function ScanSetting() {
                   className="px-3 py-1.5 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
                 >
                   <CopyIcon className="w-3.5 h-3.5" />
-                  <span>คัดลอกลิงก์</span>
+                  <span>{isThai ? "คัดลอกลิงก์" : "Copy Link"}</span>
                 </button>
               </div>
 
               {/* วิธีใช้ป้าย */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">วิธีใช้ป้าย</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "วิธีใช้ป้าย" : "Card Usage"}</label>
                 <div className="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/30">
                   <p className="text-xs font-bold text-sky-600 dark:text-sky-400">
-                    แปะไว้ที่โต๊ะ:
+                    {isThai ? "แปะไว้ที่โต๊ะ:" : "Fixed on Table:"}
                   </p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                    พิมพ์ครั้งเดียวแล้วติดถาวร ลูกค้าสแกนสั่งได้ทันที
-                  </p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{isThai ? "พิมพ์ครั้งเดียวแล้วติดถาวร ลูกค้าสแกนสั่งได้ทันที" : "Print once and stick permanently. Customers scan to order immediately"}</p>
                 </div>
               </div>
 
               {/* แก้ไขเลขโต๊ะ */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">เลขโต๊ะ</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">{isThai ? "เลขโต๊ะ" : "Table Number"}</label>
                 <input
                   type="text"
                   value={editTableName}
                   onChange={(e) => setEditTableName(e.target.value)}
-                  placeholder="เช่น A1"
+                  placeholder={isThai ? "เช่น A1" : "e.g. A1"}
                   className="w-full px-4 py-2.5 rounded-2xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm text-pos-text focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                 />
               </div>
@@ -955,7 +951,7 @@ export default function ScanSetting() {
                 className="py-3 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border dark:border-slate-500/40 text-pos-text font-bold text-sm shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <DownloadIcon className="w-4 h-4 text-sky-500" />
-                <span>ดาวน์โหลด</span>
+                <span>{isThai ? "ดาวน์โหลด" : "Download"}</span>
               </button>
 
               <button
@@ -964,7 +960,7 @@ export default function ScanSetting() {
                 onClick={handleSaveEdit}
                 className="py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-xs transition active:scale-[0.99] cursor-pointer disabled:opacity-50"
               >
-                {isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+                {isSubmitting ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>

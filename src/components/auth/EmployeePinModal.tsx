@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import { verifyPinOnlyAction } from "@/lib/actions/authActions";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface EmployeePinModalProps {
   orgId?: number;
@@ -11,6 +12,7 @@ interface EmployeePinModalProps {
 
 export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const {
     setEmployeeSession,
     activeOrgId: contextOrgId,
@@ -46,7 +48,7 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
       const targetOrgId = orgId || contextOrgId;
 
       if (!targetOrgId || isNaN(targetOrgId)) {
-        setErrorMessage("ไม่พบข้อมูลองค์กร โปรดเข้าสู่ระบบร้านค้าใหม่อีกครั้ง");
+        setErrorMessage(t("auth.org_not_found"));
         setPin("");
         setIsVerifying(false);
         return;
@@ -59,13 +61,13 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
         setEmployeeSession(res.employee);
         router.refresh();
       } else {
-        setErrorMessage(res.message || "รหัส PIN ไม่ถูกต้อง");
+        setErrorMessage(res.message || t("auth.invalid_pin"));
         setPin("");
         setIsVerifying(false);
       }
     } catch (err: any) {
       console.error("Client PIN Error:", err);
-      setErrorMessage("ระบบขัดข้อง โปรดลองอีกครั้ง");
+      setErrorMessage(t("auth.system_error"));
       setPin("");
       setIsVerifying(false);
     }
@@ -90,7 +92,7 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
         <button
           onClick={() => window.location.reload()}
           className="absolute top-5 right-5 w-9 h-9 bg-pos-hover text-slate-400 hover:text-rose-500 rounded-full flex items-center justify-center transition-colors cursor-pointer"
-          title="รีเฟรชหน้าจอ"
+          title={t("auth.refresh_screen")}
         >
           <svg
             className="w-4 h-4"
@@ -113,10 +115,10 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
           </div>
           <div className="text-center">
             <h2 className="text-xl font-black text-pos-text tracking-tight">
-              {"เข้าสู่ระบบ POS"}
+              {t("auth.pos_login")}
             </h2>
             <p className="text-xs text-slate-400 font-semibold mt-1">
-              กรอกรหัส PIN 4 หลักเพื่อยืนยันตัวตน
+              {t("auth.enter_pin_hint")}
             </p>
           </div>
         </div>
@@ -157,7 +159,7 @@ export default function EmployeePinModal({ orgId }: EmployeePinModalProps) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span>กำลังยืนยัน PIN...</span>
+                <span>{t("auth.verifying_pin")}</span>
               </div>
             ) : errorMessage ? (
               <p className="text-xs font-black text-rose-500 animate-fade-in">

@@ -2,13 +2,14 @@
 
 import { ShiftCheckViewProps } from "@/lib/interface";
 import { useState } from "react";
-import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ShiftCheckView({
   onOpenShift,
   isLoading = false,
 }: ShiftCheckViewProps) {
-  // 🌟 2. ดึงค่า settings จาก OrganizationSettingsContext
+  const { t } = useTranslation();
   const { settings } = useOrgSettings();
   const currencyCode = settings?.currencyCode || "LAK";
 
@@ -26,17 +27,17 @@ export default function ShiftCheckView({
       </div>
       <div>
         <h4 className="font-bold text-sm text-amber-800 dark:text-amber-400">
-          ยังไม่ได้เปิดกะการทำงาน
+          {t("shift.shift_not_open")}
         </h4>
         <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5">
-          กรุณาเปิดกะก่อนทำการรับชำระเงิน
+          {t("shift.shift_not_open_desc")}
         </p>
       </div>
 
       <div className="w-full space-y-2 pt-2">
         <div className="text-left">
           <label className="text-[10px] font-bold text-pos-text/70 block mb-1">
-            เงินสดเริ่มต้นกะ ({currencyCode}):
+            {t("shift.starting_cash")} ({currencyCode}):
           </label>
           <input
             type="number"
@@ -52,7 +53,7 @@ export default function ShiftCheckView({
           disabled={isLoading}
           className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition disabled:opacity-50"
         >
-          {isLoading ? "กำลังเปิดกะ..." : "⚡ เปิดกะการทำงานทันที"}
+          {isLoading ? t("common.saving") : `⚡ ${t("shift.confirm_open")}`}
         </button>
       </div>
     </div>

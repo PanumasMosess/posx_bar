@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 function ToggleSwitch({
   checked,
@@ -36,17 +37,13 @@ function RoundingSelector({
   label,
   value,
   onChange,
+  options,
 }: {
   label: string;
   value: RoundingOption;
   onChange: (v: RoundingOption) => void;
+  options: { id: RoundingOption; label: string }[];
 }) {
-  const options: { id: RoundingOption; label: string }[] = [
-    { id: 'nearest', label: 'ปัดใกล้สุด' },
-    { id: 'always_down', label: 'ปัดลงเสมอ' },
-    { id: 'none', label: 'ไม่ปัด' },
-  ];
-
   return (
     <div>
       <p className="text-sm font-semibold text-pos-text mb-2.5">{label}</p>
@@ -74,10 +71,17 @@ interface VatSettingProps {
 }
 
 export default function VatSetting({ onSwitchSection }: VatSettingProps) {
+  const { t } = useTranslation();
   const [isVatEnabled, setIsVatEnabled] = useState(false);
   const [vatType, setVatType] = useState<VatTypeOption>('included');
   const [cashRounding, setCashRounding] = useState<RoundingOption>('nearest');
   const [transferRounding, setTransferRounding] = useState<RoundingOption>('none');
+
+  const roundingOptions: { id: RoundingOption; label: string }[] = [
+    { id: 'nearest', label: t('settings.round_nearest') },
+    { id: 'always_down', label: t('settings.round_down') },
+    { id: 'none', label: t('settings.round_none') },
+  ];
 
   return (
     <div className="w-full space-y-4 animate-fadeIn pb-6">
@@ -88,7 +92,7 @@ export default function VatSetting({ onSwitchSection }: VatSettingProps) {
         {/* Toggle เปิดใช้ VAT */}
         <div className="flex items-center justify-between p-5">
           <p className="text-sm font-bold text-pos-text">
-            เปิดใช้ VAT 7%
+            {t('settings.vat_toggle')}
           </p>
           <ToggleSwitch
             checked={isVatEnabled}
@@ -100,7 +104,7 @@ export default function VatSetting({ onSwitchSection }: VatSettingProps) {
         {isVatEnabled && (
           <div className="px-5 pb-5 animate-fadeIn">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2.5">
-              ราคาสินค้าที่ตั้งไว้
+              {t('settings.vat_price_type')}
             </p>
             <div className="flex gap-2.5 mb-3.5">
               <button
@@ -111,7 +115,7 @@ export default function VatSetting({ onSwitchSection }: VatSettingProps) {
                     : 'bg-pos-bg hover:bg-pos-hover text-slate-500 dark:text-slate-400 font-semibold'
                   }`}
               >
-                รวม VAT แล้ว
+                {t('settings.vat_included')}
               </button>
               <button
                 type="button"
@@ -121,17 +125,17 @@ export default function VatSetting({ onSwitchSection }: VatSettingProps) {
                     : 'bg-pos-bg hover:bg-pos-hover text-slate-500 dark:text-slate-400 font-semibold'
                   }`}
               >
-                ยังไม่รวม VAT
+                {t('settings.vat_excluded')}
               </button>
             </div>
 
             {/* คำเตือนเรื่องเลขผู้เสียภาษี */}
             <button
               type="button"
-              onClick={onSwitchSection} // เพิ่ม onClick ตรงนี้
+              onClick={onSwitchSection}
               className="text-[11px] sm:text-xs font-bold text-amber-500 hover:text-amber-600 underline decoration-amber-500/40 underline-offset-4 transition cursor-pointer"
             >
-              ยังไม่ได้กรอกเลขผู้เสียภาษี
+              {t('settings.vat_no_tax_id')}
             </button>
           </div>
         )}
@@ -142,20 +146,22 @@ export default function VatSetting({ onSwitchSection }: VatSettingProps) {
 
         {/* ปัดเศษเงินสด */}
         <RoundingSelector
-          label="ปัดเศษเงินสด"
+          label={t('settings.cash_rounding')}
           value={cashRounding}
           onChange={setCashRounding}
+          options={roundingOptions}
         />
 
         {/* ปัดเศษเงินโอน */}
         <div>
           <RoundingSelector
-            label="ปัดเศษเงินโอน"
+            label={t('settings.transfer_rounding')}
             value={transferRounding}
             onChange={setTransferRounding}
+            options={roundingOptions}
           />
           <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-2.5 font-medium">
-            ยอดที่ลูกค้าต้องโอนและยอดในคิวอาร์พร้อมเพย์จะเป็นยอดหลังปัดแล้ว
+            {t('settings.rounding_transfer_hint')}
           </p>
         </div>
 

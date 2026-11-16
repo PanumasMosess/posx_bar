@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/lib/language/LanguageContext';
 import {
   getShopAndEmployees,
   createEmployeeAction,
@@ -75,6 +76,7 @@ function ToggleSwitch({ checked, onChange, size = 'md' }: { checked: boolean; on
 
 /* ==================== Main View ==================== */
 export default function EmployeeSetting({ organizationId: propOrgId }: { organizationId?: number } = {}) {
+  const { t, isThai } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const { organizationId: contextOrgId } = useEmployee();
   const orgId = propOrgId || contextOrgId || 0;
@@ -86,7 +88,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
   const [editingPermissionsEmp, setEditingPermissionsEmp] = useState<Employee | null>(null);
 
   const [newEmployeeName, setNewEmployeeName] = useState('');
-  const [newEmployeeRole, setNewEmployeeRole] = useState('พนักงาน');
+  const [newEmployeeRole, setNewEmployeeRole] = useState('');
   const [newEmployeePin, setNewEmployeePin] = useState('');
   const [pinError, setPinError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -100,9 +102,9 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
 
   const [currentShop, setCurrentShop] = useState<ShopInfo>({
     id: propOrgId || contextOrgId || 0,
-    name: 'กำลังโหลด...',
+    name: '',
     plan: 'trial',
-    planExpiry: 'หมดอายุ 30 ก.ย. 69 เหลือ 9 วัน',
+    planExpiry: '',
     employees: [],
   });
 
@@ -120,7 +122,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      showToast('ไม่สามารถดึงข้อมูลร้านได้', 'error');
+      showToast(isThai ? 'ไม่สามารถดึงข้อมูลร้านได้' : 'Failed to fetch store details', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -150,11 +152,11 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
 
     try {
       await toggleEmployeeStatusAction(empId, active);
-      showToast(active ? 'เปิดใช้งานพนักงานสำเร็จ' : 'ปิดใช้งานพนักงานสำเร็จ', 'success');
+      showToast(active ? (isThai ? 'เปิดใช้งานพนักงานสำเร็จ' : 'Employee activated') : (isThai ? 'ปิดใช้งานพนักงานสำเร็จ' : 'Employee deactivated'), 'success');
       if (orgId) fetchShopData(orgId);
     } catch (error) {
       console.error("Failed to update status");
-      showToast('เกิดข้อผิดพลาดในการเปลี่ยนสถานะ', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ' : 'Error updating status', 'error');
       if (orgId) fetchShopData(orgId);
     }
   };
@@ -176,11 +178,11 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
 
     try {
       await updateEmployeePermissionAction(empId, permKey, value);
-      showToast('อัปเดตสิทธิ์การใช้งานสำเร็จ', 'success');
+      showToast(isThai ? 'อัปเดตสิทธิ์การใช้งานสำเร็จ' : 'Permissions updated successfully', 'success');
       if (orgId) fetchShopData(orgId);
     } catch (error) {
       console.error("Failed to update permission");
-      showToast('เกิดข้อผิดพลาดในการอัปเดตสิทธิ์', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการอัปเดตสิทธิ์' : 'Error updating permissions', 'error');
       if (orgId) fetchShopData(orgId);
     }
   };
@@ -195,7 +197,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
     setModalMode('add');
     setEditingEmpId(null);
     setNewEmployeeName('');
-    setNewEmployeeRole('พนักงาน');
+    setNewEmployeeRole(isThai ? 'พนักงาน' : 'Staff');
     setNewEmployeePin('');
     setPinError('');
     setIsEmpModalOpen(true);
@@ -213,20 +215,20 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
 
   const handleSaveEmployee = async () => {
     if (!newEmployeeName.trim() || !orgId) {
-      if (!orgId) showToast('ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่', 'error');
+      if (!orgId) showToast(isThai ? 'ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่' : 'Store not found. Please log in again', 'error');
       return;
     }
 
     // บังคับ PIN ต้อง 4 หลักเป๊ะ
     if (newEmployeePin.length !== 4) {
-      setPinError('กรุณากรอก PIN 4 หลักเท่านั้น');
+      setPinError(isThai ? 'กรุณากรอก PIN 4 หลักเท่านั้น' : 'PIN must be exactly 4 digits');
       return;
     }
 
     // ตรวจสอบ PIN ซ้ำ ภายในร้านเดียวกัน (ยกเว้น PIN ของตัวเองกรณีแก้ไข)
     const isPinDuplicate = currentShop.employees.some((e) => e.pin === newEmployeePin && e.id !== editingEmpId);
     if (isPinDuplicate) {
-      setPinError('PIN นี้มีคนใช้งานแล้วในร้าน กรุณากำหนดใหม่');
+      setPinError(isThai ? 'PIN นี้มีคนใช้งานแล้วในร้าน กรุณากำหนดใหม่' : 'PIN is already in use in this store');
       return;
     }
 
@@ -235,20 +237,20 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
       if (modalMode === 'add') {
         await createEmployeeAction({
           name: newEmployeeName.trim(),
-          role: newEmployeeRole.trim() || 'พนักงาน',
+          role: newEmployeeRole.trim() || (isThai ? 'พนักงาน' : 'Staff'),
           pin: newEmployeePin,
           organizationId: orgId
         });
-        showToast('เพิ่มพนักงานเรียบร้อยแล้ว');
+        showToast(isThai ? 'เพิ่มพนักงานเรียบร้อยแล้ว' : 'Employee added successfully', 'success');
       } else {
         if (editingEmpId) {
           await updateEmployeeInfoAction(editingEmpId, {
             name: newEmployeeName.trim(),
-            role: newEmployeeRole.trim() || 'พนักงาน',
+            role: newEmployeeRole.trim() || (isThai ? 'พนักงาน' : 'Staff'),
             pin: newEmployeePin,
             organizationId: orgId
           });
-          showToast('แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว');
+          showToast(isThai ? 'แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว' : 'Employee updated successfully', 'success');
         }
       }
 
@@ -257,10 +259,10 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
     } catch (error: any) {
       console.error("Failed to save employee:", error);
       if (error.message === 'DUPLICATE_PIN') {
-        setPinError('PIN นี้มีคนใช้งานแล้วในร้าน กรุณากำหนดใหม่');
+        setPinError(isThai ? 'PIN นี้มีคนใช้งานแล้วในร้าน กรุณากำหนดใหม่' : 'PIN is already in use in this store');
       } else {
-        setPinError('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่');
-        showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        setPinError(isThai ? 'เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่' : 'Error saving. Please try again');
+        showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึก' : 'Error saving employee', 'error');
       }
     } finally {
       setIsSaving(false);
@@ -293,7 +295,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
               {currentShop.name}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
-              พนักงานทั้งหมด {currentShop.employees.length} คน (เปิดใช้งาน {activeEmployeesCount})
+              {isThai ? `พนักงานทั้งหมด ${currentShop.employees.length} คน (เปิดใช้งาน ${activeEmployeesCount})` : `Total Employees: ${currentShop.employees.length} (Active: ${activeEmployeesCount})`}
             </p>
           </div>
         </div>
@@ -303,9 +305,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
       <div className="w-full rounded-2xl border border-pos-border dark:border-slate-500/40 p-5 bg-pos-surface shadow-2xs space-y-4 transition-colors duration-300">
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-pos-text tracking-wide">
-              รายชื่อพนักงาน
-            </span>
+            <span className="text-xs font-bold text-pos-text tracking-wide">{isThai ? "รายชื่อพนักงาน" : "Employee List"}</span>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 shadow-2xs">
               {currentShop.employees.length}
             </span>
@@ -315,19 +315,19 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
             onClick={openAddModal}
             className="text-xs font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 flex items-center gap-1 transition cursor-pointer active:scale-95"
           >
-            <span>+ เพิ่มพนักงาน</span>
+            <span>{isThai ? "+ เพิ่มพนักงาน" : "+ Add Employee"}</span>
           </button>
         </div>
 
         <div className="w-full max-h-[360px] overflow-y-auto custom-scroll pr-1.5 space-y-2.5">
           {isLoading ? (
             <div className="w-full py-8 text-center text-slate-400 dark:text-slate-500 bg-pos-bg rounded-2xl border border-dashed border-pos-border dark:border-slate-500/40">
-              <p className="text-sm font-medium animate-pulse">กำลังโหลดข้อมูลพนักงาน...</p>
+              <p className="text-sm font-medium animate-pulse">{isThai ? "กำลังโหลดข้อมูลพนักงาน..." : "Loading employees..."}</p>
             </div>
           ) : currentShop.employees.length === 0 ? (
             <div className="w-full py-8 text-center text-slate-400 dark:text-slate-500 bg-pos-bg rounded-2xl border border-dashed border-pos-border dark:border-slate-500/40">
-              <p className="text-sm font-medium">ยังไม่มีพนักงานในร้านนี้</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">กดปุ่มเพิ่มพนักงานเพื่อเริ่มใช้งาน</p>
+              <p className="text-sm font-medium">{isThai ? "ยังไม่มีพนักงานในร้านนี้" : "No employees in this store"}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{isThai ? "กดปุ่มเพิ่มพนักงานเพื่อเริ่มใช้งาน" : "Click add employee to get started"}</p>
             </div>
           ) : (
             currentShop.employees.map((emp) => {
@@ -366,9 +366,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                           {emp.name}
                         </p>
                         {!emp.isActive && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-pos-surface border border-pos-border dark:border-slate-500/40 text-slate-500 dark:text-slate-400">
-                            ปิดใช้งาน
-                          </span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-pos-surface border border-pos-border dark:border-slate-500/40 text-slate-500 dark:text-slate-400">{isThai ? "ปิดใช้งาน" : "Deactivated"}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -386,7 +384,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                     <button
                       type="button"
                       onClick={() => openEditModal(emp)}
-                      title="แก้ไขข้อมูลพนักงาน"
+                      title={isThai ? "แก้ไขข้อมูลพนักงาน" : "Edit employee"}
                       className="w-8 h-8 rounded-full bg-pos-surface hover:bg-sky-500/10 hover:text-sky-600 border border-pos-border dark:border-slate-500/40 text-slate-400 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-2xs"
                     >
                       <EditIcon className="w-4 h-4" />
@@ -395,16 +393,16 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                     <button
                       type="button"
                       onClick={() => setEditingPermissionsEmp(emp)}
-                      title="คลิกเพื่อตั้งค่าสิทธิ์พนักงาน"
+                      title={isThai ? "คลิกเพื่อตั้งค่าสิทธิ์พนักงาน" : "Configure permissions"}
                       className="px-3 py-1.5 rounded-xl bg-pos-surface hover:bg-sky-500/10 hover:text-sky-600 border border-pos-border dark:border-slate-500/40 text-pos-text text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs"
                     >
                       <KeyIcon className="w-3.5 h-3.5 text-sky-500" />
-                      <span>สิทธิ์ ({activePermCount})</span>
+                      <span>{isThai ? `สิทธิ์ (${activePermCount})` : `Perms (${activePermCount})`}</span>
                     </button>
 
                     <div className="flex items-center gap-2 pl-2 border-l border-pos-border dark:border-slate-500/40">
                       <span className={`text-[11px] font-semibold hidden sm:inline ${emp.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {emp.isActive ? 'ใช้งาน' : 'ปิด'}
+                        {emp.isActive ? (isThai ? 'ใช้งาน' : 'Active') : (isThai ? 'ปิด' : 'Inactive')}
                       </span>
                       <ToggleSwitch
                         checked={emp.isActive}
@@ -422,22 +420,18 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
           type="button"
           onClick={openAddModal}
           className="w-full py-3 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border dark:border-slate-500/40 text-pos-text font-semibold text-sm transition active:scale-[0.99] cursor-pointer shadow-2xs"
-        >
-          เพิ่มพนักงาน
-        </button>
+        >{isThai ? "+ เพิ่มพนักงาน" : "+ Add Employee"}</button>
       </div>
 
       <button
         type="button"
         onClick={() => {
-          if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบร้านนี้?')) {
-            alert('ส่งคำขอลบร้านเรียบร้อย');
+          if (confirm(isThai ? 'คุณแน่ใจหรือไม่ว่าต้องการลบร้านนี้?' : 'Are you sure you want to delete this store?')) {
+            alert(isThai ? 'ส่งคำขอลบร้านเรียบร้อย' : 'Store deletion request sent');
           }
         }}
         className="w-full py-3.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm shadow-xs transition active:scale-[0.98] cursor-pointer"
-      >
-        ลบร้าน
-      </button>
+      >{isThai ? "ลบร้าน" : "Delete Store"}</button>
 
       {/* ==================== MODAL 1: PERMISSIONS ==================== */}
       {editingPermissionsEmp && (
@@ -458,7 +452,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                 )}
                 <div>
                   <h3 className="font-bold text-base text-pos-text flex items-center gap-2">
-                    <span>สิทธิ์การใช้งาน: {editingPermissionsEmp.name}</span>
+                    <span>{isThai ? `สิทธิ์การใช้งาน: ${editingPermissionsEmp.name}` : `Permissions: ${editingPermissionsEmp.name}`}</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {editingPermissionsEmp.role} · PIN: <span className="font-mono font-semibold text-pos-text">{editingPermissionsEmp.pin}</span>
@@ -477,15 +471,15 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  กำหนดสิทธิ์การเข้าถึงและการทำงาน
+                  {isThai ? "กำหนดสิทธิ์การเข้าถึงและการทำงาน" : "Configure access and operation permissions"}
                 </p>
                 <span className="text-[11px] font-semibold text-sky-600 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-full">
-                  เปิดใช้งาน {editingPermissionsEmp.permission ? Object.values(editingPermissionsEmp.permission).filter((val) => typeof val === 'boolean' && val).length : 0} / 5 รายการ
+                  {isThai ? `เปิดใช้งาน ${editingPermissionsEmp.permission ? Object.values(editingPermissionsEmp.permission).filter((val) => typeof val === "boolean" && val).length : 0} / 5 รายการ` : `Enabled ${editingPermissionsEmp.permission ? Object.values(editingPermissionsEmp.permission).filter((val) => typeof val === "boolean" && val).length : 0} / 5 items`}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {PERMISSION_CONFIG.map(({ key, label, desc }) => {
+                {PERMISSION_CONFIG.map(({ key, label, labelEn, desc, descEn }) => {
                   const isChecked = editingPermissionsEmp.permission ? editingPermissionsEmp.permission[key] : false;
                   return (
                     <div
@@ -498,10 +492,10 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                     >
                       <div className="min-w-0 pr-1">
                         <p className={`text-xs font-bold leading-tight ${isChecked ? 'text-sky-600 dark:text-sky-400' : 'text-pos-text'}`}>
-                          {label}
+                          {isThai ? label : (labelEn || label)}
                         </p>
                         <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                          {desc}
+                          {isThai ? desc : (descEn || desc)}
                         </p>
                       </div>
                       <ToggleSwitch
@@ -515,7 +509,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
 
               <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-2">
                 <span className="text-base">💡</span>
-                <span>การเปลี่ยนแปลงสิทธิ์จะมีผลทันทีเมื่อพนักงานเข้าสู่ระบบหรือเปิดแอปครั้งถัดไป</span>
+                <span>{isThai ? "การเปลี่ยนแปลงสิทธิ์จะมีผลทันทีเมื่อพนักงานเข้าสู่ระบบหรือเปิดแอปครั้งถัดไป" : "Permission changes take effect immediately on next login"}</span>
               </div>
             </div>
 
@@ -524,9 +518,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                 type="button"
                 onClick={() => setEditingPermissionsEmp(null)}
                 className="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold transition shadow-xs cursor-pointer active:scale-95"
-              >
-                เสร็จสิ้น
-              </button>
+              >{isThai ? "เสร็จสิ้น" : "Done"}</button>
             </div>
           </div>
         </div>
@@ -538,7 +530,7 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
           <div className="bg-pos-surface rounded-3xl shadow-2xl w-full max-w-sm p-5 border border-pos-border dark:border-slate-500/40 animate-scaleUp">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-base text-pos-text">
-                {modalMode === 'add' ? 'เพิ่มพนักงาน' : 'แก้ไขข้อมูลพนักงาน'}
+                {modalMode === 'add' ? (isThai ? 'เพิ่มพนักงาน' : 'Add Employee') : (isThai ? 'แก้ไขข้อมูลพนักงาน' : 'Edit Employee')}
               </h3>
               <button
                 type="button"
@@ -555,36 +547,36 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  ชื่อพนักงาน <span className="text-rose-500">*</span>
+                  {isThai ? "ชื่อพนักงาน" : "Employee Name"} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={newEmployeeName}
                   onChange={(e) => setNewEmployeeName(e.target.value)}
-                  placeholder="เช่น สมชาย ใจดี"
+                  placeholder={isThai ? "เช่น สมชาย ใจดี" : "e.g. John Doe"}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  ตำแหน่ง / หน้าที่
+                  {isThai ? "ตำแหน่ง / หน้าที่" : "Role / Position"}
                 </label>
                 <input
                   type="text"
                   value={newEmployeeRole}
                   onChange={(e) => setNewEmployeeRole(e.target.value)}
-                  placeholder="เช่น พนักงานแคชเชียร์, บาริสต้า"
+                  placeholder={isThai ? "เช่น พนักงานแคชเชียร์, บาริสต้า" : "e.g. Cashier, Barista"}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                  PIN เข้าใช้งาน (4 หลัก) <span className="text-rose-500">*</span>
+                  {isThai ? "PIN เข้าใช้งาน (4 หลัก)" : "Access PIN (4 digits)"} <span className="text-rose-500">*</span>
                 </label>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
-                  พนักงานใช้ PIN นี้เพื่อระบุตัวตนขณะใช้งาน POS
+                  {isThai ? "พนักงานใช้ PIN นี้เพื่อระบุตัวตนขณะใช้งาน POS" : "Staff uses this PIN to authenticate on POS"}
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -596,13 +588,13 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                       setNewEmployeePin(e.target.value.replace(/\D/g, '').slice(0, 4));
                       setPinError('');
                     }}
-                    placeholder="กรอก PIN 4 หลัก"
+                    placeholder={isThai ? "กรอก PIN 4 หลัก" : "Enter 4-digit PIN"}
                     className="flex-1 px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border dark:border-slate-500/40 text-sm font-mono tracking-widest text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
                   />
                   <button
                     type="button"
                     onClick={handleGeneratePin}
-                    title="สุ่ม PIN"
+                    title={isThai ? "สุ่ม PIN" : "Randomize PIN"}
                     className="w-11 h-11 shrink-0 rounded-xl bg-pos-surface border border-pos-border dark:border-slate-500/40 text-slate-500 hover:text-sky-500 hover:border-sky-500 flex items-center justify-center transition active:scale-95 cursor-pointer"
                   >
                     <DiceIcon />
@@ -620,16 +612,14 @@ export default function EmployeeSetting({ organizationId: propOrgId }: { organiz
                   setPinError('');
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-pos-bg text-sm font-semibold text-slate-500 hover:bg-pos-hover transition cursor-pointer"
-              >
-                ยกเลิก
-              </button>
+              >{t("common.cancel")}</button>
               <button
                 type="button"
                 onClick={handleSaveEmployee}
                 disabled={!newEmployeeName.trim() || !newEmployeePin || isSaving}
                 className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 cursor-pointer shadow-xs"
               >
-                {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                {isSaving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>

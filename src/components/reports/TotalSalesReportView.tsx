@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { TotalSalesReportViewProps } from "@/lib/types";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function TotalSalesReportView({
   data,
   isMobile = false,
 }: TotalSalesReportViewProps) {
+  const { t, language } = useTranslation();
   const [showOnlyDaysWithRevenue, setShowOnlyDaysWithRevenue] = useState(false);
 
   const totalSales = data?.totalSales || 0;
@@ -47,7 +49,7 @@ export default function TotalSalesReportView({
 
   const dailyStats = data?.dailyStats || {
     daysCount: dailySales.length,
-    daysText: `${dailySales.length} วัน`,
+    daysText: `${dailySales.length}`,
     bestDay: { dayText: "-", amount: 0 },
     worstDay: { dayText: "-", amount: 0 },
     averagePerDay: 0,
@@ -169,7 +171,7 @@ export default function TotalSalesReportView({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                  ยอดขายทั้งหมด
+                  {t('reports.tab_total')}
                 </h2>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {data?.dateRangeText || ""}
@@ -179,7 +181,7 @@ export default function TotalSalesReportView({
 
             <div className="text-right">
               <span className="text-[11px] font-medium text-slate-400 block">
-                ยอดขายทั้งหมด
+                {t('reports.tab_total')}
               </span>
               <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 {totalSales.toLocaleString()}
@@ -192,7 +194,7 @@ export default function TotalSalesReportView({
             {/* Big Total KPI Header */}
             <div>
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">
-                ยอดขายทั้งหมด
+                {t('reports.tab_total')}
               </span>
               <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-0.5 tracking-tight">
                 {totalSales.toLocaleString()}
@@ -203,21 +205,21 @@ export default function TotalSalesReportView({
             <div className="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 dark:border-slate-800 text-left">
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">
-                  บิลสำเร็จ
+                  {t('reports.completed_bills')}
                 </span>
                 <div className="mt-0.5">
                   <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200">
                     {completedBills}
                   </span>
                   <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
-                    บิล
+                    {t('reports.bill_unit')}
                   </span>
                 </div>
               </div>
 
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">
-                  บิลเฉลี่ย
+                  {t('reports.average_bill')}
                 </span>
                 <div className="mt-0.5">
                   <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200">
@@ -228,14 +230,14 @@ export default function TotalSalesReportView({
 
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">
-                  บิลยกเลิก
+                  {t('reports.cancelled_bills')}
                 </span>
                 <div className="mt-0.5">
                   <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200">
                     {cancelledBills}
                   </span>
                   <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
-                    บิล
+                    {t('reports.bill_unit')}
                   </span>
                 </div>
               </div>
@@ -258,14 +260,14 @@ export default function TotalSalesReportView({
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                     />
                   </svg>
-                  จำนวนที่ขาย
+                  {t('reports.items_sold_count')}
                 </span>
                 <div>
                   <span className="text-base font-bold text-slate-800 dark:text-slate-200">
                     {totalItemsSold}
                   </span>
                   <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
-                    ชิ้น
+                    {t('pos.piece_unit')}
                   </span>
                 </div>
               </div>
@@ -308,14 +310,14 @@ export default function TotalSalesReportView({
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#ebb042] shrink-0" />
                   <span className="text-slate-600 dark:text-slate-400">
-                    เงินสด {cashAmount.toLocaleString()}
+                    {t('payment.cash')} {cashAmount.toLocaleString()}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#dd5044] shrink-0" />
                   <span className="text-slate-600 dark:text-slate-400">
-                    เงินโอน {transferAmount.toLocaleString()}
+                    {t('payment.qr_code')} {transferAmount.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -324,13 +326,13 @@ export default function TotalSalesReportView({
             {/* Summary Table Row */}
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2 text-xs">
               <div className="flex items-center justify-between text-slate-500">
-                <span>ยอดสินค้า</span>
+                <span>{t('reports.product_total')}</span>
                 <span className="font-semibold text-slate-700 dark:text-slate-300">
                   {totalSales.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-slate-100">
-                <span>ยอดขายทั้งหมด</span>
+                <span>{t('reports.gross_sales')}</span>
                 <span>{totalSales.toLocaleString()}</span>
               </div>
             </div>
@@ -347,7 +349,7 @@ export default function TotalSalesReportView({
             {/* Header: ยอดขายทั้งหมด & ตัวเลขใหญ่ */}
             <div>
               <h3 className="text-[13px] font-bold text-slate-900 dark:text-slate-100">
-                ยอดขายทั้งหมด
+                {t('reports.tab_total')}
               </h3>
               <div className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-1 tracking-tight">
                 {totalSales.toLocaleString()}
@@ -358,18 +360,18 @@ export default function TotalSalesReportView({
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <span className="text-xs text-slate-500 font-medium block">
-                  บิลสำเร็จ
+                  {t('reports.completed_bills')}
                 </span>
                 <div className="mt-1 flex items-baseline gap-1">
                   <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                     {completedBills}
                   </span>
-                  <span className="text-[11px] text-slate-400">บิล</span>
+                  <span className="text-[11px] text-slate-400">{t('reports.bill_unit')}</span>
                 </div>
               </div>
               <div>
                 <span className="text-xs text-slate-500 font-medium block">
-                  บิลเฉลี่ย
+                  {t('reports.average_bill')}
                 </span>
                 <div className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100">
                   {formatDecimals(averageBill)}
@@ -377,13 +379,13 @@ export default function TotalSalesReportView({
               </div>
               <div>
                 <span className="text-xs text-slate-500 font-medium block">
-                  บิลยกเลิก
+                  {t('reports.cancelled_bills')}
                 </span>
                 <div className="mt-1 flex items-baseline gap-1">
                   <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                     {cancelledBills}
                   </span>
-                  <span className="text-[11px] text-slate-400">บิล</span>
+                  <span className="text-[11px] text-slate-400">{t('reports.bill_unit')}</span>
                 </div>
               </div>
             </div>
@@ -405,13 +407,13 @@ export default function TotalSalesReportView({
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                     />
                   </svg>
-                  <span className="font-medium">จำนวนที่ขาย</span>
+                  <span className="font-medium">{t('reports.items_sold_count')}</span>
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {totalItemsSold}
                   </span>
-                  <span className="text-[11px] text-slate-500">ชิ้น</span>
+                  <span className="text-[11px] text-slate-500">{t('pos.piece_unit')}</span>
                 </div>
               </div>
 
@@ -448,14 +450,14 @@ export default function TotalSalesReportView({
               <div className="flex justify-between text-xs font-medium pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#fbc02d]" />
-                  <span className="text-slate-500">เงินสด</span>
+                  <span className="text-slate-500">{t('payment.cash')}</span>
                   <span className="text-slate-900 dark:text-slate-100 font-bold ml-0.5">
                     {cashAmount.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#e53935]" />
-                  <span className="text-slate-500">เงินโอน</span>
+                  <span className="text-slate-500">{t('payment.qr_code')}</span>
                   <span className="text-slate-900 dark:text-slate-100 font-bold ml-0.5">
                     {transferAmount.toLocaleString()}
                   </span>
@@ -466,13 +468,13 @@ export default function TotalSalesReportView({
             {/* สรุปยอดรวม (ยอดสินค้า / ยอดขายทั้งหมด) */}
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
               <div className="flex justify-between text-[13px] font-medium text-slate-500">
-                <span>ยอดสินค้า</span>
+                <span>{t('reports.product_total')}</span>
                 <span className="text-slate-900 dark:text-slate-100 font-semibold">
                   {totalSales.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between text-[13px] font-bold text-slate-900 dark:text-slate-100 pt-0.5">
-                <span>ยอดขายทั้งหมด</span>
+                <span>{t('reports.gross_sales')}</span>
                 <span>{totalSales.toLocaleString()}</span>
               </div>
             </div>
@@ -487,21 +489,21 @@ export default function TotalSalesReportView({
         <div className={`w-full space-y-4 mb-6 ${isMobile ? "border-t border-slate-100 dark:border-slate-800/80 pt-5" : "border-t border-slate-100 dark:border-slate-800/80 pt-6"}`}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
-              ยอดรายวัน ({dailyStats.daysText || `${dailySales.length} วัน`})
+              {t('reports.daily_sales')} ({dailyStats.daysText || `${dailySales.length}`} {t('common.day_unit')})
             </h3>
             {isMobile && canScroll ? (
-              <span className="text-[10px] text-slate-400 font-medium">ปัดดูซ้ายขวาได้</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t('reports.swipe_hint')}</span>
             ) : !isMobile ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-                  ปัจจุบันย้อนหลัง
+                  {t('reports.history_order')}
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowOnlyDaysWithRevenue(!showOnlyDaysWithRevenue)}
                   className="text-xs text-teal-600 hover:underline font-medium transition"
                 >
-                  {showOnlyDaysWithRevenue ? "แสดงทุกวัน" : "เฉพาะวันมีรายได้"}
+                  {showOnlyDaysWithRevenue ? t('reports.show_all_days') : t('reports.revenue_days_only')}
                 </button>
               </div>
             ) : null}
@@ -629,7 +631,7 @@ export default function TotalSalesReportView({
           <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-1">
             <div className="bg-[#dff1f3] rounded-2xl p-3.5 sm:p-4 text-center space-y-0.5 border-0">
               <span className="text-[11px] font-medium text-slate-500 block">
-                วันขายดีสุด
+                {t('reports.best_selling_day')}
               </span>
               <div className="text-xs sm:text-sm font-bold text-[#086972] truncate">
                 {dailyStats.bestDay?.dayText || "-"}
@@ -641,7 +643,7 @@ export default function TotalSalesReportView({
 
             <div className="bg-[#f4f4f4] rounded-2xl p-3.5 sm:p-4 text-center space-y-0.5 border-0">
               <span className="text-[11px] font-medium text-slate-500 block">
-                วันเงียบสุด
+                {t('reports.quietest_day')}
               </span>
               <div className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                 {dailyStats.worstDay?.dayText || "-"}
@@ -653,20 +655,20 @@ export default function TotalSalesReportView({
 
             <div className="bg-[#f9f8f2] rounded-2xl p-3.5 sm:p-4 text-center space-y-0.5 border-0">
               <span className="text-[11px] font-medium text-slate-500 block">
-                เฉลี่ยวันละ
+                {t('reports.daily_average')}
               </span>
               <div className="text-xs sm:text-sm font-bold text-slate-800">
                 {formatDecimals(dailyStats.averagePerDay || 0)}
               </div>
               <div className="text-xs font-medium text-slate-500">
-                {dailyStats.activeDaysCount || 0} วัน
+                {dailyStats.activeDaysCount || 0} {t('common.day_unit')}
               </div>
             </div>
           </div>
 
           {!isMobile && (
             <p className="text-[11px] text-slate-400 text-center pt-1">
-              *คำนวณวันละเฉลี่ยเฉพาะวันที่มีการขาย
+              {t('reports.daily_avg_note')}
             </p>
           )}
         </div>
@@ -678,7 +680,7 @@ export default function TotalSalesReportView({
       <div className={`w-full space-y-4 ${isMobile ? "border-t border-slate-100 dark:border-slate-800/80 pt-5" : "border-t border-slate-100 dark:border-slate-800/80 pt-6"}`}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
-            ยอดขายรายชั่วโมง
+            {t('reports.hourly_sales')}
           </h3>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
             {hourlyStats.rangeText}
@@ -689,7 +691,7 @@ export default function TotalSalesReportView({
         <div className="pt-4 pb-1">
           {hourlyChartData.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-400">
-              ไม่มีข้อมูลยอดขายในช่วงเวลานี้
+              {t('reports.no_sales_period')}
             </div>
           ) : (
             <div className="relative w-full h-44 sm:h-52 px-1 sm:px-2 flex items-end justify-between border-b border-dashed border-slate-200 dark:border-slate-800 pb-2">
@@ -759,7 +761,7 @@ export default function TotalSalesReportView({
           {/* Card 1: ช่วงขายดีสุด (Pale Teal bg-[#dff1f3], text #086972) */}
           <div className="bg-[#dff1f3] rounded-2xl p-3 sm:p-4 text-center space-y-0.5 border-0">
             <span className="text-[11px] font-medium text-slate-500 block">
-              ช่วงขายดีสุด
+              {t('reports.peak_hours')}
             </span>
             <div className="text-sm sm:text-base font-bold text-[#086972]">
               {hourlyStats.peakHourText}
@@ -772,7 +774,7 @@ export default function TotalSalesReportView({
           {/* Card 2: ช่วงเงียบสุด (Light Grey bg-[#f4f4f4], text slate) */}
           <div className="bg-[#f4f4f4] rounded-2xl p-3 sm:p-4 text-center space-y-0.5 border-0">
             <span className="text-[11px] font-medium text-slate-500 block">
-              {hasMultipleActiveHours ? "ช่วงเงียบสุด" : "ชั่วโมงเฉลี่ย"}
+              {hasMultipleActiveHours ? t('reports.quietest_hours') : t('reports.average_hour')}
             </span>
             <div className="text-sm sm:text-base font-bold text-slate-800">
               {hasMultipleActiveHours
@@ -790,19 +792,19 @@ export default function TotalSalesReportView({
           {/* Card 3: เฉลี่ย/ชม. (Soft Cream bg-[#f9f8f2], text slate) */}
           <div className="bg-[#f9f8f2] rounded-2xl p-3 sm:p-4 text-center space-y-0.5 border-0">
             <span className="text-[11px] font-medium text-slate-500 block">
-              เฉลี่ย/ชม.
+              {t('reports.hourly_average')}
             </span>
             <div className="text-sm sm:text-base font-bold text-slate-800">
               {formatDecimals(hourlyStats.averagePerHour || 0)}
             </div>
             <div className="text-xs font-medium text-slate-500">
-              {hourlyStats.activeHoursCount} ชม.
+              {hourlyStats.activeHoursCount} {language === 'th' ? 'ชม.' : 'hrs'}
             </div>
           </div>
         </div>
 
         <p className="text-[10px] sm:text-[11px] text-slate-400 text-center pt-2">
-          รวมยอดของทุกวันในช่วงที่เลือกไว้เฉพาะในแต่ละชั่วโมงเดียวกัน
+          {t('reports.hourly_note')}
         </p>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useCart } from "../providers/CartContext";
 import { useOrgSettings } from "../providers/OrganizationSettingsContext";
 import { CartDrawerProps } from "@/lib/interface";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 import HoldBillModal from "./HoldBillModal";
 import HeldBillsDrawer from "./HeldBillsDrawer";
@@ -17,6 +18,7 @@ export default function CartDrawer({
   onClose,
   onOpen,
 }: CartDrawerProps) {
+  const { t } = useTranslation();
   const {
     cart,
     totalItems,
@@ -38,103 +40,112 @@ export default function CartDrawer({
   const [payingBillId, setPayingBillId] = useState<number | string | null>(
     null,
   );
-
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleConfirmClear = async () => {
     setIsDeleting(true);
-    await clearCart();
-    setIsDeleting(false);
-    setShowClearConfirm(false);
+    try {
+      await clearCart();
+      setShowClearConfirm(false);
+    } catch (error) {
+      console.error("Failed to clear cart:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const renderOptionsText = (rawOptions: any) => {
-    if (!rawOptions) return "";
+  const renderOptionsText = (optionsObj: any) => {
+    if (!optionsObj) return null;
+    let list: string[] = [];
 
-    try {
-      let parsed = rawOptions;
-      if (typeof rawOptions === "string") {
-        parsed = JSON.parse(rawOptions);
-      }
-
-      if (!parsed || typeof parsed !== "object") return "";
-
-      const names: string[] = [];
-      const values = Array.isArray(parsed) ? parsed : Object.values(parsed);
-
-      values.forEach((item: any) => {
-        if (Array.isArray(item)) {
-          item.forEach((sub) => {
-            if (typeof sub === "object" && sub?.name) {
-              names.push(sub.name);
-            } else if (typeof sub === "string") {
-              names.push(sub);
-            }
+    if (Array.isArray(optionsObj)) {
+      list = optionsObj
+        .map((opt: any) => (typeof opt === "string" ? opt : opt?.name))
+        .filter(Boolean);
+    } else if (typeof optionsObj === "object") {
+      Object.values(optionsObj).forEach((val: any) => {
+        if (Array.isArray(val)) {
+          val.forEach((item: any) => {
+            const name =
+              typeof item === "string" ? item : item?.name || item?.label;
+            if (name) list.push(name);
           });
-        } else if (typeof item === "object" && item !== null) {
-          if (item.name) {
-            names.push(item.name);
-          }
-        } else if (typeof item === "string") {
-          names.push(item);
+        } else if (typeof val === "object" && val !== null) {
+          const name = val.name || val.label;
+          if (name) list.push(name);
+        } else if (typeof val === "string" && val.trim() !== "") {
+          list.push(val);
         }
       });
-
-      return names.join(", ");
-    } catch (e) {
-      return "";
     }
+
+    if (list.length === 0) return null;
+    return list.join(", ");
   };
 
   return (
     <>
-      {/* Mobile Bottom Floating Bar */}
-      <div className="lg:hidden absolute bottom-[calc(56px+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 p-3 bg-pos-surface/95 backdrop-blur-md border-t border-pos-border z-[30] shadow-lg">
-        <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
-          <div
-            className="flex items-center gap-3 cursor-pointer"
-            onClick={onOpen}
-          >
-            <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-sky-600 to-cyan-500 text-white flex items-center justify-center shadow-md">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-black border-2 border-white">
-                  {totalItems}
-                </span>
-              )}
-            </div>
-            <div>
-              <span className="text-xs text-pos-text/70 font-medium">
-                รวม {totalItems} รายการ
+      {/* 🌟 1. Floating Bar (ปุ่มลอยสำหรับอุปกรณ์จอเล็ก < lg) */}
+      <div
+        onClick={onOpen}
+        className={`lg:hidden fixed bottom-4 left-4 right-4 z-40 bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 text-white rounded-2xl shadow-xl shadow-sky-600/30 p-3.5 flex items-center justify-between cursor-pointer transition-all duration-300 transform active:scale-98 ${
+          isOpen ? "translate-y-24 opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs font-bold text-base">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"
+              />
+            </svg>
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-black border border-white">
+                {totalItems}
               </span>
-              <div className="text-lg font-black font-mono text-sky-600 leading-tight">
-                {totalPrice.toLocaleString()}{" "}
-                <span className="text-xs">{currencyCode}</span>
-              </div>
+            )}
+          </div>
+          <div>
+            <div className="text-xs text-white/80 font-medium">
+              {activeBillNumber ? `${t('cart.bill_prefix')}${activeBillNumber}` : t('cart.title')}
+            </div>
+            <div className="text-sm font-black">
+              {t('cart.total_items', { count: totalItems })}
             </div>
           </div>
+        </div>
 
-          {/* ปุ่มบันทึก/พักบิล สำหรับ Mobile */}
-          <button
-            onClick={() => setShowHoldModal(true)}
-            disabled={cart.length === 0}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 text-white font-bold text-sm shadow-md disabled:opacity-50 active:scale-95 transition"
-          >
-            บันทึก / พักบิล
-          </button>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-xs text-white/80 font-medium">{t('cart.total')}</div>
+            <div className="text-lg font-black font-mono leading-none">
+              {totalPrice.toLocaleString()} {currencyCode}
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.5 15.75l7.5-7.5 7.5 7.5"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -170,10 +181,10 @@ export default function CartDrawer({
             </div>
             <div>
               <h3 className="font-bold text-base text-pos-text">
-                รายการออเดอร์
+                {t('cart.title')}
               </h3>
               <p className="text-xs text-pos-text/60 font-medium">
-                {activeBillNumber ? `บิล: ${activeBillNumber}` : "บิลใหม่"}
+                {activeBillNumber ? `${t('cart.bill_prefix')}${activeBillNumber}` : t('cart.new_bill')}
               </p>
             </div>
           </div>
@@ -183,7 +194,7 @@ export default function CartDrawer({
               disabled={cart.length === 0}
               className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 px-3 py-2 rounded-lg transition-colors disabled:opacity-40"
             >
-              ล้างบิล
+              {t('cart.clear_bill')}
             </button>
             <button
               className="lg:hidden w-10 h-10 rounded-xl bg-pos-bg hover:bg-pos-hover text-pos-text flex items-center justify-center transition-colors"
@@ -222,12 +233,12 @@ export default function CartDrawer({
                   strokeLinejoin="round"
                 ></path>
               </svg>
-              <p className="text-base font-medium">ยังไม่มีสินค้าในตะกร้า</p>
+              <p className="text-base font-medium">{t('cart.empty_cart')}</p>
             </div>
           ) : (
             cart.map((item) => {
               const title =
-                item.product?.name || item.product?.title || "สินค้า";
+                item.product?.name || item.product?.title || t('pos.items_unit');
               const image = item.product?.image || item.product?.img || "";
 
               const optionsDisplay = renderOptionsText(
@@ -318,7 +329,7 @@ export default function CartDrawer({
         {/* สรุปยอดเงิน และปุ่ม Action */}
         <div className="p-4 bg-pos-surface border-t border-pos-border space-y-3 shrink-0">
           <div className="flex justify-between items-baseline mb-1">
-            <span className="text-base font-bold text-pos-text">ยอดสุทธิ</span>
+            <span className="text-base font-bold text-pos-text">{t('cart.total')}</span>
             <div className="text-right">
               <span className="text-2xl font-black font-mono text-sky-600 dark:text-sky-400 tracking-tight">
                 {totalPrice.toLocaleString()}
@@ -335,7 +346,7 @@ export default function CartDrawer({
               onClick={() => setShowHeldBills(true)}
               className="py-2.5 rounded-xl bg-pos-highlight hover:bg-sky-100 dark:hover:bg-sky-900/40 border border-sky-200/50 dark:border-sky-800/50 text-xs font-bold text-sky-700 dark:text-sky-400 flex items-center justify-center gap-1 transition-colors active:scale-95 relative"
             >
-              ดูบิลที่พักไว้
+              {t('cart.held_bills_btn')}
               {heldBills.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-sky-500 text-white text-[9px] flex items-center justify-center font-black border border-white dark:border-slate-900">
                   {heldBills.length}
@@ -348,7 +359,7 @@ export default function CartDrawer({
               disabled={cart.length === 0}
               className="py-2.5 rounded-xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-xs font-bold text-pos-text disabled:opacity-50 transition-colors active:scale-95"
             >
-              แยกบิล
+              {t('cart.split_bill_btn')}
             </button>
           </div>
 
@@ -358,7 +369,7 @@ export default function CartDrawer({
             disabled={cart.length === 0}
             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:brightness-105 active:scale-98 text-white font-black text-base tracking-wide shadow-lg shadow-sky-600/25 flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>บันทึก / พักบิล</span>
+            <span>{t('cart.hold_bill_btn')}</span>
             <svg
               className="w-5 h-5 stroke-[2.5]"
               fill="none"
@@ -377,8 +388,8 @@ export default function CartDrawer({
 
       <ConfirmDeleteModal
         isOpen={showClearConfirm}
-        title="ยืนยันการล้างบิล"
-        message="รายการสินค้าทั้งหมดในบิลนี้จะถูกลบทิ้ง และไม่สามารถเรียกคืนได้"
+        title={t('cart.clear_confirm_title')}
+        message={t('cart.clear_confirm_msg')}
         onConfirm={handleConfirmClear}
         onClose={() => setShowClearConfirm(false)}
         isPending={isDeleting}

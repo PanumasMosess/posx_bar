@@ -15,10 +15,11 @@ import RestaurantModeSetting from './RestaurantModeSetting';
 import MemberSetting from './MemberSetting';
 import AccountingSetting from './AccountingSetting';
 
-import { getShopProfileSettings, updateShopNameAction, updateLanguageAction } from '@/lib/actions/actionsSettings';
+import { getShopProfileSettings, updateShopNameAction } from '@/lib/actions/actionsSettings';
 import { useOrgSettings } from '@/components/providers/OrganizationSettingsContext';
 import { SettingsSection } from '@/lib/types';
 import { useEmployee } from '@/components/providers/EmployeeContext';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 /* ==================== Graphic Components ==================== */
 function UserAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
@@ -38,30 +39,20 @@ function UserAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
         <path d="M4 22 C12 18, 16 26, 12 36 C8 32, 6 26, 4 22 Z" fill="#40916c" />
         <path d="M-4 30 C4 28, 10 36, 6 44 C0 42, -2 36, -4 30 Z" fill="#1b4332" />
         <path d="M22 26 L36 28 L34 38 L20 36 Z" fill="#94a3b8" opacity="0.6" />
-        <circle cx="28" cy="19" r="6" fill="#e0a96d" />
-        <path d="M23 18 C23 15, 25 13, 29 13 C33 13, 35 15, 35 18 Z" fill="#2c1810" />
-        <path d="M22 28 C22 25, 25 24, 28 24 C31 24, 34 25, 34 28 L34 36 L22 36 Z" fill="#ffffff" />
-        <path d="M25 32 L27 44 L31 44 L32 32 Z" fill="#1e3a5f" />
       </svg>
     </div>
   );
 }
 
-function ChevronRight({ className = '' }: { className?: string }) {
+function ChevronRight({ className = 'text-slate-400 dark:text-slate-500' }: { className?: string }) {
   return (
-    <svg
-      className={`w-4 h-4 shrink-0 ${className}`}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    <svg className={`w-4 h-4 shrink-0 ${className}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function EditIcon({ className = 'w-4 h-4' }: { className?: string }) {
+function EditIcon({ className = 'text-slate-400 dark:text-slate-500' }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
@@ -69,51 +60,37 @@ function EditIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-function MenuRow({
-  label,
-  sub,
-  active,
-  onClick,
-  icon,
-}: {
+/* ==================== Reusable MenuRow ==================== */
+interface MenuRowProps {
   label: string;
   sub?: string;
-  active?: boolean;
-  onClick?: () => void;
+  onClick: () => void;
   icon?: React.ReactNode;
-}) {
+  active?: boolean;
+}
+
+function MenuRow({ label, sub, onClick, icon, active = false }: MenuRowProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3.5 transition text-left cursor-pointer select-none ${active
-        ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
-        : 'hover:bg-pos-hover text-pos-text'
+      className={`w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3.5 transition text-left cursor-pointer select-none group ${active
+        ? 'bg-sky-500/10'
+        : 'hover:bg-pos-hover/70'
         }`}
     >
       <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
         {icon && (
-          <div
-            className={`w-5 h-5 shrink-0 flex items-center justify-center transition-colors ${active
-              ? 'text-sky-600 dark:text-sky-400'
-              : 'text-slate-400 dark:text-slate-500'
-              }`}
-          >
+          <div className={`w-5 h-5 shrink-0 flex items-center justify-center transition-colors ${active ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>
             {icon}
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p
-            className={`text-sm leading-tight truncate ${active ? 'font-bold' : 'font-semibold'
-              }`}
-          >
+          <p className={`text-sm leading-tight transition-colors ${active ? 'font-bold text-sky-600 dark:text-sky-400' : 'font-semibold text-pos-text group-hover:text-sky-600 dark:group-hover:text-sky-400'}`}>
             {label}
           </p>
           {sub && (
-            <p
-              className={`text-xs mt-0.5 truncate ${active ? 'text-sky-600/80 dark:text-sky-400/80' : 'text-slate-400 dark:text-slate-500'
-                }`}
-            >
+            <p className="text-xs mt-0.5 truncate text-slate-400 dark:text-slate-500">
               {sub}
             </p>
           )}
@@ -126,6 +103,7 @@ function MenuRow({
 
 /* ==================== Main SettingsView ==================== */
 export default function SettingsView() {
+  const { language, setLanguage, t, isThai } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection | null>(null);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
 
@@ -143,15 +121,14 @@ export default function SettingsView() {
   const { refetchSettings } = useOrgSettings();
 
   // ข้อมูลร้านที่แสดงในแถบด้านซ้าย
-  const [selectedCurrency, setSelectedCurrency] = useState('บาท · THB');
-  const [selectedLanguage, setSelectedLanguage] = useState<'th' | 'en'>('th');
+  const [selectedCurrency, setSelectedCurrency] = useState('THB');
   const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
   const [businessHoursText, setBusinessHoursText] = useState('08:00 - 22:30');
 
   // State สำหรับเก็บข้อมูลร้านจาก Database
   const [shopInfo, setShopInfo] = useState({
-    name: 'กำลังโหลด...',
-    phone: 'กำลังโหลด...',
+    name: '',
+    phone: '',
     createdDateStr: '',
   });
 
@@ -167,26 +144,21 @@ export default function SettingsView() {
         const data = await getShopProfileSettings(contextOrgId);
         if (data) {
           setShopInfo({
-            name: data.name || 'ไม่ได้ตั้งชื่อร้าน',
-            phone: data.phone || 'ยังไม่ได้ตั้งค่าเบอร์โทร',
+            name: data.name || (isThai ? 'ไม่ได้ตั้งชื่อร้าน' : 'Unnamed Store'),
+            phone: data.phone || (isThai ? 'ยังไม่ได้ตั้งค่าเบอร์โทร' : 'No phone set'),
             createdDateStr: data.createdDateStr
           });
 
-          if (data.languageCode) {
-            const lang = data.languageCode.toLowerCase();
-            setSelectedLanguage(lang === 'en' ? 'en' : 'th');
-          }
-
           if (data.currencyCode) {
             const found = ALL_CURRENCIES.find((c) => c.code === data.currencyCode);
-            setSelectedCurrency(data.currencyCode === 'THB' ? 'บาท · THB' : (found ? `${found.symbol} · ${found.code}` : data.currencyCode));
+            setSelectedCurrency(data.currencyCode === 'THB' ? (isThai ? 'บาท · THB' : 'Baht · THB') : (found ? `${found.symbol} · ${found.code}` : data.currencyCode));
           }
 
           // อัปเดตเวลาทำการเริ่มต้น
           if (data.openTime && data.closeTime) {
             setBusinessHoursText(`${data.openTime} - ${data.closeTime}`);
           } else {
-            setBusinessHoursText('ตัดยอดตามเที่ยงคืน');
+            setBusinessHoursText(t('settings.business_hours_default'));
           }
         }
       } catch (error) {
@@ -197,16 +169,16 @@ export default function SettingsView() {
   }, [contextOrgId]);
 
   const sectionTitle: Record<Exclude<SettingsSection, null>, string> = {
-    'shop-team': 'ร้านและทีม',
-    member: 'ระบบสมาชิก',
-    accounting: 'บัญชีและการเงิน',
-    payment: 'ช่องทางการชำระเงิน',
-    misc: 'ข้อมูลอื่น ๆ',
-    vat: 'ภาษีมูลค่าเพิ่ม (VAT)',
-    scan: 'การสแกนสั่ง',
-    'restaurant-mode': 'โหมดร้านอาหาร',
-    currency: 'สกุลเงิน',
-    'business-hours': 'เวลาเปิด-ปิด',
+    'shop-team': t('settings.shop_team'),
+    member: t('settings.member_system'),
+    accounting: t('settings.accounting_finance'),
+    payment: t('settings.payment_methods'),
+    misc: t('settings.misc_info'),
+    vat: t('settings.vat'),
+    scan: t('settings.scan_order'),
+    'restaurant-mode': t('settings.restaurant_mode'),
+    currency: t('settings.currency'),
+    'business-hours': t('settings.business_hours'),
   };
 
   const handleSelectSection = (section: SettingsSection) => {
@@ -225,7 +197,7 @@ export default function SettingsView() {
   const handleUpdateMisc = (newPhone: string) => {
     setShopInfo((prev) => ({
       ...prev,
-      phone: newPhone || 'ยังไม่ได้ตั้งค่าเบอร์โทร',
+      phone: newPhone || (isThai ? 'ยังไม่ได้ตั้งค่าเบอร์โทร' : 'No phone set'),
     }));
   };
 
@@ -245,7 +217,7 @@ export default function SettingsView() {
   const handleSaveShopName = async () => {
     const trimmedName = editShopNameInput.trim();
     if (!trimmedName || !orgId) {
-      if (!orgId) showToast('ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่', 'error');
+      if (!orgId) showToast(isThai ? 'ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่' : 'Store not found. Please log in again', 'error');
       return;
     }
 
@@ -253,11 +225,11 @@ export default function SettingsView() {
     try {
       await updateShopNameAction(orgId, trimmedName);
       setShopInfo(prev => ({ ...prev, name: trimmedName }));
-      showToast('อัปเดตชื่อร้านสำเร็จ', 'success');
+      showToast(isThai ? 'อัปเดตชื่อร้านสำเร็จ' : 'Store name updated successfully', 'success');
       setIsEditingShopName(false);
     } catch (error) {
       console.error("Failed to update shop name:", error);
-      showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึก' : 'Error saving store name', 'error');
     } finally {
       setIsSavingShop(false);
     }
@@ -265,29 +237,26 @@ export default function SettingsView() {
 
   // ฟังก์ชันเปลี่ยนภาษาของระบบ (บันทึกลง organizations_settings)
   const handleLanguageChange = async (lang: 'th' | 'en') => {
-    if (lang === selectedLanguage || isUpdatingLanguage) return;
+    if (lang === language || isUpdatingLanguage) return;
     if (!orgId) {
-      showToast('ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่', 'error');
+      showToast(isThai ? 'ไม่พบข้อมูลร้านค้า กรุณาเข้าสู่ระบบใหม่' : 'Store not found. Please log in again', 'error');
       return;
     }
 
-    const prevLang = selectedLanguage;
-    setSelectedLanguage(lang);
     setIsUpdatingLanguage(true);
 
     try {
-      await updateLanguageAction(orgId, lang);
+      await setLanguage(lang);
       if (refetchSettings) {
         await refetchSettings();
       }
       showToast(
-        lang === 'th' ? 'เปลี่ยนภาษาของระบบเป็น ภาษาไทย แล้ว' : 'Switched system language to English',
+        lang === 'th' ? t('settings.switch_lang_success') : 'Switched system language to English',
         'success'
       );
     } catch (error) {
       console.error('Failed to update language:', error);
-      setSelectedLanguage(prevLang);
-      showToast('เกิดข้อผิดพลาดในการบันทึกภาษา', 'error');
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึกภาษา' : 'Error saving language setting', 'error');
     } finally {
       setIsUpdatingLanguage(false);
     }
@@ -296,19 +265,18 @@ export default function SettingsView() {
   const menuShopItems = [
     {
       section: 'accounting' as const,
-      label: 'บัญชีและการเงิน',
-      sub: 'จัดการบัญชี · หมวดหมู่ · ประวัติธุรกรรม',
+      label: t('settings.accounting_finance'),
+      sub: t('settings.accounting_finance_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.5M4.5 21V10.5M2.25 21h19.5" />
         </svg>
       ),
     },
-
     {
       section: 'shop-team' as const,
-      label: 'ร้านและทีม',
-      sub: 'จัดการพนักงาน · 1 ร้าน',
+      label: t('settings.shop_team'),
+      sub: t('settings.shop_team_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -317,8 +285,8 @@ export default function SettingsView() {
     },
     {
       section: 'member' as const,
-      label: 'ระบบสมาชิก',
-      sub: 'รายชื่อสมาชิก · แต้มสะสม · เครดิต',
+      label: t('settings.member_system'),
+      sub: t('settings.member_system_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -327,8 +295,8 @@ export default function SettingsView() {
     },
     {
       section: 'payment' as const,
-      label: 'ช่องทางการชำระเงิน',
-      sub: 'เงินสด · โอนเงิน',
+      label: t('settings.payment_methods'),
+      sub: t('settings.payment_methods_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
@@ -337,8 +305,8 @@ export default function SettingsView() {
     },
     {
       section: 'misc' as const,
-      label: 'ข้อมูลอื่น ๆ',
-      sub: 'ยังไม่ได้ตั้งค่า',
+      label: t('settings.misc_info'),
+      sub: t('settings.not_configured'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
@@ -347,8 +315,8 @@ export default function SettingsView() {
     },
     {
       section: 'vat' as const,
-      label: 'ภาษีมูลค่าเพิ่ม (VAT)',
-      sub: 'VAT ปิดอยู่ · เงินสด: ปิดใกล้สุด',
+      label: t('settings.vat'),
+      sub: t('settings.vat_sub'),
       icon: (
         <span className="text-base font-black text-slate-400 dark:text-slate-500 leading-none">%</span>
       ),
@@ -358,8 +326,8 @@ export default function SettingsView() {
   const menuSalesItems = [
     {
       section: 'scan' as const,
-      label: 'การสแกนสั่ง',
-      sub: 'ลูกค้าสแกนสั่งเองที่โต๊ะ/หน้าร้าน',
+      label: t('settings.scan_order'),
+      sub: t('settings.scan_order_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
@@ -369,8 +337,8 @@ export default function SettingsView() {
     },
     {
       section: 'restaurant-mode' as const,
-      label: 'โหมดร้านอาหาร',
-      sub: 'เปิดอยู่ · การพักบิล · การส่งออเดอร์เข้าครัว · ...',
+      label: t('settings.restaurant_mode'),
+      sub: t('settings.restaurant_mode_sub'),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3v5.25m0 0a3 3 0 01-3 3H6a3 3 0 01-3-3V3m6 5.25v12.75M6 3v5.25m12-5.25v18m0-18c-2.25 0-3 1.5-3 4.5v3.75h3V3z" />
@@ -389,14 +357,14 @@ export default function SettingsView() {
       case 'currency': return <CurrencySetting organizationId={orgId} currentCurrency="THB" onSelectCurrency={handleSelectCurrency} />;
       case 'business-hours': return <BusinessHoursSetting organizationId={orgId} currentHoursText={businessHoursText} onUpdateHours={handleUpdateHours} />;
       case 'payment': return <PaymentSetting />;
-      case 'vat': return <VatSetting onSwitchSection={() => handleSelectSection('misc')} />;
+      case 'vat': return <VatSetting onSwitchSection={() => setActiveSection('misc')} />;
       case 'misc': return <MiscSetting organizationId={orgId} onUpdateMisc={handleUpdateMisc} />;
-      default: return <SettingsEmptyView />;
+      default: return null;
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-pos-bg font-sans select-none relative transition-colors duration-300">
+    <div className="w-full h-full flex flex-col bg-pos-bg overflow-hidden transition-colors duration-300">
 
       {/* Toast Notification */}
       {toast && (
@@ -419,7 +387,7 @@ export default function SettingsView() {
           </svg>
           <input
             type="text"
-            placeholder="ค้นหาการตั้งค่า"
+            placeholder={t('settings.search_placeholder')}
             className="w-full bg-transparent text-xs sm:text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
           />
         </div>
@@ -434,14 +402,14 @@ export default function SettingsView() {
           <div className="flex-1 overflow-y-auto custom-scroll space-y-3.5 pr-1">
             {/* Section: ข้อมูลร้าน */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">ข้อมูลร้าน</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">{t('settings.shop_info')}</p>
 
               {/* Shop Profile Mini Box */}
               <div className="rounded-3xl bg-pos-surface p-4 shadow-xs border border-pos-border space-y-3 transition-colors duration-300">
 
                 {/* ----------------- Toggle Edit / View Mode ----------------- */}
                 {!isEditingShopName ? (
-                  /* ==================== View Mode (รูปแรก) ==================== */
+                  /* ==================== View Mode ==================== */
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <UserAvatar size="lg" />
@@ -450,21 +418,19 @@ export default function SettingsView() {
                           {shopInfo.name}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1.5">
-                          {/* ป้ายเจ้าของร้านสีฟ้าอ่อน */}
                           <span className="text-[10px] font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md">
-                            เจ้าของร้าน
+                            {t('settings.owner_badge')}
                           </span>
                           <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                            สร้าง {shopInfo.createdDateStr || 'ไม่ระบุ'}
+                            {t('settings.created_at')} {shopInfo.createdDateStr || (isThai ? 'ไม่ระบุ' : 'N/A')}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* ปุ่มแก้ไขรูปดินสอ */}
                     <button
                       type="button"
-                      title="แก้ไขชื่อร้าน"
+                      title={t('settings.edit')}
                       onClick={handleStartEdit}
                       className="w-8 h-8 rounded-full bg-pos-bg flex items-center justify-center text-slate-500 hover:text-sky-600 hover:bg-sky-500/10 transition cursor-pointer shrink-0 ml-2"
                     >
@@ -472,18 +438,16 @@ export default function SettingsView() {
                     </button>
                   </div>
                 ) : (
-                  /* ==================== Edit Mode (รูปสอง) ==================== */
+                  /* ==================== Edit Mode ==================== */
                   <div className="flex gap-3">
                     <div className="relative shrink-0">
                       <UserAvatar size="lg" />
-                      {/* ไอคอนดินสอตรงรูปโปรไฟล์ */}
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center border-2 border-pos-surface text-white shadow-sm cursor-pointer hover:bg-sky-600">
                         <EditIcon className="w-3 h-3" />
                       </div>
                     </div>
 
                     <div className="flex-1 flex flex-col gap-2 min-w-0">
-                      {/* กล่องกรอกข้อความขอบสีฟ้า */}
                       <input
                         type="text"
                         value={editShopNameInput}
@@ -492,14 +456,13 @@ export default function SettingsView() {
                         autoFocus
                       />
 
-                      {/* ปุ่มยกเลิก - บันทึก */}
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={handleCancelEdit}
                           className="flex-1 py-1.5 rounded-lg bg-pos-bg text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-pos-hover transition cursor-pointer"
                         >
-                          ยกเลิก
+                          {t('settings.cancel')}
                         </button>
                         <button
                           type="button"
@@ -507,34 +470,32 @@ export default function SettingsView() {
                           disabled={!editShopNameInput.trim() || isSavingShop}
                           className="flex-1 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
                         >
-                          {isSavingShop ? 'กำลังบันทึก...' : 'บันทึก'}
+                          {isSavingShop ? t('settings.saving') : t('settings.save')}
                         </button>
                       </div>
 
-                      {/* ป้ายและวันที่ (เลื่อนลงมาข้างล่างตามรูป) */}
                       <div className="flex items-center gap-1.5 mt-1">
                         <span className="text-[10px] font-bold text-sky-600 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md">
-                          เจ้าของร้าน
+                          {t('settings.owner_badge')}
                         </span>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                          สร้าง {shopInfo.createdDateStr || 'ไม่ระบุ'}
+                          {t('settings.created_at')} {shopInfo.createdDateStr || (isThai ? 'ไม่ระบุ' : 'N/A')}
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
-                {/* ------------------------------------------------------------- */}
 
                 {/* ข้อมูลการเข้าสู่ระบบ, สกุลเงิน (กดได้), เวลาเปิด-ปิด (กดได้) */}
                 <div className="space-y-2 border-t border-pos-border pt-3 text-xs">
 
-                  {/* เบอร์ติดต่อ (กดไปหน้า MiscSetting) */}
+                  {/* เบอร์ติดต่อ */}
                   <div
                     onClick={() => handleSelectSection('misc')}
                     className="flex items-center justify-between py-1.5 px-2 -mx-2 cursor-pointer rounded-lg transition hover:bg-pos-hover group"
                   >
                     <span className="font-medium text-slate-500 dark:text-slate-400 transition-colors">
-                      เบอร์ติดต่อ
+                      {t('settings.phone')}
                     </span>
                     <div className="flex items-center gap-1 font-medium text-pos-text">
                       <span>{shopInfo.phone}</span>
@@ -551,7 +512,7 @@ export default function SettingsView() {
                       }`}
                   >
                     <span className={`font-medium ${activeSection === 'currency' ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
-                      สกุลเงิน
+                      {t('settings.currency')}
                     </span>
                     <div className={`flex items-center gap-1 font-medium ${activeSection === 'currency'
                       ? 'text-sky-600 dark:text-sky-400 font-bold'
@@ -571,7 +532,7 @@ export default function SettingsView() {
                       }`}
                   >
                     <span className={`font-medium ${activeSection === 'business-hours' ? 'text-sky-600 dark:text-sky-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>
-                      เวลาเปิด-ปิด
+                      {t('settings.business_hours')}
                     </span>
                     <div className={`flex items-center gap-1 font-medium ${activeSection === 'business-hours'
                       ? 'text-sky-600 dark:text-sky-400 font-bold'
@@ -602,7 +563,7 @@ export default function SettingsView() {
 
             {/* Section: การขาย */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">การขาย</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">{t('settings.sales')}</p>
               <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
                 {menuSalesItems.map(({ section, label, sub, icon }) => (
                   <MenuRow
@@ -619,7 +580,7 @@ export default function SettingsView() {
 
             {/* Section: ระบบ */}
             <div className="space-y-2 pb-6">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">ระบบ</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1">{t('settings.system')}</p>
               <div className="rounded-3xl bg-pos-surface shadow-xs border border-pos-border divide-y divide-pos-border overflow-hidden transition-colors duration-300">
                 <div className="w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3.5 transition text-left select-none hover:bg-pos-hover/30">
                   <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
@@ -633,10 +594,10 @@ export default function SettingsView() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-tight font-semibold text-pos-text">
-                        ภาษา
+                        {t('settings.language')}
                       </p>
                       <p className="text-xs mt-0.5 truncate text-slate-400 dark:text-slate-500">
-                        ภาษาของระบบ
+                        {t('settings.system_language')}
                       </p>
                     </div>
                   </div>
@@ -648,7 +609,7 @@ export default function SettingsView() {
                       disabled={isUpdatingLanguage}
                       onClick={() => handleLanguageChange('th')}
                       className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-60 ${
-                        selectedLanguage === 'th'
+                        language === 'th'
                           ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
                           : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                       }`}
@@ -660,7 +621,7 @@ export default function SettingsView() {
                       disabled={isUpdatingLanguage}
                       onClick={() => handleLanguageChange('en')}
                       className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-60 ${
-                        selectedLanguage === 'en'
+                        language === 'en'
                           ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
                           : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                       }`}

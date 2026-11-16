@@ -13,6 +13,7 @@ import {
 } from "@/lib/types";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
 import ReceiptDetailModal from "@/components/reports/ReceiptDetailModal";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function MemberPaymentPage({
   initialMembers,
@@ -20,6 +21,7 @@ export default function MemberPaymentPage({
   userId,
   organizationId,
 }: MemberPaymentPageProps) {
+  const { t, isThai } = useTranslation();
   const router = useRouter();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
@@ -202,11 +204,11 @@ export default function MemberPaymentPage({
 
   const handleExportCSV = () => {
     if (filteredAndSortedDebtors.length === 0) {
-      showToast("ไม่มีข้อมูลลูกหนี้ค้างชำระที่จะส่งออก", "warning");
+      showToast(isThai ? "ไม่มีข้อมูลลูกหนี้ค้างชำระที่จะส่งออก" : "No overdue debtors data to export", "warning");
       return;
     }
 
-    const headers = [
+    const headers = isThai ? [
       "ชื่อลูกค้า",
       "เบอร์โทรศัพท์",
       "ค้างชำระ <= 30 วัน",
@@ -214,6 +216,14 @@ export default function MemberPaymentPage({
       "ค้างชำระ 61-90 วัน",
       "ค้างชำระ > 90 วัน",
       "ยอดหนี้รวมทั้งหมด",
+    ] : [
+      "Customer Name",
+      "Phone",
+      "Overdue <= 30 Days",
+      "Overdue 31-60 Days",
+      "Overdue 61-90 Days",
+      "Overdue > 90 Days",
+      "Total Debt",
     ];
     const csvRows = filteredAndSortedDebtors.map((m) =>
       [
@@ -234,23 +244,23 @@ export default function MemberPaymentPage({
     link.href = URL.createObjectURL(blob);
     link.setAttribute(
       "download",
-      `รายงานวิเคราะห์อายุลูกหนี้_${new Date().toLocaleDateString("th-TH")}.csv`
+      `AR_Aging_${new Date().toLocaleDateString(isThai ? "th-TH" : "en-US")}.csv`
     );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast("ส่งออกข้อมูลไฟล์ CSV สำเร็จ", "success");
+    showToast(isThai ? "ส่งออกข้อมูลไฟล์ CSV สำเร็จ" : "CSV exported successfully", "success");
   };
 
   const handleExportPDF = () => {
     if (filteredAndSortedDebtors.length === 0) {
-      showToast("ไม่มีข้อมูลลูกหนี้ค้างชำระที่จะส่งออก", "warning");
+      showToast(isThai ? "ไม่มีข้อมูลลูกหนี้ค้างชำระที่จะส่งออก" : "No overdue debtors data to export", "warning");
       return;
     }
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      showToast("กรุณาอนุญาตให้ระบบเปิด Pop-up เพื่อดูตัวอย่าง PDF", "error");
+      showToast(isThai ? "กรุณาอนุญาตให้ระบบเปิด Pop-up เพื่อดูตัวอย่าง PDF" : "Please allow pop-ups to view PDF preview", "error");
       return;
     }
 
@@ -259,7 +269,7 @@ export default function MemberPaymentPage({
       <html>
         <head>
           <meta charset="utf-8">
-          <title>รายงานวิเคราะห์อายุหนี้ประจำวันที่_${new Date().toLocaleDateString("th-TH")}</title>
+          <title>AR_Aging_${new Date().toLocaleDateString(isThai ? "th-TH" : "en-US")}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
             body { font-family: 'Sarabun', sans-serif; color: #18181b; margin: 0; padding: 0; background-color: #f4f4f5; }
@@ -289,37 +299,37 @@ export default function MemberPaymentPage({
         </head>
         <body>
           <div class="action-bar">
-            <button class="btn btn-secondary" onclick="window.close()">ปิดหน้าต่าง</button>
-            <button class="btn btn-primary" onclick="window.print()">🖨️ สั่งพิมพ์รายงาน / บันทึก PDF</button>
+            <button class="btn btn-secondary" onclick="window.close()">${isThai ? "ปิดหน้าต่าง" : "Close"}</button>
+            <button class="btn btn-primary" onclick="window.print()">${isThai ? "🖨️ สั่งพิมพ์รายงาน / บันทึก PDF" : "🖨️ Print / Save PDF"}</button>
           </div>
           <div class="page-container">
             <div class="header">
-              <h2>รายงานวิเคราะห์อายุลูกหนี้ค้างชำระ (AR Aging Report)</h2>
-              <p>ข้อมูล ณ วันที่พิมพ์: ${new Date().toLocaleString("th-TH")} น.</p>
+              <h2>${t("accounting.ar_aging_title")}</h2>
+              <p>${isThai ? "ข้อมูล ณ วันที่พิมพ์: " : "Printed at: "}${new Date().toLocaleString(isThai ? "th-TH" : "en-US")}</p>
             </div>
             <div class="summary-summary">
               <div class="sum-box">
-                <div class="sum-title">ยอดลูกหนี้ค้างชำระทั้งหมด</div>
+                <div class="sum-title">${t("accounting.debt_total_overdue")}</div>
                 <div class="sum-val" style="color: #ef4444;">${dashboardSummary.totalDebtSum.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}</div>
               </div>
               <div class="sum-box">
-                <div class="sum-title">หนี้ปกติ (&le; 30 วัน)</div>
+                <div class="sum-title">${t("accounting.debt_normal")}</div>
                 <div class="sum-val" style="color: #10b981;">${dashboardSummary.normalDebtSum.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}</div>
               </div>
               <div class="sum-box">
-                <div class="sum-title">หนี้ค้างนาน (&gt; 30 วัน)</div>
+                <div class="sum-title">${t("accounting.debt_risky")}</div>
                 <div class="sum-val" style="color: #f59e0b;">${dashboardSummary.overdueDebtSum.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}</div>
               </div>
             </div>
             <table>
               <thead>
                 <tr>
-                  <th>ชื่อลูกค้า - เบอร์โทรศัพท์</th>
-                  <th class="text-right">&le; 30 วัน</th>
-                  <th class="text-right">31-60 วัน</th>
-                  <th class="text-right">61-90 วัน</th>
-                  <th class="text-right">&gt; 90 วัน</th>
-                  <th class="text-right">หนี้รวมทั้งหมด</th>
+                  <th>${t("accounting.debtor_name")} - ${t("accounting.debtor_phone")}</th>
+                  <th class="text-right">&le; 30 ${t("common.day_unit")}</th>
+                  <th class="text-right">31-60 ${t("common.day_unit")}</th>
+                  <th class="text-right">61-90 ${t("common.day_unit")}</th>
+                  <th class="text-right">&gt; 90 ${t("common.day_unit")}</th>
+                  <th class="text-right">${t("accounting.total_debt")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -430,7 +440,7 @@ export default function MemberPaymentPage({
         historyMap.set(`spend-${tx.id}`, {
           id: tx.id,
           amount: tx.amount,
-          note: tx.note || (tx.orderId ? `เซ็นบิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"),
+          note: tx.note || (tx.orderId ? `${isThai ? "เซ็นบิล #" : "Order Bill #"}${tx.orderId}` : (isThai ? "เซ็นยืมหน้าร้าน" : "Counter credit")),
           createdAt: tx.createdAt,
           date: tx.date,
           paymentGroupId: null,
@@ -454,7 +464,7 @@ export default function MemberPaymentPage({
             id: tx.id,
             amount: tx.amount,
             type: tx.type,
-            note: tx.note || (tx.type === "REFUND" ? "รับชำระหนี้คืน" : "เติมวงเงินเครดิต"),
+            note: tx.note || (tx.type === "REFUND" ? (isThai ? "รับชำระหนี้คืน" : "Debt repayment") : (isThai ? "เติมวงเงินเครดิต" : "Credit top-up")),
             createdAt: tx.createdAt,
             date: tx.date,
             paymentGroupId: tx.paymentGroupId,
@@ -512,14 +522,14 @@ export default function MemberPaymentPage({
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMember) return showToast("กรุณาเลือกสมาชิกก่อนทำรายการ", "error");
+    if (!selectedMember) return showToast(isThai ? "กรุณาเลือกสมาชิกก่อนทำรายการ" : "Please select a member first", "error");
     if (!selectedShopAccountId)
-      return showToast("กรุณาเลือกช่องทางรับเงินเข้าร้าน", "error");
-    if (!paymentDate) return showToast("กรุณาเลือกวันที่ชำระเงิน", "error");
+      return showToast(isThai ? "กรุณาเลือกช่องทางรับเงินเข้าร้าน" : "Please select receiving account", "error");
+    if (!paymentDate) return showToast(isThai ? "กรุณาเลือกวันที่ชำระเงิน" : "Please select payment date", "error");
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0)
-      return showToast("กรุณาระบุจำนวนเงินให้ถูกต้อง", "error");
+      return showToast(isThai ? "กรุณาระบุจำนวนเงินให้ถูกต้อง" : "Please enter a valid amount", "error");
 
     setLoading(true);
     const targetTransactionIds = selectedBillsToPay.map((b) => b.id);
@@ -580,10 +590,10 @@ export default function MemberPaymentPage({
         <div className="bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <span className="text-2xl">💳</span> รับชำระหนี้ / คืนยอดเครดิต
+              <span className="text-2xl">💳</span> {t("accounting.tab_member_payment")}
             </h2>
             <p className="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
-              ตรวจสอบอายุหนี้ลูกหนี้ค้างชำระ และบันทึกรับชำระเงินเข้าบัญชีร้าน
+              {t("accounting.tab_member_payment_sub")}
             </p>
           </div>
 
@@ -609,7 +619,7 @@ export default function MemberPaymentPage({
                 />
               </svg>
               <input
-                placeholder="ค้นหาด้วยเบอร์โทร หรือชื่อ..."
+                placeholder={isThai ? "ค้นหาด้วยเบอร์โทร หรือชื่อ..." : "Search by phone or name..."}
                 className="w-full pl-10 pr-4 h-10 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-xl text-sm"
                 value={searchQuery}
                 onChange={(e) => {
@@ -621,9 +631,7 @@ export default function MemberPaymentPage({
             <button
               type="submit"
               className="h-10 bg-sky-600 hover:bg-sky-500 text-white rounded-xl px-5 text-sm font-medium transition cursor-pointer"
-            >
-              ค้นหา
-            </button>
+            >{t("common.search")}</button>
           </form>
         </div>
 
@@ -631,7 +639,7 @@ export default function MemberPaymentPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-              ยอดเงินจม / หนี้ค้างรวมทั้งหมด
+              {t("accounting.debt_total_overdue")}
             </p>
             <p className="text-3xl font-black text-rose-500">
               {dashboardSummary.totalDebtSum.toLocaleString(undefined, {
@@ -640,13 +648,13 @@ export default function MemberPaymentPage({
               <span className="text-base font-normal">{currency}</span>
             </p>
             <p className="text-xs text-slate-400 dark:text-zinc-500 mt-2">
-              ยอดเครดิตสะสมคงค้างของสมาชิกร้านค้าทุกคน
+              {isThai ? "ยอดเครดิตสะสมคงค้างของสมาชิกร้านค้าทุกคน" : "Total outstanding credit balance for all members"}
             </p>
           </div>
 
           <div className="bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-              หนี้ก้อนปกติ (&le; 30 วัน)
+              {t("accounting.debt_normal")}
             </p>
             <p className="text-3xl font-black text-emerald-500">
               {dashboardSummary.normalDebtSum.toLocaleString(undefined, {
@@ -655,13 +663,13 @@ export default function MemberPaymentPage({
               <span className="text-base font-normal">{currency}</span>
             </p>
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
-              ยอดหนี้อายุสั้น หมุนเวียนปกติ ความเสี่ยงต่ำ
+              {isThai ? "ยอดหนี้อายุสั้น หมุนเวียนปกติ ความเสี่ยงต่ำ" : "Short-term debt, normal turnover, low risk"}
             </p>
           </div>
 
           <div className="bg-white dark:bg-[#111113] border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-              หนี้ค้างนาน / หนี้เสี่ยง (&gt; 30 วัน)
+              {t("accounting.debt_risky")}
             </p>
             <p className="text-3xl font-black text-amber-500">
               {dashboardSummary.overdueDebtSum.toLocaleString(undefined, {
@@ -670,7 +678,7 @@ export default function MemberPaymentPage({
               <span className="text-base font-normal">{currency}</span>
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-              หนี้ค้างนานเกิน 1 เดือนขึ้นไป ควรเริ่มติดตามทวงถาม
+              {isThai ? "หนี้ค้างนานเกิน 1 เดือนขึ้นไป ควรเริ่มติดตามทวงถาม" : "Debt overdue over 1 month, requires follow-up"}
             </p>
           </div>
         </div>
@@ -681,7 +689,7 @@ export default function MemberPaymentPage({
             <div className="flex items-center gap-2">
               <span className="text-amber-500 font-bold">⚠️</span>
               <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide">
-                รายงานอายุลูกหนี้ค้างชำระ ({filteredAndSortedDebtors.length} รายการ)
+                {isThai ? `รายงานอายุลูกหนี้ค้างชำระ (${filteredAndSortedDebtors.length} รายการ)` : `Accounts Receivable Aging (${filteredAndSortedDebtors.length} items)`}
               </h3>
             </div>
 
@@ -690,13 +698,13 @@ export default function MemberPaymentPage({
                 onClick={handleExportCSV}
                 className="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 h-8.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 px-3 transition cursor-pointer"
               >
-                📥 ส่งออก CSV
+                📥 {t("accounting.export_csv")}
               </button>
               <button
                 onClick={handleExportPDF}
                 className="bg-sky-600 hover:bg-sky-500 text-white h-8.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 px-3 transition cursor-pointer shadow-xs"
               >
-                🖨️ ตรวจสอบ / พิมพ์ PDF
+                🖨️ {t("accounting.print_pdf")}
               </button>
             </div>
           </div>
@@ -712,7 +720,7 @@ export default function MemberPaymentPage({
                         className="px-5 py-3.5 w-[220px] hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center gap-1">
-                          ข้อมูลลูกค้า ↕
+                          {t("accounting.debtor_name")} ↕
                         </div>
                       </th>
                       <th
@@ -720,7 +728,7 @@ export default function MemberPaymentPage({
                         className="px-3 py-3.5 text-right w-[100px] hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center justify-end gap-1">
-                          &le; 30 วัน ↕
+                          &le; 30 {t("common.day_unit")} ↕
                         </div>
                       </th>
                       <th
@@ -728,7 +736,7 @@ export default function MemberPaymentPage({
                         className="px-3 py-3.5 text-right w-[100px] text-amber-500 hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center justify-end gap-1">
-                          31-60 วัน ↕
+                          31-60 {t("common.day_unit")} ↕
                         </div>
                       </th>
                       <th
@@ -736,7 +744,7 @@ export default function MemberPaymentPage({
                         className="px-3 py-3.5 text-right w-[100px] text-orange-500 hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center justify-end gap-1">
-                          61-90 วัน ↕
+                          61-90 {t("common.day_unit")} ↕
                         </div>
                       </th>
                       <th
@@ -744,7 +752,7 @@ export default function MemberPaymentPage({
                         className="px-3 py-3.5 text-right w-[110px] text-rose-500 hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center justify-end gap-1">
-                          &gt; 90 วัน ↕
+                          &gt; 90 {t("common.day_unit")} ↕
                         </div>
                       </th>
                       <th
@@ -752,10 +760,10 @@ export default function MemberPaymentPage({
                         className="px-5 py-3.5 text-right w-[130px] hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 cursor-pointer group transition"
                       >
                         <div className="flex items-center justify-end gap-1">
-                          หนี้รวมทั้งหมด ↕
+                          {t("accounting.total_debt")} ↕
                         </div>
                       </th>
-                      <th className="px-5 py-3.5 text-center w-[100px]">จัดการ</th>
+                      <th className="px-5 py-3.5 text-center w-[100px]">{t("common.action")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/40 text-sm">
@@ -819,9 +827,7 @@ export default function MemberPaymentPage({
                           <button
                             type="button"
                             className="h-8 bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white dark:bg-zinc-800 dark:hover:bg-sky-600 dark:text-zinc-300 dark:hover:text-white border border-sky-200 dark:border-zinc-700 transition rounded-lg font-medium text-xs px-3.5 cursor-pointer"
-                          >
-                            รับชำระ
-                          </button>
+                          >{t("accounting.pay_debt")}</button>
                         </td>
                       </tr>
                     ))}
@@ -833,16 +839,11 @@ export default function MemberPaymentPage({
               <div className="px-5 py-3 border-t border-slate-200 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-[#161618] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium hidden sm:block">
-                    แสดงแถวที่ {(currentPage - 1) * itemsPerPage + 1} -{" "}
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredAndSortedDebtors.length
-                    )}{" "}
-                    จากทั้งหมด {filteredAndSortedDebtors.length}
-                  </p>
+                    {isThai ? `แสดงแถวที่ ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, filteredAndSortedDebtors.length)} จากทั้งหมด ${filteredAndSortedDebtors.length}` : `Showing ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, filteredAndSortedDebtors.length)} of ${filteredAndSortedDebtors.length}`}
+</p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
-                      แสดงหน้าละ:
+                      {isThai ? "แสดงหน้าละ:" : "Per page:"}
                     </span>
                     <select
                       className="h-8 bg-white dark:bg-[#0A0A0B] border border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-300 text-xs rounded-lg px-2 outline-none focus:ring-1 focus:ring-sky-500 transition cursor-pointer"
@@ -861,9 +862,7 @@ export default function MemberPaymentPage({
                             ? filteredAndSortedDebtors.length
                             : 100
                         }
-                      >
-                        ทั้งหมด
-                      </option>
+                      >{t("common.all")}</option>
                     </select>
                   </div>
                 </div>
@@ -875,10 +874,10 @@ export default function MemberPaymentPage({
                       disabled={currentPage === 1}
                       className="h-8 px-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 rounded-lg text-xs disabled:opacity-40 cursor-pointer"
                     >
-                      &larr; ก่อนหน้า
+                      &larr; {t("inventory.prev_page")}
                     </button>
                     <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300 px-3">
-                      หน้า {currentPage} / {totalPages}
+                      {isThai ? `หน้า ${currentPage} / ${totalPages}` : `Page ${currentPage} / ${totalPages}`}
                     </span>
                     <button
                       onClick={() =>
@@ -887,7 +886,7 @@ export default function MemberPaymentPage({
                       disabled={currentPage === totalPages}
                       className="h-8 px-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 rounded-lg text-xs disabled:opacity-40 cursor-pointer"
                     >
-                      ถัดไป &rarr;
+                      {t("inventory.next_page")} &rarr;
                     </button>
                   </div>
                 )}
@@ -899,7 +898,7 @@ export default function MemberPaymentPage({
                 <span className="text-2xl text-emerald-600">✓</span>
               </div>
               <p className="text-base font-bold text-slate-700 dark:text-zinc-200">
-                ไม่มีลูกหนี้ค้างชำระ
+                {t("accounting.no_debtors")}
               </p>
               <p className="text-xs mt-1">
                 {searchQuery
@@ -943,7 +942,7 @@ export default function MemberPaymentPage({
               {/* ป้ายยอดหนี้แบบเต็มจอเหมือนเดิม */}
               <div className="px-4 py-2.5 sm:px-5 sm:py-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/30 mb-2.5 sm:mb-4 shrink-0">
                 <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-0.5 uppercase tracking-wider">
-                  ยอดหนี้ที่ต้องชำระทั้งหมด
+                  {isThai ? "ยอดหนี้ที่ต้องชำระทั้งหมด" : "Total Outstanding Debt"}
                 </p>
                 <p className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
                   {selectedMember.currentDebt.toLocaleString()} {currency}
@@ -960,7 +959,7 @@ export default function MemberPaymentPage({
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
                 >
-                  ค้างชำระ ({activeBills.length})
+                  {isThai ? `ค้างชำระ (${activeBills.length})` : `Unpaid (${activeBills.length})`}
                 </button>
                 <button
                   type="button"
@@ -970,7 +969,7 @@ export default function MemberPaymentPage({
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
                 >
-                  ชำระแล้ว ({settledBills.length})
+                  {isThai ? `ชำระแล้ว (${settledBills.length})` : `Settled (${settledBills.length})`}
                 </button>
                 <button
                   type="button"
@@ -980,7 +979,7 @@ export default function MemberPaymentPage({
                       : "text-slate-600 dark:text-zinc-400 hover:text-slate-900"
                     }`}
                 >
-                  ประวัติ ({groupedHistory.length})
+                  {isThai ? `ประวัติ (${groupedHistory.length})` : `History (${groupedHistory.length})`}
                 </button>
               </div>
 
@@ -1015,7 +1014,7 @@ export default function MemberPaymentPage({
                                     : "text-slate-900 dark:text-zinc-100"
                                   }`}
                               >
-                                🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
+                                🧾 {tx.orderId ? `${isThai ? "บิล #" : "Bill #"}${tx.orderId}` : (isThai ? "เซ็นยืมหน้าร้าน" : "Counter credit")}
                               </p>
                               {tx.orderId && (
                                 <button
@@ -1023,7 +1022,7 @@ export default function MemberPaymentPage({
                                   onClick={(e) => { e.stopPropagation(); setViewingOrderId(tx.orderId!); }}
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/50 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-200 transition shrink-0 cursor-pointer"
                                 >
-                                  🔍 ดูบิล
+                                  🔍 {isThai ? "ดูบิล" : "View Bill"}
                                 </button>
                               )}
                             </div>
@@ -1037,15 +1036,15 @@ export default function MemberPaymentPage({
                           </div>
                           <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-800/40 text-xs sm:text-sm">
                             <div className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 flex-wrap">
-                              <span>ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}</span>
+                              <span>{isThai ? "ยอดเดิม " : "Original "}{tx.originalAmount.toLocaleString()} {currency}</span>
                               {tx.paidAmount > 0 && (
                                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                                  (ชำระแล้ว {tx.paidAmount.toLocaleString()})
+                                  ({isThai ? "ชำระแล้ว " : "Paid "}{tx.paidAmount.toLocaleString()})
                                 </span>
                               )}
                             </div>
                             <span className="font-extrabold text-sm sm:text-base text-rose-600 dark:text-rose-400 shrink-0">
-                              ค้าง {tx.remainingAmount.toLocaleString()} {currency}
+                              {isThai ? "ค้าง " : "Due "}{tx.remainingAmount.toLocaleString()} {currency}
                             </span>
                           </div>
                         </div>
@@ -1053,7 +1052,7 @@ export default function MemberPaymentPage({
                     })}
                     {activeBills.length === 0 && (
                       <p className="text-center text-xs text-slate-400 py-6">
-                        ไม่มีบิลค้างชำระ
+                        {isThai ? "ไม่มีบิลค้างชำระ" : "No unpaid bills"}
                       </p>
                     )}
                   </>
@@ -1069,7 +1068,7 @@ export default function MemberPaymentPage({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-zinc-100">
-                              🧾 {tx.orderId ? `บิล #${tx.orderId}` : "เซ็นยืมหน้าร้าน"}
+                              🧾 {tx.orderId ? `${isThai ? "บิล #" : "Bill #"}${tx.orderId}` : (isThai ? "เซ็นยืมหน้าร้าน" : "Counter credit")}
                             </p>
                             {tx.orderId && (
                               <button
@@ -1077,7 +1076,7 @@ export default function MemberPaymentPage({
                                 onClick={() => setViewingOrderId(tx.orderId!)}
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/50 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-200 transition shrink-0 cursor-pointer"
                               >
-                                🔍 ดูบิล
+                                🔍 {isThai ? "ดูบิล" : "View Bill"}
                               </button>
                             )}
                           </div>
@@ -1091,15 +1090,15 @@ export default function MemberPaymentPage({
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-zinc-800/40 text-xs sm:text-sm">
                           <span className="text-slate-500 dark:text-zinc-400">
-                            ยอดเดิม {tx.originalAmount.toLocaleString()} {currency}
+                            {isThai ? "ยอดเดิม " : "Original "}{tx.originalAmount.toLocaleString()} {currency}
                           </span>
                           <div className="text-right flex items-center gap-2">
                             <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              จ่ายแล้ว {tx.paidAmount.toLocaleString()} {currency}
+                              {isThai ? "จ่ายแล้ว " : "Paid "}{tx.paidAmount.toLocaleString()} {currency}
                             </span>
                             {tx.remainingAmount > 0 && (
                               <span className="text-rose-500 font-bold">
-                                (ค้าง {tx.remainingAmount.toLocaleString()})
+                                ({isThai ? "ค้าง " : "Due "}{tx.remainingAmount.toLocaleString()})
                               </span>
                             )}
                           </div>
@@ -1108,7 +1107,7 @@ export default function MemberPaymentPage({
                     ))}
                     {settledBills.length === 0 && (
                       <p className="text-center text-xs text-slate-400 py-6">
-                        ยังไม่มีประวัติบิลที่ชำระ
+                        {isThai ? "ยังไม่มีประวัติบิลที่ชำระ" : "No settled bill history"}
                       </p>
                     )}
                   </>
@@ -1139,7 +1138,7 @@ export default function MemberPaymentPage({
                           <div className="flex justify-between items-start gap-2">
                             <div>
                               <p className={`font-bold text-sm sm:text-base ${isSpend ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
-                                {isSpend ? "🧾" : tx.type === "REFUND" ? "💰" : "💳"} {tx.note || (isSpend ? "เซ็นบิล" : tx.type === "REFUND" ? "รับชำระหนี้คืน" : "เติมวงเงินเครดิต")}
+                                {isSpend ? "🧾" : tx.type === "REFUND" ? "💰" : "💳"} {tx.note || (isSpend ? (isThai ? "เซ็นบิล" : "Bill Credit") : tx.type === "REFUND" ? (isThai ? "รับชำระหนี้คืน" : "Debt Repayment") : (isThai ? "เติมวงเงินเครดิต" : "Credit Top-up"))}
                               </p>
                               <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5 block">
                                 📅 {new Date(tx.date || tx.createdAt).toLocaleDateString("th-TH")}
@@ -1150,7 +1149,7 @@ export default function MemberPaymentPage({
                                 {isSpend ? "" : "+"}{Math.abs(tx.amount).toLocaleString()} {currency}
                               </span>
                               {!isSpend && tx.paymentGroupId == null && (
-                                <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 px-2 py-0.5 rounded font-medium">วงเงิน</span>
+                                <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 px-2 py-0.5 rounded font-medium">{isThai ? "วงเงิน" : "Credit"}</span>
                               )}
                             </div>
                           </div>
@@ -1162,7 +1161,7 @@ export default function MemberPaymentPage({
                                   className="flex justify-between items-center text-xs text-slate-600 dark:text-zinc-400"
                                 >
                                   <div className="flex items-center gap-1.5">
-                                    <span>🧾 {b?.orderId ? `บิล #${b.orderId}` : "บิลหน้าร้าน"}</span>
+                                    <span>🧾 {b?.orderId ? `${isThai ? "บิล #" : "Bill #"}${b.orderId}` : (isThai ? "บิลหน้าร้าน" : "Counter Bill")}</span>
                                     {b?.orderId && (
                                       <button type="button" onClick={() => setViewingOrderId(b!.orderId!)}
                                         className="text-sky-500 hover:underline cursor-pointer">🔍</button>
@@ -1180,7 +1179,7 @@ export default function MemberPaymentPage({
                     })}
                     {groupedHistory.length === 0 && (
                       <p className="text-center text-xs text-slate-400 py-6">
-                        ยังไม่มีประวัติการชำระเงิน
+                        {isThai ? "ยังไม่มีประวัติการชำระเงิน" : "No payment history yet"}
                       </p>
                     )}
                   </>
@@ -1193,7 +1192,7 @@ export default function MemberPaymentPage({
               <div>
                 <div className="mb-2.5 sm:mb-5 pb-2 sm:pb-3 border-b border-slate-200 dark:border-zinc-800">
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
-                    <span>💵</span> บันทึกรับชำระเงิน
+                    <span>💵</span> {isThai ? "บันทึกรับชำระเงิน" : "Record Payment"}
                   </h3>
                   <p className="text-slate-500 dark:text-zinc-400 text-xs mt-0.5">
                     {selectedBillsToPay.length > 0
@@ -1209,7 +1208,7 @@ export default function MemberPaymentPage({
                 >
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                      วันที่ชำระเงิน <span className="text-rose-500">*</span>
+                      {isThai ? "วันที่ชำระเงิน" : "Payment Date"} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -1223,7 +1222,7 @@ export default function MemberPaymentPage({
 
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                      ช่องทางรับเงินเข้าร้าน <span className="text-rose-500">*</span>
+                      {isThai ? "ช่องทางรับเงินเข้าร้าน" : "Receiving Account"} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       required
@@ -1233,11 +1232,11 @@ export default function MemberPaymentPage({
                       className="w-full h-9 sm:h-11 px-3 bg-slate-50 dark:bg-[#0A0A0B] border border-slate-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                     >
                       <option value="" disabled>
-                        -- เลือกบัญชีธนาคาร หรือ เงินสด --
+                        -- {isThai ? "เลือกบัญชีธนาคาร หรือ เงินสด" : "Select Bank Account or Cash"} --
                       </option>
                       {shopAccounts.map((acc) => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.accountName} (คงเหลือ {acc.balance.toLocaleString()} {currency})
+                          {acc.accountName} ({isThai ? "คงเหลือ " : "Balance "}{acc.balance.toLocaleString()} {currency})
                         </option>
                       ))}
                     </select>
@@ -1245,7 +1244,7 @@ export default function MemberPaymentPage({
 
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                      จำนวนเงินที่ลูกค้านำมาจ่าย <span className="text-rose-500">*</span>
+                      {isThai ? "จำนวนเงินที่ลูกค้านำมาจ่าย" : "Amount Received from Customer"} <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -1266,10 +1265,10 @@ export default function MemberPaymentPage({
 
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                      หมายเหตุช่วยจำ (ถ้ามี)
+                      {isThai ? "หมายเหตุช่วยจำ (ถ้ามี)" : "Note (Optional)"}
                     </label>
                     <input
-                      placeholder="เช่น ลูกค้าโอนเข้าบัญชีกสิกร..."
+                      placeholder={isThai ? "เช่น ลูกค้าโอนเข้าบัญชีกสิกร..." : "e.g. Bank transfer, receipt note..."}
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       disabled={loading}
@@ -1286,7 +1285,7 @@ export default function MemberPaymentPage({
                   disabled={loading || selectedMember.currentDebt <= 0}
                   className="w-full h-10 sm:h-12 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm sm:text-base rounded-xl transition shadow-md disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? "กำลังบันทึก..." : "ยืนยันรับชำระเงิน"}
+                  {loading ? t("common.saving") : t("accounting.confirm_payment")}
                 </button>
               </div>
             </div>

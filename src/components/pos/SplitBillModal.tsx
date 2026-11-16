@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useCart } from "../providers/CartContext";
 import { holdOrderToDB } from "@/lib/actions/actionsPos";
 import { useEmployee } from "@/components/providers/EmployeeContext";
-import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext"; // 🌟 1. นำเข้า useOrgSettings
 
 interface SplitBillModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export default function SplitBillModal({
   isOpen,
   onClose,
 }: SplitBillModalProps) {
+  const { t } = useTranslation();
   const {
     cart,
     activeBillNumber,
@@ -120,8 +122,8 @@ export default function SplitBillModal({
         organizationId: organizationId,
         createdBy: String(employeeId),
         customerName: activeBillNumber
-          ? `แยกจาก ${activeBillNumber}`
-          : "บิลแยกใหม่",
+          ? t('pos.split_from').replace('{bill}', activeBillNumber)
+          : t('pos.new_split_bill'),
         totalAmount: splitTotalPrice,
         netAmount: splitTotalPrice,
         kitchenStatus: "SERVED" as const,
@@ -143,11 +145,11 @@ export default function SplitBillModal({
         await fetchHeldBills(organizationId);
         onClose();
       } else {
-        alert("เกิดข้อผิดพลาดในการสร้างบิลแยก");
+        alert(t('common.error'));
       }
     } catch (e) {
       console.error("Split bill error:", e);
-      alert("ไม่สามารถแยกบิลได้ โปรดลองอีกครั้ง");
+      alert(t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -167,10 +169,10 @@ export default function SplitBillModal({
           <div className="p-4 border-b border-pos-border flex items-center justify-between bg-pos-surface shrink-0">
             <div>
               <h3 className="font-bold text-sm text-pos-text">
-                แยกบิลชำระเงิน / พักบิล
+                {t('pos.split_bill_title')}
               </h3>
               <p className="text-[11px] text-pos-text/60 font-medium">
-                เลือกเมนูและจำนวนที่ต้องการแยกเป็นบิลใหม่
+                {t('pos.split_bill_desc')}
               </p>
             </div>
             <button
@@ -198,7 +200,7 @@ export default function SplitBillModal({
           <div className="p-4 space-y-3 overflow-y-auto custom-scroll flex-1 bg-pos-bg">
             {cart.map((item) => {
               const title =
-                item.product?.name || item.product?.title || "สินค้า";
+                item.product?.name || item.product?.title || t("pos.product_default_name");
               const splitQty = splitQuantities[item.id] || 0;
               const isSelected = splitQty > 0;
               const optDisplay = renderOptionsText(
@@ -225,7 +227,7 @@ export default function SplitBillModal({
                         </p>
                       )}
                       <p className="text-[10px] text-pos-text/50 mt-0.5">
-                        มีในบิลทั้งหมด {item.quantity} รายการ
+                        {t('pos.total_in_bill').replace('{count}', String(item.quantity))}
                       </p>
                     </div>
 
@@ -241,14 +243,14 @@ export default function SplitBillModal({
                       }`}
                     >
                       {splitQty === item.quantity
-                        ? "ย้ายทั้งหมดแล้ว"
-                        : "ย้ายทั้งหมด"}
+                        ? t('pos.split_moved_all')
+                        : t('pos.split_move_all')}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-pos-border/40">
                     <span className="text-[11px] font-semibold text-pos-text/70">
-                      จำนวนที่ย้ายไปบิลใหม่:
+                      {t('pos.split_move_qty')}
                     </span>
                     <div className="flex items-center bg-pos-bg border border-pos-border rounded-lg p-0.5">
                       <button
@@ -284,7 +286,7 @@ export default function SplitBillModal({
           {/* Footer ยอดรวม */}
           <div className="p-4 bg-pos-surface border-t border-pos-border space-y-3 shrink-0">
             <div className="flex justify-between items-center text-xs font-bold text-pos-text">
-              <span>ยอดรวมบิลใหม่:</span>
+              <span>{t('pos.split_new_total')}</span>
               <span className="font-mono text-sm font-black text-sky-600 dark:text-sky-400">
                 {formatCurrency(splitTotalPrice)}
               </span>
@@ -296,7 +298,7 @@ export default function SplitBillModal({
               disabled={isSubmitting || selectedItemsToSplit.length === 0}
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:brightness-105 active:scale-98 text-white font-bold text-sm shadow-md transition disabled:opacity-40"
             >
-              {isSubmitting ? "กำลังแยกบิล..." : "ยืนยันการแยกบิล"}
+              {isSubmitting ? t('pos.splitting') : t('pos.split_confirm')}
             </button>
           </div>
         </div>

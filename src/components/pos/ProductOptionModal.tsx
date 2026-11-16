@@ -4,12 +4,14 @@ import { ProductOptionModalProps } from "@/lib/interface";
 import { useState } from "react";
 import Image from "next/image";
 import { useOrgSettings } from "../providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ProductOptionModal({
   product,
   onClose,
   onConfirm,
 }: ProductOptionModalProps) {
+  const { t } = useTranslation();
   // 🌟 ดึงค่าการตั้งค่าองค์กรและฟังก์ชันฟอร์แมตเงินจาก Context
   const { settings, formatCurrency } = useOrgSettings();
   const currencyCode = settings?.currencyCode || "LAK";
@@ -62,64 +64,66 @@ export default function ProductOptionModal({
 
   return (
     <>
-      {/* Overlay Backdrop */}
-      <div
-        className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fade-in"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+          className="fixed inset-0 -z-10"
+          onClick={onClose}
+          aria-hidden="true"
+        />
 
-      {/* Modal Dialog Container */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 pointer-events-none">
-        <div className="pointer-events-auto bg-pos-surface rounded-3xl shadow-2xl border border-pos-border w-full max-w-md overflow-hidden animate-slide-up flex flex-col max-h-[85vh] transition-colors">
-          {/* 🌟 1. Header Hero Section (รูปลางๆ คมชัด ภาพไม่แตก) */}
-          <div className="relative w-full h-32 sm:h-36 bg-pos-bg shrink-0 overflow-hidden flex items-center justify-center border-b border-pos-border">
-            {product.image ? (
-              <>
-                {/* Background เบลอจางๆ ด้านหลังกันภาพแตก */}
-                <Image
-                  src={product.image}
-                  alt=""
-                  fill
-                  className="object-cover blur-md scale-110 opacity-30"
-                  aria-hidden="true"
-                />
-                {/* รูปภาพจริงตรงกลาง ไม่แตก คมชัด */}
-                <div className="relative w-full h-full p-2">
+        <div className="bg-pos-surface border border-pos-border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in zoom-in-95 duration-200">
+          {/* 🌟 1. Header: รูปภาพและข้อมูลสินค้า */}
+          <div className="relative bg-pos-bg shrink-0 border-b border-pos-border overflow-hidden">
+            {/* กล่องแสดงภาพสินค้า */}
+            <div className="relative w-full h-44 sm:h-48 flex items-center justify-center overflow-hidden">
+              {product.image ? (
+                <>
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
-                    className="object-contain drop-shadow-md opacity-85"
+                    className="object-cover blur-md opacity-30 scale-110"
                     priority
                   />
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-pos-text/30 gap-1">
-                <svg
-                  className="w-10 h-10 opacity-20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-contain p-4 drop-shadow-md z-10"
+                    priority
                   />
-                </svg>
-              </div>
-            )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-pos-text/30 gap-1.5 z-10">
+                  <svg
+                    className="w-10 h-10 opacity-40"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+                    />
+                  </svg>
+                  <span className="text-[10px] font-bold tracking-wider opacity-60">
+                    NO IMAGE
+                  </span>
+                </div>
+              )}
 
-            {/* Gradient Overlay ปรับให้โทนมืดลางๆ อ่านข้อความง่าย */}
-            <div className="absolute inset-0 bg-gradient-to-t from-pos-surface via-pos-surface/60 to-transparent" />
+              {/* Gradient Mask Overlay ด้านล่าง Header */}
+              <div className="absolute inset-0 bg-gradient-to-t from-pos-surface via-pos-surface/60 to-transparent" />
+            </div>
 
-            {/* ปุ่มปิด (Close Button) */}
+            {/* ปุ่มปิด Modal (X) */}
             <button
+              type="button"
               onClick={onClose}
               className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-pos-bg/80 hover:bg-pos-hover text-pos-text border border-pos-border flex items-center justify-center transition-transform active:scale-90 shadow-sm"
-              title="ปิด"
+              title={t("common.close")}
             >
               <svg
                 className="w-4 h-4"
@@ -136,16 +140,16 @@ export default function ProductOptionModal({
               </svg>
             </button>
 
-            {/* ข้อมูลสินค้าหลักบน Header (แสดง currencyCode แบบ Dynamic) */}
+            {/* ข้อมูลสินค้าหลักบน Header */}
             <div className="absolute bottom-2.5 left-4 right-4 z-10">
               <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
-                {product.category?.name || "รายการสินค้า"}
+                {product.category?.name || t("pos.items_unit")}
               </span>
               <h2 className="font-bold text-base sm:text-lg leading-snug truncate mt-0.5 text-pos-text">
                 {product.name}
               </h2>
               <p className="text-xs font-mono font-semibold text-pos-text/60">
-                ราคาเริ่มต้น {formatCurrency(Number(product.price))}
+                {t("pos.starting_price")} {formatCurrency(Number(product.price))}
               </p>
             </div>
           </div>
@@ -166,7 +170,7 @@ export default function ProductOptionModal({
                       </span>
                       {group.allowMultiple && (
                         <span className="text-[10px] font-medium text-pos-text/50">
-                          (เลือกได้หลายรายการ)
+                          ({t("pos.multiple_choice")})
                         </span>
                       )}
                     </div>
@@ -176,16 +180,16 @@ export default function ProductOptionModal({
                       hasSelected ? (
                         <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                          เลือกแล้ว
+                          {t("pos.selected")}
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                          * จำเป็นต้องเลือก
+                          * {t("pos.required")}
                         </span>
                       )
                     ) : (
                       <span className="text-[10px] font-medium text-pos-text/40">
-                        ไม่บังคับ
+                        {t("pos.optional")}
                       </span>
                     )}
                   </div>
@@ -252,7 +256,7 @@ export default function ProductOptionModal({
                             </span>
                           ) : (
                             <span className="text-[11px] text-pos-text/40 font-medium">
-                              ฟรี
+                              {t("pos.free")}
                             </span>
                           )}
                         </button>
@@ -268,7 +272,7 @@ export default function ProductOptionModal({
           <div className="p-4 bg-pos-surface border-t border-pos-border flex items-center justify-between gap-3 shrink-0">
             <div className="min-w-0">
               <span className="text-[11px] font-semibold text-pos-text/60 block">
-                ราคารวมสุทธิ
+                {t("cart.total")}
               </span>
               <div className="text-xl font-black font-mono text-sky-600 dark:text-sky-400 leading-tight truncate">
                 {totalPrice.toLocaleString()}{" "}
@@ -282,7 +286,7 @@ export default function ProductOptionModal({
               disabled={!isReady}
               className="px-6 py-3 rounded-2xl bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-500 hover:brightness-105 active:scale-95 text-white font-bold text-sm shadow-md shadow-sky-600/20 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-2"
             >
-              <span>เพิ่มลงออเดอร์</span>
+              <span>{t("pos.add_to_order")}</span>
               <svg
                 className="w-4 h-4 stroke-[2.5]"
                 fill="none"

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 import {
   updateAccountStatus,
@@ -40,6 +41,7 @@ export default function SettingAccountingPage({
   isEmbedded = false,
 }: SettingAccountingPageProps) {
   const router = useRouter();
+  const { isThai } = useTranslation();
   const { employeeId } = useEmployee();
   const effectiveUserId = Number(employeeId || userId || 1);
 
@@ -72,20 +74,20 @@ export default function SettingAccountingPage({
   const handleAccountStatus = async (id: number, status: string) => {
     const res = await updateAccountStatus(id, status);
     if (res.success) {
-      showToast("อัปเดตสถานะบัญชีสำเร็จ", "success");
+      showToast(isThai ? "อัปเดตสถานะบัญชีสำเร็จ" : "Account status updated successfully", "success");
       await handleRefresh();
     } else {
-      showToast("อัปเดตสถานะไม่สำเร็จ", "error");
+      showToast(isThai ? "อัปเดตสถานะไม่สำเร็จ" : "Failed to update status", "error");
     }
   };
 
   const handleAccountName = async (id: number, name: string) => {
     const res = await updateAccountName(id, name);
     if (res.success) {
-      showToast("แก้ไขชื่อบัญชีสำเร็จ", "success");
+      showToast(isThai ? "แก้ไขชื่อบัญชีสำเร็จ" : "Account name updated successfully", "success");
       await handleRefresh();
     } else {
-      showToast("แก้ไขชื่อไม่สำเร็จ", "error");
+      showToast(isThai ? "แก้ไขชื่อไม่สำเร็จ" : "Failed to update name", "error");
     }
   };
 
@@ -93,20 +95,20 @@ export default function SettingAccountingPage({
   const handleCategoryStatus = async (id: number, status: string) => {
     const res = await updateCategoryStatus(id, status);
     if (res.success) {
-      showToast("อัปเดตสถานะหมวดหมู่สำเร็จ", "success");
+      showToast(isThai ? "อัปเดตสถานะหมวดหมู่สำเร็จ" : "Category status updated successfully", "success");
       await handleRefresh();
     } else {
-      showToast("อัปเดตสถานะไม่สำเร็จ", "error");
+      showToast(isThai ? "อัปเดตสถานะไม่สำเร็จ" : "Failed to update status", "error");
     }
   };
 
   const handleCategoryName = async (id: number, name: string) => {
     const res = await updateCategoryName(id, name);
     if (res.success) {
-      showToast("แก้ไขชื่อหมวดหมู่สำเร็จ", "success");
+      showToast(isThai ? "แก้ไขชื่อหมวดหมู่สำเร็จ" : "Category name updated successfully", "success");
       await handleRefresh();
     } else {
-      showToast("แก้ไขชื่อไม่สำเร็จ", "error");
+      showToast(isThai ? "แก้ไขชื่อไม่สำเร็จ" : "Failed to update name", "error");
     }
   };
 
@@ -143,7 +145,7 @@ export default function SettingAccountingPage({
             <Link
               href="/settings"
               className="w-9 h-9 rounded-xl bg-pos-surface border border-pos-border text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition active:scale-95 shadow-xs"
-              title="กลับไปหน้าตั้งค่า"
+              title={isThai ? "กลับไปหน้าตั้งค่า" : "Back to Settings"}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -151,10 +153,10 @@ export default function SettingAccountingPage({
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-                ตั้งค่าบัญชีการเงิน
+                {isThai ? "ตั้งค่าบัญชีการเงิน" : "Financial Accounting Settings"}
               </h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                จัดการบัญชีธนาคาร ลิ้นชักเงินสด หมวดหมู่รายรับ-รายจ่าย และประวัติเงินเข้า-ออก
+                {isThai ? "จัดการบัญชีธนาคาร ลิ้นชักเงินสด หมวดหมู่รายรับ-รายจ่าย และประวัติเงินเข้า-ออก" : "Manage bank accounts, cash drawers, income-expense categories, and transaction history"}
               </p>
             </div>
           </div>
@@ -175,7 +177,7 @@ export default function SettingAccountingPage({
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                <span>🏛️ บัญชีการเงิน</span>
+                <span>🏛️ {isThai ? "บัญชีการเงิน" : "Financial Accounts"}</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 font-extrabold">
                   {accounts.length}
                 </span>
@@ -189,7 +191,7 @@ export default function SettingAccountingPage({
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                <span>🏷️ หมวดหมู่รายรับ-รายจ่าย</span>
+                <span>🏷️ {isThai ? "หมวดหมู่รายรับ-รายจ่าย" : "Income-Expense Categories"}</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold">
                   {categories.length}
                 </span>
@@ -198,7 +200,7 @@ export default function SettingAccountingPage({
           ) : (
             <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-              <span>แสดงคู่กัน (บัญชีการเงิน & หมวดหมู่)</span>
+              <span>{isThai ? "แสดงคู่กัน (บัญชีการเงิน & หมวดหมู่)" : "Side by Side (Accounts & Categories)"}</span>
             </div>
           )}
         </div>
@@ -213,12 +215,12 @@ export default function SettingAccountingPage({
                 ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs font-bold"
                 : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
-            title="แสดงบัญชีและหมวดหมู่คู่กัน"
+            title={isThai ? "แสดงบัญชีและหมวดหมู่คู่กัน" : "Show accounts and categories side by side"}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.5 0h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
             </svg>
-            <span className="hidden sm:inline">2 คอลัมน์</span>
+            <span className="hidden sm:inline">{isThai ? "2 คอลัมน์" : "2 Columns"}</span>
           </button>
           <button
             type="button"
@@ -228,12 +230,12 @@ export default function SettingAccountingPage({
                 ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs font-bold"
                 : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
-            title="แยกแท็บเต็มจอ เพื่อมุมมองที่กว้างขึ้น 100% สบายตา"
+            title={isThai ? "แยกแท็บเต็มจอ เพื่อมุมมองที่กว้างขึ้น 100% สบายตา" : "Separate full-width tabs for wider view"}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
             </svg>
-            <span className="hidden sm:inline">แยกแท็บเต็มจอ</span>
+            <span className="hidden sm:inline">{isThai ? "แยกแท็บเต็มจอ" : "Tabs"}</span>
           </button>
         </div>
       </div>
@@ -300,8 +302,8 @@ export default function SettingAccountingPage({
         <div className="rounded-2xl border border-pos-border dark:border-slate-700 bg-pos-surface shadow-2xs p-5 flex flex-col overflow-hidden w-full">
           <DataTableSettingTxlog
             data={txLogs}
-            title="ประวัติจัดการเงินในบัญชี"
-            subtitle="ประวัติการปรับเพิ่ม ลด และโอนเงินจากเมนูตั้งค่า"
+            title={isThai ? "ประวัติจัดการเงินในบัญชี" : "Account Transaction History"}
+            subtitle={isThai ? "ประวัติการปรับเพิ่ม ลด และโอนเงินจากเมนูตั้งค่า" : "History of adjustments, deposits, withdrawals, and transfers from settings"}
           />
         </div>
       </div>

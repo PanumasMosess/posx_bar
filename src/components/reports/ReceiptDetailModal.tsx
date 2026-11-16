@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ReceiptSlip from "@/components/receipt/ReceiptSlip";
 import { getOrderReceiptAction } from "@/lib/actions/actionsReports";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 import { ReceiptDetailModalProps, OrderData } from "@/lib/types";
 
@@ -10,6 +11,7 @@ export default function ReceiptDetailModal({
   orderId,
   onClose,
 }: ReceiptDetailModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<OrderData | null>(null);
   const [prevOrderId, setPrevOrderId] = useState<number | null>(null);
@@ -55,7 +57,7 @@ export default function ReceiptDetailModal({
         {/* Header */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-            รายละเอียดใบเสร็จ
+            {t("reports.receipt_details")}
           </h3>
           <button
             type="button"
@@ -70,13 +72,13 @@ export default function ReceiptDetailModal({
         <div className="p-4 overflow-y-auto flex-1 flex justify-center bg-slate-100 dark:bg-slate-950">
           {loading ? (
             <div className="py-16 text-center text-xs text-slate-400">
-              กำลังโหลดใบเสร็จ...
+              {t("reports.loading_receipt")}
             </div>
           ) : order ? (
             <ReceiptSlip order={order} payment={payment} />
           ) : (
             <div className="py-16 text-center text-xs text-slate-400">
-              ไม่พบข้อมูลใบเสร็จ
+              {t("reports.receipt_not_found")}
             </div>
           )}
         </div>
@@ -88,14 +90,14 @@ export default function ReceiptDetailModal({
             onClick={() => window.print()}
             className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-700 hover:to-cyan-600 text-white shadow-sm transition"
           >
-            พิมพ์ใบเสร็จ
+            {t("reports.print_receipt")}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="py-2.5 px-4 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 transition"
           >
-            ปิด
+            {t("common.close")}
           </button>
         </div>
       </div>

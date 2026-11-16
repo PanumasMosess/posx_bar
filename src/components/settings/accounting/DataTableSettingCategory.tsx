@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { createCategory } from "@/lib/actions/actionAccounting";
 import { DataTableSettingCategoryProps } from "@/lib/types";
 
@@ -16,6 +17,7 @@ export default function DataTableSettingCategory({
   onRefresh,
 }: DataTableProps) {
   const router = useRouter();
+  const { t, isThai } = useTranslation();
 
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<"id" | "name" | "type">("id");
@@ -84,7 +86,7 @@ export default function DataTableSettingCategory({
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
-      showToast("กรุณากรอกชื่อหมวดหมู่", "error");
+      showToast(isThai ? "กรุณากรอกชื่อหมวดหมู่" : "Please enter category name", "error");
       return;
     }
     setIsLoading(true);
@@ -94,13 +96,13 @@ export default function DataTableSettingCategory({
       organizationId,
     });
     if (res.success) {
-      showToast("เพิ่มหมวดหมู่สำเร็จ", "success");
+      showToast(isThai ? "เพิ่มหมวดหมู่สำเร็จ" : "Category added successfully", "success");
       setNewName("");
       setOpenAdd(false);
       if (onRefresh) await onRefresh();
       router.refresh();
     } else {
-      showToast("เพิ่มหมวดหมู่ไม่สำเร็จ", "error");
+      showToast(isThai ? "เพิ่มหมวดหมู่ไม่สำเร็จ" : "Failed to add category", "error");
     }
     setIsLoading(false);
   };
@@ -118,10 +120,10 @@ export default function DataTableSettingCategory({
           </div>
           <div className="min-w-0">
             <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight truncate">
-              หมวดหมู่รายรับ-รายจ่าย
+              {isThai ? "หมวดหมู่รายรับ-รายจ่าย" : "Income-Expense Categories"}
             </h2>
             <p className="text-[11px] text-slate-400 truncate">
-              หมวดหมู่รายรับและรายจ่ายในระบบ
+              {isThai ? "หมวดหมู่รายรับและรายจ่ายในระบบ" : "Income and expense categories in the system"}
             </p>
           </div>
         </div>
@@ -133,7 +135,7 @@ export default function DataTableSettingCategory({
             </svg>
             <input
               type="text"
-              placeholder="ค้นหา..."
+              placeholder={isThai ? "ค้นหา..." : "Search..."}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -151,7 +153,7 @@ export default function DataTableSettingCategory({
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>เพิ่มหมวดหมู่</span>
+            <span>{isThai ? "เพิ่มหมวดหมู่" : "Add Category"}</span>
           </button>
         </div>
       </div>
@@ -177,17 +179,17 @@ export default function DataTableSettingCategory({
                 className="py-3 px-4 cursor-pointer hover:text-slate-800 text-left whitespace-nowrap"
               >
                 <div className="flex items-center gap-1">
-                  <span>ชื่อหมวดหมู่</span>
+                  <span>{isThai ? "ชื่อหมวดหมู่" : "Category Name"}</span>
                   <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
                   </svg>
                 </div>
               </th>
               <th className="py-3 px-3 text-center font-bold text-[11px] uppercase tracking-wider w-24 whitespace-nowrap">
-                ประเภท
+                {isThai ? "ประเภท" : "Type"}
               </th>
               <th className="py-3 px-3 text-center font-bold text-[11px] uppercase tracking-wider w-28 whitespace-nowrap">
-                สถานะ
+                {isThai ? "สถานะ" : "Status"}
               </th>
             </tr>
           </thead>
@@ -198,17 +200,17 @@ export default function DataTableSettingCategory({
                   <div className="flex flex-col items-center justify-center gap-2">
                     <span className="text-3xl">🏷️</span>
                     <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                      ยังไม่มีหมวดหมู่รายรับ-รายจ่าย
+                      {isThai ? "ยังไม่มีหมวดหมู่รายรับ-รายจ่าย" : "No income-expense categories yet"}
                     </p>
                     <p className="text-xs text-slate-400">
-                      เพิ่มหมวดหมู่เพื่อจัดหมวดหมู่รายรับและรายจ่ายในร้าน
+                      {isThai ? "เพิ่มหมวดหมู่เพื่อจัดหมวดหมู่รายรับและรายจ่ายในร้าน" : "Add categories to classify store income and expenses"}
                     </p>
                     <button
                       type="button"
                       onClick={() => setOpenAdd(true)}
                       className="mt-2 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-sky-500 hover:bg-sky-600 text-white transition cursor-pointer shadow-xs"
                     >
-                      + เพิ่มหมวดหมู่แรก
+                      {isThai ? "+ เพิ่มหมวดหมู่แรก" : "+ Add First Category"}
                     </button>
                   </div>
                 </td>
@@ -250,7 +252,7 @@ export default function DataTableSettingCategory({
                             setEditingName(cat.name);
                           }}
                           className="inline-flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer group"
-                          title="คลิกเพื่อแก้ไขชื่อหมวดหมู่"
+                          title={isThai ? "คลิกเพื่อแก้ไขชื่อหมวดหมู่" : "Click to edit category name"}
                         >
                           <span className="whitespace-nowrap font-bold text-slate-800 dark:text-slate-100 group-hover:text-sky-600">
                             {cat.name}
@@ -271,7 +273,7 @@ export default function DataTableSettingCategory({
                             : "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
                         }`}
                       >
-                        {isIncome ? "รายรับ" : "รายจ่าย"}
+                        {isIncome ? (isThai ? "รายรับ" : "Income") : (isThai ? "รายจ่าย" : "Expense")}
                       </span>
                     </td>
 
@@ -288,8 +290,8 @@ export default function DataTableSettingCategory({
                           onChange={(e) => onUpdateStatus(cat.id, e.target.value)}
                           className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none cursor-pointer"
                         >
-                          <option value="ACTIVE">ใช้งาน</option>
-                          <option value="INACTIVE">ไม่ใช้งาน</option>
+                          <option value="ACTIVE">{isThai ? "ใช้งาน" : "Active"}</option>
+                          <option value="INACTIVE">{isThai ? "ไม่ใช้งาน" : "Inactive"}</option>
                         </select>
                       </div>
                     </td>
@@ -381,7 +383,7 @@ export default function DataTableSettingCategory({
           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden z-10 animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                เพิ่มหมวดหมู่ใหม่
+                {isThai ? "เพิ่มหมวดหมู่ใหม่" : "Add New Category"}
               </h3>
               <button
                 type="button"
@@ -397,7 +399,7 @@ export default function DataTableSettingCategory({
             <form onSubmit={handleAddCategory} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  ประเภท
+                  {isThai ? "ประเภท" : "Type"}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -411,7 +413,7 @@ export default function DataTableSettingCategory({
                     }`}
                   >
                     <span>💸</span>
-                    <span>รายจ่าย (Expense)</span>
+                    <span>{isThai ? "รายจ่าย (Expense)" : "Expense"}</span>
                   </button>
                   <button
                     type="button"
@@ -424,19 +426,19 @@ export default function DataTableSettingCategory({
                     }`}
                   >
                     <span>💰</span>
-                    <span>รายรับ (Income)</span>
+                    <span>{isThai ? "รายรับ (Income)" : "Income"}</span>
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  ชื่อหมวดหมู่
+                  {isThai ? "ชื่อหมวดหมู่" : "Category Name"}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="เช่น ค่าวัตถุดิบ, ค่าไฟ, รายได้อื่นๆ"
+                  placeholder={isThai ? "เช่น ค่าวัตถุดิบ, ค่าไฟ, รายได้อื่นๆ" : "e.g. Raw materials, Utilities, Other income"}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   disabled={isLoading}
@@ -450,7 +452,7 @@ export default function DataTableSettingCategory({
                   disabled={isLoading}
                   className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+                  {isLoading ? (isThai ? "กำลังบันทึก..." : "Saving...") : (isThai ? "บันทึก" : "Save")}
                 </button>
               </div>
             </form>

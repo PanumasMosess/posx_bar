@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "../providers/CartContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface MobileNavProps {
   onToggleCart: () => void;
@@ -11,12 +12,13 @@ interface MobileNavProps {
 export default function MobileNav({ onToggleCart }: MobileNavProps) {
   const pathname = usePathname();
   const { totalItems } = useCart();
+  const { t } = useTranslation();
 
   // รายการเมนูส่วนที่เลื่อนได้ (Scrollable)
   const navItems = [
     {
       href: "/pos",
-      label: "ขาย",
+      label: t("nav.pos"),
       disabled: false,
       icon: (
         <path
@@ -28,7 +30,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
     },
     {
       href: "/reports",
-      label: "รายงาน",
+      label: t("nav.reports"),
       disabled: false,
       icon: (
         <path
@@ -40,7 +42,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
     },
     {
       href: "/inventory",
-      label: "คลัง",
+      label: t("nav.inventory"),
       disabled: false,
       icon: (
         <path
@@ -52,7 +54,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
     },
     {
       href: "/kitchen",
-      label: "จอครัว",
+      label: t("nav.kitchen"),
       disabled: false,
       icon: (
         <path
@@ -64,7 +66,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
     },
     {
       href: "/expenses",
-      label: "รายจ่าย",
+      label: t("nav.expenses"),
       disabled: false,
       icon: (
         <path
@@ -76,7 +78,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
     },
     {
       href: "/accounting",
-      label: "บัญชี",
+      label: t("nav.accounting"),
       disabled: false,
       icon: (
         <path
@@ -177,7 +179,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
           <span
             className={`text-[9px] mt-0.5 ${pathname === "/settings" ? "font-bold" : "font-medium"}`}
           >
-            ตั้งค่า
+            {t("nav.settings")}
           </span>
         </Link>
 
@@ -208,7 +210,7 @@ export default function MobileNav({ onToggleCart }: MobileNavProps) {
             )}
           </div>
           <span className="text-[9px] mt-0.5 font-bold text-emerald-700 dark:text-emerald-400">
-            ตะกร้า
+            {t("nav.cart")}
           </span>
         </button>
       </div>

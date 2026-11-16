@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
 import {
   ExpenseItem,
@@ -56,14 +57,33 @@ const THAI_DAY_FULL_NAMES = [
   "วันศุกร์ที่",
   "วันเสาร์ที่",
 ];
+const EN_MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+const EN_SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+const EN_DAY_FULL_NAMES = [
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+];
+
 
 export default function ExpenseCalendarPage({
   organizationId,
   userId,
   initialData,
 }: ExpenseCalendarPageProps) {
+  const { t, isThai } = useTranslation();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "";
+  const monthNames = isThai ? THAI_MONTH_NAMES : EN_MONTH_NAMES;
+  const shortMonthNames = isThai ? THAI_SHORT_MONTHS : EN_SHORT_MONTHS;
+  const dayFullNames = isThai ? THAI_DAY_FULL_NAMES : EN_DAY_FULL_NAMES;
+
 
   const now = useMemo(() => new Date(), []);
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -179,7 +199,7 @@ export default function ExpenseCalendarPage({
     if (res.success && res.data) {
       setCalendarData(res.data);
     } else {
-      showToast(res.message || "ไม่สามารถโหลดข้อมูลรายรับ-รายจ่ายได้", "error");
+      showToast(res.message || (isThai ? "ไม่สามารถโหลดข้อมูลรายรับ-รายจ่ายได้" : "Failed to load income/expense data"), "error");
     }
   }, [organizationId]);
 
@@ -215,8 +235,8 @@ export default function ExpenseCalendarPage({
   };
 
   // Thai BE Year
-  const thaiYear = currentYear + 543;
-  const monthName = THAI_MONTH_NAMES[currentMonth - 1];
+  const thaiYear = isThai ? currentYear + 543 : currentYear;
+  const monthName = monthNames[currentMonth - 1];
 
   // Calendar Day Grid Computation
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
@@ -235,7 +255,7 @@ export default function ExpenseCalendarPage({
     selectedDay
   ).padStart(2, "0")}`;
   const shortThaiYear = String(thaiYear).slice(-2);
-  const selectedDayThaiDate = `${selectedDay} ${THAI_SHORT_MONTHS[currentMonth - 1]} ${shortThaiYear}`;
+  const selectedDayThaiDate = `${selectedDay} ${shortMonthNames[currentMonth - 1]} ${shortThaiYear}`;
   const isSelectedDayFuture = isFutureDate(selectedDay, currentMonth, currentYear);
 
   // Format Date String to Thai Object
@@ -247,11 +267,11 @@ export default function ExpenseCalendarPage({
     const dateObj = new Date(y, m - 1, d);
     const thaiY = y + 543;
     const shortYear = String(thaiY).slice(-2);
-    const shortMonth = THAI_SHORT_MONTHS[m - 1];
+    const shortMonth = shortMonthNames[m - 1];
     const shortThai = `${d} ${shortMonth} ${thaiY}`;
     const shortMonthYear = `${d} ${shortMonth} ${shortYear}`;
-    const weekdayName = THAI_DAY_FULL_NAMES[dateObj.getDay()];
-    const fullThai = `${weekdayName} ${d} ${THAI_MONTH_NAMES[m - 1]} ${thaiY}`;
+    const weekdayName = dayFullNames[dateObj.getDay()];
+    const fullThai = `${weekdayName} ${d} ${monthNames[m - 1]} ${thaiY}`;
     return { short: shortThai, full: fullThai, shortYear, shortMonthYear };
   };
 
@@ -298,7 +318,7 @@ export default function ExpenseCalendarPage({
         const dStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(
           dayNum
         ).padStart(2, "0")}`;
-        const thaiDate = `${dayNum} ${THAI_SHORT_MONTHS[currentMonth - 1]} ${shortThaiYear}`;
+        const thaiDate = `${dayNum} ${shortMonthNames[currentMonth - 1]} ${shortThaiYear}`;
         const expenseItems = data.dailyItems.filter((i) => i.type === "EXPENSE");
         if (expenseItems.length > 0) {
           list.push({
@@ -499,11 +519,11 @@ export default function ExpenseCalendarPage({
     e.preventDefault();
     const numAmount = parseFloat(dayAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      showToast("กรุณาระบุจำนวนเงินให้ถูกต้อง", "error");
+      showToast(isThai ? "กรุณาระบุจำนวนเงินให้ถูกต้อง" : "Please enter a valid amount", "error");
       return;
     }
     if (!dayTitle.trim()) {
-      showToast("กรุณาระบุชื่อรายการ", "error");
+      showToast(isThai ? "กรุณาระบุชื่อรายการ" : "Please enter title", "error");
       return;
     }
 
@@ -529,7 +549,7 @@ export default function ExpenseCalendarPage({
       }
     } else {
       const isExpense = dayTab === "EXPENSE";
-      const resolvedCat = dayCategory.trim() || (isExpense ? "ค่าใช้จ่ายเบ็ดเตล็ด" : "รายรับอื่นๆ");
+      const resolvedCat = dayCategory.trim() || (isExpense ? (isThai ? "ค่าใช้จ่ายเบ็ดเตล็ด" : "Miscellaneous Expense") : (isThai ? "รายรับอื่นๆ" : "Other Income"));
 
       const res = await recordTransaction({
         accountId: dayAccountId,
@@ -562,7 +582,7 @@ export default function ExpenseCalendarPage({
 
   // Delete transaction from Day View
   const handleDeleteDayItem = async (id: number) => {
-    if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
+    if (!confirm(isThai ? "คุณต้องการลบรายการนี้ใช่หรือไม่?" : "Are you sure you want to delete this item?")) return;
     setIsSubmitting(true);
     const res = await deleteExpenseAction(id);
     if (res.success) {
@@ -581,11 +601,11 @@ export default function ExpenseCalendarPage({
     e.preventDefault();
     const numAmount = parseFloat(editItemAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      showToast("กรุณาระบุจำนวนเงินให้ถูกต้อง", "error");
+      showToast(isThai ? "กรุณาระบุจำนวนเงินให้ถูกต้อง" : "Please enter a valid amount", "error");
       return;
     }
     if (!editItemTitle.trim()) {
-      showToast("กรุณาระบุชื่อรายการ", "error");
+      showToast(isThai ? "กรุณาระบุชื่อรายการ" : "Please enter title", "error");
       return;
     }
 
@@ -611,7 +631,7 @@ export default function ExpenseCalendarPage({
 
   // Delete from Dedicated Edit Modal
   const handleDeleteEditItemModal = async () => {
-    if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
+    if (!confirm(isThai ? "คุณต้องการลบรายการนี้ใช่หรือไม่?" : "Are you sure you want to delete this item?")) return;
     setIsSubmitting(true);
     const res = await deleteExpenseAction(editItemId);
     if (res.success) {
@@ -629,18 +649,18 @@ export default function ExpenseCalendarPage({
     e.preventDefault();
     const numAmount = parseFloat(globalAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      showToast("กรุณาระบุจำนวนเงินให้ถูกต้อง", "error");
+      showToast(isThai ? "กรุณาระบุจำนวนเงินให้ถูกต้อง" : "Please enter a valid amount", "error");
       return;
     }
     if (!globalTitle.trim()) {
-      showToast("กรุณาระบุชื่อรายการ", "error");
+      showToast(isThai ? "กรุณาระบุชื่อรายการ" : "Please enter title", "error");
       return;
     }
 
     setIsSubmitting(true);
     const isMonthly = globalTab === "EXPENSE" && globalExpenseSubTab === "MONTHLY";
     const resolvedCat =
-      globalCategory.trim() || (globalTab === "EXPENSE" ? "ค่าใช้จ่ายเบ็ดเตล็ด" : "รายรับอื่นๆ");
+      globalCategory.trim() || (globalTab === "EXPENSE" ? (isThai ? "ค่าใช้จ่ายเบ็ดเตล็ด" : "Miscellaneous Expense") : (isThai ? "รายรับอื่นๆ" : "Other Income"));
 
     const targetDate = isMonthly
       ? `${globalYear}-${String(globalMonth).padStart(2, "0")}-01`
@@ -673,7 +693,7 @@ export default function ExpenseCalendarPage({
   // Execute Copy Day
   const handleExecuteCopyDay = async () => {
     if (!selectedCopyDate) {
-      showToast("กรุณาเลือกวันที่ต้องการคัดลอก", "warning");
+      showToast(isThai ? "กรุณาเลือกวันที่ต้องการคัดลอก" : "Please select date to copy from", "warning");
       return;
     }
 
@@ -728,10 +748,10 @@ export default function ExpenseCalendarPage({
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-pos-text leading-tight">
-              รายรับ-รายจ่าย
+              {isThai ? "รายรับ-รายจ่าย" : "Income & Expenses"}
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-              ปฏิทินบันทึกรายรับและรายจ่ายประจำวันของร้าน
+              {isThai ? "ปฏิทินบันทึกรายรับและรายจ่ายประจำวันของร้าน" : "Daily calendar log of store income and expenses"}
             </p>
           </div>
         </div>
@@ -741,7 +761,7 @@ export default function ExpenseCalendarPage({
             type="button"
             onClick={handleOpenCurrentViewedMonth}
             className="px-3 py-1 rounded-xl bg-[#166675]/10 dark:bg-[#166675]/20 text-[#166675] dark:text-[#53b9cc] border border-[#166675]/20 dark:border-[#166675]/40 text-xs font-semibold hover:bg-[#166675]/20 transition cursor-pointer"
-            title="กดเพื่อดูรายละเอียดประจำเดือน"
+            title={isThai ? "กดเพื่อดูรายละเอียดประจำเดือน" : "Click to view monthly details"}
           >
             {monthName} {thaiYear}
           </button>
@@ -764,7 +784,7 @@ export default function ExpenseCalendarPage({
                   mobileTab === "TODAY" ? "bg-white text-[#166675] shadow-sm" : "text-white/90 hover:text-white"
                 }`}
               >
-                วันนี้
+                {isThai ? "วันนี้" : "Today"}
               </button>
               <button
                 onClick={() => setMobileTab("MONTH")}
@@ -772,7 +792,7 @@ export default function ExpenseCalendarPage({
                   mobileTab === "MONTH" ? "bg-white text-[#166675] shadow-sm" : "text-white/90 hover:text-white"
                 }`}
               >
-                เดือนนี้
+                {isThai ? "เดือนนี้" : "This Month"}
               </button>
               <button
                 onClick={() => setMobileTab("YEAR")}
@@ -780,7 +800,7 @@ export default function ExpenseCalendarPage({
                   mobileTab === "YEAR" ? "bg-white text-[#166675] shadow-sm" : "text-white/90 hover:text-white"
                 }`}
               >
-                ปีนี้
+                {isThai ? "ปีนี้" : "This Year"}
               </button>
             </div>
 
@@ -794,7 +814,7 @@ export default function ExpenseCalendarPage({
               className="flex items-center justify-between text-center px-2 cursor-pointer"
             >
               <div>
-                <div className="text-[11px] text-white/85 mb-0.5">รายรับ</div>
+                <div className="text-[11px] text-white/85 mb-0.5">{isThai ? "รายรับ" : "Income"}</div>
                 <div className="font-bold text-sm sm:text-base">
                   {mobileTab === "TODAY" && (calendarData?.todayIncome ?? 0).toLocaleString()}
                   {mobileTab === "MONTH" && ((calendarData?.thisMonthIncome ?? calendarData?.monthIncome) ?? 0).toLocaleString()}
@@ -803,7 +823,7 @@ export default function ExpenseCalendarPage({
               </div>
               <div className="w-px h-8 bg-white/20" />
               <div>
-                <div className="text-[11px] text-white/85 mb-0.5">รายจ่าย</div>
+                <div className="text-[11px] text-white/85 mb-0.5">{isThai ? "รายจ่าย" : "Expenses"}</div>
                 <div className="font-bold text-sm sm:text-base text-[#ffb8b1]">
                   {mobileTab === "TODAY" && (calendarData?.todayExpense ?? 0).toLocaleString()}
                   {mobileTab === "MONTH" && ((calendarData?.thisMonthExpense ?? calendarData?.monthExpense) ?? 0).toLocaleString()}
@@ -812,7 +832,7 @@ export default function ExpenseCalendarPage({
               </div>
               <div className="w-px h-8 bg-white/20" />
               <div>
-                <div className="text-[11px] text-white/85 mb-0.5">สุทธิ</div>
+                <div className="text-[11px] text-white/85 mb-0.5">{isThai ? "สุทธิ" : "Net"}</div>
                 <div className={`font-black text-sm sm:text-base ${
                   (mobileTab === "TODAY"
                     ? (calendarData?.todayNet ?? 0)
@@ -832,14 +852,14 @@ export default function ExpenseCalendarPage({
             {/* Averages for Month / Year */}
             {mobileTab === "MONTH" && (
               <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-white/90 pt-3 mt-3 border-t border-white/20">
-                <span><span className="opacity-70">เฉลี่ยวันละ:</span> รายรับ <span className="font-bold">{(calendarData?.thisMonthAvgDailyIncome ?? calendarData?.avgDailyIncome ?? 0).toLocaleString()}</span></span>
-                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisMonthAvgDailyExpense ?? calendarData?.avgDailyExpense ?? 0).toLocaleString()}</span></span>
+                <span><span className="opacity-70">{isThai ? "เฉลี่ยวันละ:" : "Daily avg:"}</span> {isThai ? "รายรับ" : "Income"} <span className="font-bold">{(calendarData?.thisMonthAvgDailyIncome ?? calendarData?.avgDailyIncome ?? 0).toLocaleString()}</span></span>
+                <span>{isThai ? "รายจ่าย" : "Expense"} <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisMonthAvgDailyExpense ?? calendarData?.avgDailyExpense ?? 0).toLocaleString()}</span></span>
               </div>
             )}
             {mobileTab === "YEAR" && (
               <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-white/90 pt-3 mt-3 border-t border-white/20">
-                <span><span className="opacity-70">เฉลี่ยเดือนละ:</span> รายรับ <span className="font-bold">{(calendarData?.thisYearAvgMonthlyIncome ?? calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}</span></span>
-                <span>รายจ่าย <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisYearAvgMonthlyExpense ?? calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}</span></span>
+                <span><span className="opacity-70">{isThai ? "เฉลี่ยเดือนละ:" : "Monthly avg:"}</span> {isThai ? "รายรับ" : "Income"} <span className="font-bold">{(calendarData?.thisYearAvgMonthlyIncome ?? calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}</span></span>
+                <span>{isThai ? "รายจ่าย" : "Expense"} <span className="font-bold text-[#ffb8b1]">{(calendarData?.thisYearAvgMonthlyExpense ?? calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}</span></span>
               </div>
             )}
           </div>
@@ -856,24 +876,24 @@ export default function ExpenseCalendarPage({
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[15px] font-bold text-white tracking-wide">วันนี้</span>
+              <span className="text-[15px] font-bold text-white tracking-wide">{isThai ? "วันนี้" : "Today"}</span>
               <span className="text-white/30 text-xs font-bold">&gt;</span>
             </div>
             <div className="space-y-3 text-[14px]">
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายรับ</span>
+                <span className="text-white/90">{isThai ? "รายรับ" : "Income"}</span>
                 <span className="font-semibold text-white">
                   {(calendarData?.todayIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายจ่าย</span>
+                <span className="text-white/90">{isThai ? "รายจ่าย" : "Expenses"}</span>
                 <span className="font-semibold text-[#ffb8b1]">
                   {(calendarData?.todayExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                <span className="text-white/90">สุทธิ</span>
+                <span className="text-white/90">{isThai ? "สุทธิ" : "Net"}</span>
                 <span
                   className={`font-bold text-[15px] ${
                     (calendarData?.todayNet ?? 0) >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]"
@@ -893,24 +913,24 @@ export default function ExpenseCalendarPage({
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[15px] font-bold text-white tracking-wide">เดือนนี้</span>
+              <span className="text-[15px] font-bold text-white tracking-wide">{isThai ? "เดือนนี้" : "This Month"}</span>
               <span className="text-white/30 text-xs font-bold">&gt;</span>
             </div>
             <div className="space-y-3 text-[14px]">
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายรับ</span>
+                <span className="text-white/90">{isThai ? "รายรับ" : "Income"}</span>
                 <span className="font-semibold text-white">
                   {(calendarData?.thisMonthIncome ?? calendarData?.monthIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายจ่าย</span>
+                <span className="text-white/90">{isThai ? "รายจ่าย" : "Expenses"}</span>
                 <span className="font-semibold text-[#ffb8b1]">
                   {(calendarData?.thisMonthExpense ?? calendarData?.monthExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                <span className="text-white/90">สุทธิ</span>
+                <span className="text-white/90">{isThai ? "สุทธิ" : "Net"}</span>
                 <span
                   className={`font-bold text-[15px] ${
                     ((calendarData?.thisMonthNet ?? calendarData?.monthNet ?? 0) >= 0) ? "text-[#99f6e4]" : "text-[#ffb8b1]"
@@ -924,15 +944,15 @@ export default function ExpenseCalendarPage({
               
               {/* เฉลี่ยวันละ */}
               <div className="pt-3 border-t border-white/10 space-y-2">
-                <div className="text-white/90 mb-1">เฉลี่ยวันละ</div>
+                <div className="text-white/90 mb-1">{isThai ? "เฉลี่ยวันละ" : "Daily Average"}</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/90">รายรับ</span>
+                  <span className="text-white/90">{isThai ? "รายรับ" : "Income"}</span>
                   <span className="font-semibold text-white">
                     {(calendarData?.thisMonthAvgDailyIncome ?? calendarData?.avgDailyIncome ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/90">รายจ่าย</span>
+                  <span className="text-white/90">{isThai ? "รายจ่าย" : "Expenses"}</span>
                   <span className="font-semibold text-[#ffb8b1]">
                     {(calendarData?.thisMonthAvgDailyExpense ?? calendarData?.avgDailyExpense ?? 0).toLocaleString()}
                   </span>
@@ -947,24 +967,24 @@ export default function ExpenseCalendarPage({
             className="bg-[#166675] hover:bg-[#125a67] text-white rounded-[16px] p-4 sm:p-5 shadow-sm transition cursor-pointer select-none active:scale-[0.99]"
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[15px] font-bold text-white tracking-wide">ปีนี้</span>
+              <span className="text-[15px] font-bold text-white tracking-wide">{isThai ? "ปีนี้" : "This Year"}</span>
               <span className="text-white/30 text-xs font-bold">&gt;</span>
             </div>
             <div className="space-y-3 text-[14px]">
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายรับ</span>
+                <span className="text-white/90">{isThai ? "รายรับ" : "Income"}</span>
                 <span className="font-semibold text-white">
                   {(calendarData?.thisYearIncome ?? calendarData?.yearIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/90">รายจ่าย</span>
+                <span className="text-white/90">{isThai ? "รายจ่าย" : "Expenses"}</span>
                 <span className="font-semibold text-[#ffb8b1]">
                   {(calendarData?.thisYearExpense ?? calendarData?.yearExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                <span className="text-white/90">สุทธิ</span>
+                <span className="text-white/90">{isThai ? "สุทธิ" : "Net"}</span>
                 <span
                   className={`font-bold text-[15px] ${
                     ((calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0) >= 0) ? "text-[#99f6e4]" : "text-[#ffb8b1]"
@@ -978,15 +998,15 @@ export default function ExpenseCalendarPage({
               
               {/* เฉลี่ยเดือนละ */}
               <div className="pt-3 border-t border-white/10 space-y-2">
-                <div className="text-white/90 mb-1">เฉลี่ยเดือนละ</div>
+                <div className="text-white/90 mb-1">{isThai ? "เฉลี่ยเดือนละ" : "Monthly Average"}</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/90">รายรับ</span>
+                  <span className="text-white/90">{isThai ? "รายรับ" : "Income"}</span>
                   <span className="font-semibold text-white">
                     {(calendarData?.thisYearAvgMonthlyIncome ?? calendarData?.avgMonthlyIncome ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/90">รายจ่าย</span>
+                  <span className="text-white/90">{isThai ? "รายจ่าย" : "Expenses"}</span>
                   <span className="font-semibold text-[#ffb8b1]">
                     {(calendarData?.thisYearAvgMonthlyExpense ?? calendarData?.avgMonthlyExpense ?? 0).toLocaleString()}
                   </span>
@@ -1010,7 +1030,7 @@ export default function ExpenseCalendarPage({
               type="button"
               onClick={handleOpenCurrentViewedMonth}
               className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 tracking-wide hover:text-[#166675] transition cursor-pointer"
-              title="กดเพื่อดูรายละเอียดประจำเดือน"
+              title={isThai ? "กดเพื่อดูรายละเอียดประจำเดือน" : "Click to view monthly details"}
             >
               {monthName} {thaiYear}
             </button>
@@ -1024,13 +1044,13 @@ export default function ExpenseCalendarPage({
 
           {/* Weekday Names Header Row */}
           <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold select-none">
-            <div className="text-rose-500">อา</div>
-            <div className="text-slate-500">จ</div>
-            <div className="text-slate-500">อ</div>
-            <div className="text-slate-500">พ</div>
-            <div className="text-slate-500">พฤ</div>
-            <div className="text-slate-500">ศ</div>
-            <div className="text-slate-500">ส</div>
+            <div className="text-rose-500">{isThai ? "อา" : "Sun"}</div>
+            <div className="text-slate-500">{isThai ? "จ" : "Mon"}</div>
+            <div className="text-slate-500">{isThai ? "อ" : "Tue"}</div>
+            <div className="text-slate-500">{isThai ? "พ" : "Wed"}</div>
+            <div className="text-slate-500">{isThai ? "พฤ" : "Thu"}</div>
+            <div className="text-slate-500">{isThai ? "ศ" : "Fri"}</div>
+            <div className="text-slate-500">{isThai ? "ส" : "Sat"}</div>
           </div>
 
           {/* Days Grid */}
@@ -1119,7 +1139,7 @@ export default function ExpenseCalendarPage({
       <button
         onClick={handleOpenGlobalAdd}
         className="fixed bottom-24 md:bottom-8 right-5 md:right-8 z-40 w-14 h-14 rounded-full bg-[#166675] hover:bg-[#125a67] text-white shadow-xl shadow-[#166675]/30 flex items-center justify-center text-3xl font-light transition active:scale-95 cursor-pointer"
-        title="เพิ่มรายการ"
+        title={isThai ? "เพิ่มรายการ" : "Add item"}
       >
         +
       </button>
@@ -1135,7 +1155,7 @@ export default function ExpenseCalendarPage({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                รายจ่าย · {isViewingToday ? calendarData!.todayModalData!.thaiDate : selectedDayThaiDate}
+                {isThai ? "รายจ่าย" : "Expenses"} · {isViewingToday ? calendarData!.todayModalData!.thaiDate : selectedDayThaiDate}
               </h3>
               <button
                 onClick={() => setActiveModal("NONE")}
@@ -1148,21 +1168,21 @@ export default function ExpenseCalendarPage({
             {/* Top Banner (POS Theme): รายรับ | รายจ่าย | สุทธิ */}
             <div className="bg-[#166675] text-white rounded-2xl p-4 flex items-center justify-around text-center mb-3 shadow-2xs shrink-0">
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายรับ" : "Income"}</span>
                 <span className="text-lg font-black text-white">
                   {(isViewingToday ? calendarData!.todayModalData!.totalIncome : selectedDayData.totalIncome).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายจ่าย" : "Expenses"}</span>
                 <span className="text-lg font-black text-[#ffb8b1]">
                   {(isViewingToday ? calendarData!.todayModalData!.totalExpense : selectedDayData.totalExpense).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "สุทธิ" : "Net"}</span>
                 {(() => {
                   const netVal = isViewingToday ? calendarData!.todayModalData!.net : selectedDayData.net;
                   return (
@@ -1177,7 +1197,7 @@ export default function ExpenseCalendarPage({
             {/* Future Date Alert */}
             {isSelectedDayFuture && (
               <div className="bg-[#166675]/10 dark:bg-[#166675]/20 border border-[#166675]/30 dark:border-[#166675]/40 text-[#166675] dark:text-[#53b9cc] rounded-xl px-3 py-2 text-xs text-center font-medium mb-3 flex items-center justify-center gap-1.5 shadow-2xs shrink-0">
-                <span>วันที่ยังมาไม่ถึง รายการที่กรอกไว้จะยังไม่รวมในยอดเดือนนี้</span>
+                <span>{isThai ? "วันที่ยังมาไม่ถึง รายการที่กรอกไว้จะยังไม่รวมในยอดเดือนนี้" : "Future date. Recorded items will not be included in this month's totals yet."}</span>
               </div>
             )}
 
@@ -1191,7 +1211,7 @@ export default function ExpenseCalendarPage({
               {selectedDayIncomes.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
-                    <span>รายรับ</span>
+                    <span>{isThai ? "รายรับ" : "Income"}</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm sm:text-base tabular-nums">
                       {selectedDayIncomes
                         .reduce((sum, item) => sum + item.amount, 0)
@@ -1238,7 +1258,7 @@ export default function ExpenseCalendarPage({
               {selectedDayExpenses.length > 0 ? (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
-                    <span>รายจ่ายทั่วไป</span>
+                    <span>{isThai ? "รายจ่ายทั่วไป" : "General Expenses"}</span>
                     <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
                       {selectedDayExpenses
                         .reduce((sum, item) => sum + item.amount, 0)
@@ -1275,7 +1295,7 @@ export default function ExpenseCalendarPage({
               ) : (
                 (selectedDayIncomes.length > 0 || currentDayMonthlyItems.length > 0) && (
                   <div className="py-2 text-center text-xs text-slate-400 font-medium">
-                    ยังไม่มีรายจ่ายรายวัน
+                    {isThai ? "ยังไม่มีรายจ่ายรายวัน" : "No daily expenses recorded"}
                   </div>
                 )
               )}
@@ -1285,7 +1305,7 @@ export default function ExpenseCalendarPage({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl">
                     <span className="flex items-center gap-1.5">
-                      รายเดือน <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">เฉลี่ยต่อวัน</span>
+                      {isThai ? "รายเดือน" : "Monthly"} <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">{isThai ? "เฉลี่ยต่อวัน" : "daily share"}</span>
                     </span>
                     <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
                       {currentDayMonthlyItems
@@ -1305,7 +1325,7 @@ export default function ExpenseCalendarPage({
                             {item.title}
                           </span>
                           <span className="text-[11px] text-slate-400">
-                            เดือนละ {item.monthlyAmount.toLocaleString()}
+                            {isThai ? "เดือนละ" : "Monthly"} {item.monthlyAmount.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -1326,14 +1346,14 @@ export default function ExpenseCalendarPage({
                 selectedDayExpenses.length === 0 &&
                 currentDayMonthlyItems.length === 0 && (
                   <div className="py-8 text-center text-sm text-slate-400 font-medium">
-                    ยังไม่มีรายการบันทึกของวันนี้
+                    {isThai ? "ยังไม่มีรายการบันทึกของวันนี้" : "No entries recorded for today"}
                   </div>
                 )}
             </div>
 
             {/* Note & Divider */}
             <div className="py-2 text-center shrink-0">
-              <span className="text-[11px] text-slate-400">แตะที่รายการเพื่อแก้ไข</span>
+              <span className="text-[11px] text-slate-400">{isThai ? "แตะที่รายการเพื่อแก้ไข" : "Tap an item to edit"}</span>
             </div>
 
             {/* BOTTOM SECTION: 3 ACTION BUTTONS OR INLINE FORM */}
@@ -1344,21 +1364,21 @@ export default function ExpenseCalendarPage({
                   onClick={handleOpenDayAddExpense}
                   className="w-full py-3 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm cursor-pointer shadow-xs transition active:scale-98"
                 >
-                  เพิ่มรายจ่าย
+                  {isThai ? "+ เพิ่มรายจ่าย" : "+ Add Expense"}
                 </button>
                 <button
                   type="button"
                   onClick={handleOpenDayAddIncome}
                   className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer transition active:scale-98"
                 >
-                  เพิ่มรายรับ
+                  {isThai ? "+ เพิ่มรายรับ" : "+ Add Income"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveModal("COPY_DAY")}
                   className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer transition active:scale-98"
                 >
-                  คัดลอกจากวันอื่น
+                  {isThai ? "คัดลอกจากวันอื่น" : "Copy from another day"}
                 </button>
               </div>
             ) : (
@@ -1366,7 +1386,7 @@ export default function ExpenseCalendarPage({
                 {editingDayItem ? (
                   <div className="flex items-center justify-between bg-[#166675]/10 dark:bg-[#166675]/20 px-3 py-2 rounded-xl text-xs font-semibold text-[#166675] dark:text-[#53b9cc]">
                     <span>
-                      กำลังแก้ไข: <strong>{editingDayItem.title}</strong>
+                      {isThai ? "กำลังแก้ไข: " : "Editing: "}<strong>{editingDayItem.title}</strong>
                     </span>
                     <button
                       type="button"
@@ -1376,20 +1396,20 @@ export default function ExpenseCalendarPage({
                       }}
                       className="text-slate-500 hover:text-slate-700 underline text-xs cursor-pointer"
                     >
-                      ยกเลิก
+                      {isThai ? "ยกเลิก" : "Cancel"}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between px-1">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                      {dayTab === "EXPENSE" ? "กรอกข้อมูลรายจ่าย" : "กรอกข้อมูลรายรับ"}
+                      {dayTab === "EXPENSE" ? (isThai ? "กรอกข้อมูลรายจ่าย" : "Enter Expense Details") : (isThai ? "กรอกข้อมูลรายรับ" : "Enter Income Details")}
                     </span>
                     <button
                       type="button"
                       onClick={() => setDayFormState("BUTTONS")}
                       className="text-xs text-[#166675] dark:text-[#53b9cc] hover:underline cursor-pointer font-medium"
                     >
-                      ย้อนกลับ
+                      {isThai ? "ย้อนกลับ" : "Back"}
                     </button>
                   </div>
                 )}
@@ -1397,11 +1417,11 @@ export default function ExpenseCalendarPage({
                 {/* Title */}
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    ชื่อรายการ *
+                    {isThai ? "ชื่อรายการ *" : "Item Name *"}
                   </label>
                   <input
                     required
-                    placeholder="เช่น ซื้อผักสด, ค่าไฟ, ค่านม..."
+                    placeholder={isThai ? "เช่น ซื้อผักสด, ค่าไฟ, ค่านม..." : "e.g. Fresh produce, electricity, milk..."}
                     value={dayTitle}
                     onChange={(e) => setDayTitle(e.target.value)}
                     className="w-full h-10 px-3.5 bg-slate-50/80 dark:bg-slate-800/80 border border-pos-border rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#166675] font-medium"
@@ -1411,7 +1431,7 @@ export default function ExpenseCalendarPage({
                 {/* Amount */}
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    จำนวนเงิน *
+                    {isThai ? "จำนวนเงิน *" : "Amount *"}
                   </label>
                   <div className="relative">
                     <input
@@ -1432,12 +1452,12 @@ export default function ExpenseCalendarPage({
                 {/* Category */}
                 <div className="relative">
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    ประเภท
+                    {isThai ? "ประเภท" : "Category"}
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..."
+                      placeholder={isThai ? "กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..." : "Select or type new category..."}
                       value={dayCategory}
                       onFocus={() => setIsDayCatDropdownOpen(true)}
                       onChange={(e) => {
@@ -1492,13 +1512,13 @@ export default function ExpenseCalendarPage({
                                   onMouseDown={() => setIsDayCatDropdownOpen(false)}
                                   className="px-4 py-2 text-sm cursor-pointer border-t border-pos-border bg-slate-50 dark:bg-slate-800/80 text-[#166675] dark:text-[#53b9cc] font-semibold"
                                 >
-                                  + ใช้หมวดหมู่ใหม่: "{dayCategory.trim()}"
+                                  {isThai ? `+ ใช้หมวดหมู่ใหม่: "${dayCategory.trim()}"` : `+ Use new category: "${dayCategory.trim()}"`}
                                 </div>
                               )}
                           </>
                         ) : (
                           <div className="px-3 py-3 text-sm text-slate-400 text-center">
-                            ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)
+                            {isThai ? "ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)" : "No categories yet (type to create)"}
                           </div>
                         )}
                       </div>
@@ -1518,7 +1538,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      เงินสด
+                      {isThai ? "เงินสด" : "Cash"}
                     </button>
                     <button
                       type="button"
@@ -1529,7 +1549,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      เงินโอน
+                      {isThai ? "เงินโอน" : "Transfer"}
                     </button>
                     <button
                       type="button"
@@ -1540,7 +1560,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      ช่องทางอื่น
+                      {isThai ? "ช่องทางอื่น" : "Other"}
                     </button>
                   </div>
                 </div>
@@ -1553,10 +1573,10 @@ export default function ExpenseCalendarPage({
                       onChange={(e) => setDayAccountId(Number(e.target.value))}
                       className="w-full h-10 px-3.5 bg-white dark:bg-slate-800 border border-pos-border rounded-xl text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#166675] font-medium"
                     >
-                      <option value="">-- เลือกบัญชี --</option>
+                      <option value="">{isThai ? "-- เลือกบัญชี --" : "-- Select Account --"}</option>
                       {calendarData?.accounts.map((a) => (
                         <option key={a.id} value={a.id}>
-                          {a.accountName} (คงเหลือ: {Number(a.balance).toLocaleString()} {currency})
+                          {a.accountName} ({isThai ? "คงเหลือ: " : "Balance: "}{Number(a.balance).toLocaleString()} {currency})
                         </option>
                       ))}
                     </select>
@@ -1572,7 +1592,7 @@ export default function ExpenseCalendarPage({
                         onClick={() => handleDeleteDayItem(editingDayItem.id)}
                         className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-sm transition cursor-pointer shadow-xs"
                       >
-                        ลบ
+                        {isThai ? "ลบ" : "Delete"}
                       </button>
                       <button
                         type="button"
@@ -1582,14 +1602,14 @@ export default function ExpenseCalendarPage({
                         }}
                         className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer"
                       >
-                        ยกเลิก
+                        {isThai ? "ยกเลิก" : "Cancel"}
                       </button>
                       <button
                         type="submit"
                         disabled={isSubmitting}
                         className="flex-1 py-2.5 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm cursor-pointer disabled:opacity-50"
                       >
-                        {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
+                        {isSubmitting ? (isThai ? "กำลังบันทึก..." : "Saving...") : (isThai ? "บันทึก" : "Save")}
                       </button>
                     </>
                   ) : (
@@ -1598,11 +1618,7 @@ export default function ExpenseCalendarPage({
                       disabled={isSubmitting}
                       className="w-full py-2.5 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm cursor-pointer shadow-xs disabled:opacity-50 transition active:scale-98"
                     >
-                      {isSubmitting
-                        ? "กำลังบันทึก..."
-                        : dayTab === "EXPENSE"
-                        ? "บันทึกรายจ่าย"
-                        : "บันทึกรายรับ"}
+                      {isSubmitting ? (isThai ? "กำลังบันทึก..." : "Saving...") : dayTab === "EXPENSE" ? (isThai ? "บันทึกรายจ่าย" : "Save Expense") : (isThai ? "บันทึกรายรับ" : "Save Income")}
                     </button>
                   )}
                 </div>
@@ -1642,7 +1658,7 @@ export default function ExpenseCalendarPage({
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                       <span>📅</span>
                       <span>
-                        รายรับ-รายจ่าย{activeMonthTitle}
+                        {isThai ? `รายรับ-รายจ่าย${activeMonthTitle}` : `Income & Expenses ${activeMonthTitle}`}
                       </span>
                     </h3>
                     <button
@@ -1656,21 +1672,21 @@ export default function ExpenseCalendarPage({
                   {/* Top Banner (POS Theme) */}
                   <div className="bg-[#166675] text-white rounded-2xl p-4 flex items-center justify-around text-center mb-4 shadow-2xs shrink-0">
                     <div>
-                      <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายรับ" : "Income"}</span>
                       <span className="text-lg font-black text-white">
                         {activeMonthIncome.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-px h-10 bg-white/20" />
                     <div>
-                      <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายจ่าย" : "Expenses"}</span>
                       <span className="text-lg font-black text-[#ffb8b1]">
                         {activeMonthExpense.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-px h-10 bg-white/20" />
                     <div>
-                      <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
+                      <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "สุทธิ" : "Net"}</span>
                       <span className={`text-lg font-black ${ activeMonthNet >= 0 ? "text-[#99f6e4]" : "text-[#ffb8b1]" }`}>
                         {activeMonthNet > 0
                           ? `+${activeMonthNet.toLocaleString()}`
@@ -1698,7 +1714,7 @@ export default function ExpenseCalendarPage({
                   return (
                     <>
                       <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
-                        <span>รายรับ</span>
+                        <span>{isThai ? "รายรับ" : "Income"}</span>
                         <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm sm:text-base tabular-nums">
                           {totalInc.toLocaleString()}
                         </span>
@@ -1740,7 +1756,7 @@ export default function ExpenseCalendarPage({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-center py-2 text-sm text-slate-400">ยังไม่มีรายรับในเดือนนี้</p>
+                        <p className="text-center py-2 text-sm text-slate-400">{isThai ? "ยังไม่มีรายรับในเดือนนี้" : "No income recorded in this month"}</p>
                       )}
                     </>
                   );
@@ -1761,7 +1777,7 @@ export default function ExpenseCalendarPage({
                   return (
                     <>
                       <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
-                        <span>รายเดือน</span>
+                        <span>{isThai ? "รายเดือน" : "Monthly"}</span>
                         <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
                           {totalMonthlyExp.toLocaleString()}
                         </span>
@@ -1780,7 +1796,7 @@ export default function ExpenseCalendarPage({
                               {item.title}
                             </span>
                             <span className="text-[11px] text-slate-400">
-                              เฉลี่ยวันละ {item.dailyShare.toLocaleString()}
+                              {isThai ? "เฉลี่ยวันละ " : "Daily avg "}{item.dailyShare.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -1797,7 +1813,7 @@ export default function ExpenseCalendarPage({
                         </div>
                       ) : (
                         <p className="text-center py-2 text-sm text-slate-400">
-                          ยังไม่มีรายจ่ายรายเดือน กดปุ่ม + แล้วเลือก "รายเดือน"
+                          {isThai ? 'ยังไม่มีรายจ่ายรายเดือน กดปุ่ม + แล้วเลือก "รายเดือน"' : 'No monthly expenses. Click + and select "Monthly"'}
                         </p>
                       )}
                     </>
@@ -1817,7 +1833,7 @@ export default function ExpenseCalendarPage({
                   return (
                     <>
                       <div className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl mb-1.5">
-                        <span>รายจ่ายทั่วไป</span>
+                        <span>{isThai ? "รายจ่ายทั่วไป" : "General Expenses"}</span>
                         <span className="text-rose-600 dark:text-rose-400 font-extrabold text-sm sm:text-base tabular-nums">
                           {totalDailyExp.toLocaleString()}
                         </span>
@@ -1858,7 +1874,7 @@ export default function ExpenseCalendarPage({
                       </div>
                     ) : (
                       <p className="text-center py-2 text-sm text-slate-400">
-                        ยังไม่มีรายจ่ายทั่วไปในเดือนนี้
+                        {isThai ? "ยังไม่มีรายจ่ายทั่วไปในเดือนนี้" : "No general expenses recorded in this month"}
                       </p>
                     )}
                   </>
@@ -1869,7 +1885,7 @@ export default function ExpenseCalendarPage({
 
             {/* Footer */}
             <div className="pt-3 mt-2 border-t border-pos-border text-center shrink-0">
-              <span className="text-[11px] text-slate-400">แตะที่รายการเพื่อแก้ไข</span>
+              <span className="text-[11px] text-slate-400">{isThai ? "แตะที่รายการเพื่อแก้ไข" : "Tap an item to edit"}</span>
             </div>
           </div>
         </div>
@@ -1887,7 +1903,7 @@ export default function ExpenseCalendarPage({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                  {editItemType === "EXPENSE" ? "แก้ไขรายจ่าย" : "แก้ไขรายรับ"}
+                  {editItemType === "EXPENSE" ? (isThai ? "แก้ไขรายจ่าย" : "Edit Expense") : (isThai ? "แก้ไขรายรับ" : "Edit Income")}
                 </h3>
                 <span className="text-xs text-slate-400 font-medium">
                   {formatThaiDateFromStr(editItemDateStr).shortMonthYear}
@@ -1905,7 +1921,7 @@ export default function ExpenseCalendarPage({
               {/* Title */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  ชื่อรายการ *
+                  {isThai ? "ชื่อรายการ *" : "Item Name *"}
                 </label>
                 <input
                   required
@@ -1918,7 +1934,7 @@ export default function ExpenseCalendarPage({
               {/* Amount */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  จำนวนเงิน *
+                  {isThai ? "จำนวนเงิน *" : "Amount *"}
                 </label>
                 <div className="relative">
                   <input
@@ -1938,12 +1954,12 @@ export default function ExpenseCalendarPage({
               {/* Category */}
               <div className="relative">
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  ประเภท
+                  {isThai ? "ประเภท" : "Category"}
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..."
+                    placeholder={isThai ? "กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..." : "Select or type new category..."}
                     value={editItemCategory}
                     onFocus={() => setIsEditCatDropdownOpen(true)}
                     onChange={(e) => {
@@ -1998,13 +2014,13 @@ export default function ExpenseCalendarPage({
                                 onMouseDown={() => setIsEditCatDropdownOpen(false)}
                                 className="px-4 py-2 text-sm cursor-pointer border-t border-pos-border bg-slate-50 dark:bg-slate-800/80 text-[#166675] dark:text-[#53b9cc] font-semibold"
                               >
-                                + ใช้หมวดหมู่ใหม่: "{editItemCategory.trim()}"
+                                {isThai ? `+ ใช้หมวดหมู่ใหม่: "${editItemCategory.trim()}"` : `+ Use new category: "${editItemCategory.trim()}"`}
                               </div>
                             )}
                         </>
                       ) : (
                         <div className="px-3 py-3 text-sm text-slate-400 text-center">
-                          ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)
+                          {isThai ? "ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)" : "No categories yet (type to create)"}
                         </div>
                       )}
                     </div>
@@ -2025,7 +2041,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      เงินสด
+                      {isThai ? "เงินสด" : "Cash"}
                     </button>
                     <button
                       type="button"
@@ -2036,7 +2052,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      เงินโอน
+                      {isThai ? "เงินโอน" : "Transfer"}
                     </button>
                     <button
                       type="button"
@@ -2047,7 +2063,7 @@ export default function ExpenseCalendarPage({
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      ช่องทางอื่น
+                      {isThai ? "ช่องทางอื่น" : "Other"}
                     </button>
                   </div>
                 </div>
@@ -2061,10 +2077,10 @@ export default function ExpenseCalendarPage({
                     onChange={(e) => setEditItemAccountId(Number(e.target.value))}
                     className="w-full h-10 px-3.5 bg-white dark:bg-slate-800 border border-pos-border rounded-xl text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#166675] font-medium"
                   >
-                    <option value="">-- เลือกบัญชี --</option>
+                    <option value="">{isThai ? "-- เลือกบัญชี --" : "-- Select Account --"}</option>
                     {calendarData?.accounts.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.accountName} (คงเหลือ: {Number(a.balance).toLocaleString()} {currency})
+                        {a.accountName} ({isThai ? "คงเหลือ: " : "Balance: "}{Number(a.balance).toLocaleString()} {currency})
                       </option>
                     ))}
                   </select>
@@ -2079,14 +2095,14 @@ export default function ExpenseCalendarPage({
                   disabled={isSubmitting}
                   className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-sm transition cursor-pointer shadow-xs disabled:opacity-50"
                 >
-                  ลบ
+                  {isThai ? "ลบ" : "Delete"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="flex-1 py-2.5 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm transition cursor-pointer shadow-xs disabled:opacity-50"
                 >
-                  {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
+                  {isSubmitting ? (isThai ? "กำลังบันทึก..." : "Saving...") : (isThai ? "บันทึก" : "Save")}
                 </button>
               </div>
             </form>
@@ -2105,7 +2121,7 @@ export default function ExpenseCalendarPage({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {globalTab === "EXPENSE" ? "บันทึกรายจ่าย" : "บันทึกรายรับ"}
+                {globalTab === "EXPENSE" ? (isThai ? "บันทึกรายจ่าย" : "Record Expense") : (isThai ? "บันทึกรายรับ" : "Record Income")}
               </h3>
               <button
                 onClick={() => setActiveModal("NONE")}
@@ -2126,7 +2142,7 @@ export default function ExpenseCalendarPage({
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                 }`}
               >
-                รายจ่าย
+                {isThai ? "รายจ่าย" : "Expenses"}
               </button>
               <button
                 type="button"
@@ -2137,7 +2153,7 @@ export default function ExpenseCalendarPage({
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                 }`}
               >
-                รายรับ
+                {isThai ? "รายรับ" : "Income"}
               </button>
             </div>
 
@@ -2153,7 +2169,7 @@ export default function ExpenseCalendarPage({
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  รายวัน
+                  {isThai ? "รายวัน" : "Daily"}
                 </button>
                 <button
                   type="button"
@@ -2164,7 +2180,7 @@ export default function ExpenseCalendarPage({
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  รายเดือน
+                  {isThai ? "รายเดือน" : "Monthly"}
                 </button>
               </div>
             )}
@@ -2174,7 +2190,7 @@ export default function ExpenseCalendarPage({
               {globalTab === "EXPENSE" && globalExpenseSubTab === "MONTHLY" ? (
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    เดือนที่บันทึก
+                    {isThai ? "เดือนที่บันทึก" : "Record Month"}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -2182,7 +2198,7 @@ export default function ExpenseCalendarPage({
                       onChange={(e) => setGlobalMonth(Number(e.target.value))}
                       className="h-10 px-3.5 bg-white dark:bg-slate-800 border border-pos-border rounded-xl text-sm font-bold cursor-pointer"
                     >
-                      {THAI_MONTH_NAMES.map((name, i) => (
+                      {monthNames.map((name, i) => (
                         <option key={i + 1} value={i + 1}>
                           {name}
                         </option>
@@ -2195,13 +2211,13 @@ export default function ExpenseCalendarPage({
                     >
                       {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
                         <option key={y} value={y}>
-                          พ.ศ. {y + 543}
+                          {isThai ? `พ.ศ. ${y + 543}` : `${y}`}
                         </option>
                       ))}
                     </select>
                   </div>
                   <p className="text-[11px] text-[#166675] dark:text-[#53b9cc] mt-1.5 font-medium leading-relaxed">
-                    ℹ️ รายการรายเดือนจะถูกนำไปเฉลี่ยเป็นรายจ่ายประจำวันในทุกๆ วันของเดือนนั้น (เช่น 1,600 {currency} ÷ 31 วัน = วันละ 52 {currency})
+                    {isThai ? `ℹ️ รายการรายเดือนจะถูกนำไปเฉลี่ยเป็นรายจ่ายประจำวันในทุกๆ วันของเดือนนั้น (เช่น 1,600 ${currency} ÷ 31 วัน = วันละ 52 ${currency})` : `ℹ️ Monthly items will be averaged across each day of that month (e.g. 1,600 ${currency} ÷ 31 days = 52 ${currency}/day)`}
                   </p>
                 </div>
               ) : (
@@ -2221,16 +2237,16 @@ export default function ExpenseCalendarPage({
               {/* Title */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  ชื่อรายการ *
+                  {isThai ? "ชื่อรายการ *" : "Item Name *"}
                 </label>
                 <input
                   required
                   placeholder={
                     globalTab === "EXPENSE"
                       ? globalExpenseSubTab === "MONTHLY"
-                        ? "เช่น ค่าเช่าร้าน, ค่าอินเทอร์เน็ต..."
-                        : "เช่น ค่าวัตถุดิบ, ค่าอุปกรณ์..."
-                      : "เช่น ขายของหน้าร้าน, ค่าขนม..."
+                        ? (isThai ? "เช่น ค่าเช่าร้าน, ค่าอินเทอร์เน็ต..." : "e.g. Store rent, internet...")
+                        : (isThai ? "เช่น ค่าวัตถุดิบ, ค่าอุปกรณ์..." : "e.g. Raw materials, equipment...")
+                      : (isThai ? "เช่น ขายของหน้าร้าน, ค่าขนม..." : "e.g. Front-store sales, snacks...")
                   }
                   value={globalTitle}
                   onChange={(e) => setGlobalTitle(e.target.value)}
@@ -2241,7 +2257,7 @@ export default function ExpenseCalendarPage({
               {/* Amount */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  จำนวนเงิน *
+                  {isThai ? "จำนวนเงิน *" : "Amount *"}
                 </label>
                 <div className="relative">
                   <input
@@ -2262,12 +2278,12 @@ export default function ExpenseCalendarPage({
               {/* Category */}
               <div className="relative">
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  ประเภท
+                  {isThai ? "ประเภท" : "Category"}
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..."
+                    placeholder={isThai ? "กดเพื่อเลือก หรือพิมพ์หมวดหมู่ใหม่..." : "Select or type new category..."}
                     value={globalCategory}
                     onFocus={() => setIsGlobalCatDropdownOpen(true)}
                     onChange={(e) => {
@@ -2322,13 +2338,13 @@ export default function ExpenseCalendarPage({
                                 onMouseDown={() => setIsGlobalCatDropdownOpen(false)}
                                 className="px-4 py-2 text-sm cursor-pointer border-t border-pos-border bg-slate-50 dark:bg-slate-800/80 text-[#166675] dark:text-[#53b9cc] font-semibold"
                               >
-                                + ใช้หมวดหมู่ใหม่: "{globalCategory.trim()}"
+                                {isThai ? `+ ใช้หมวดหมู่ใหม่: "${globalCategory.trim()}"` : `+ Use new category: "${globalCategory.trim()}"`}
                               </div>
                             )}
                         </>
                       ) : (
                         <div className="px-3 py-3 text-sm text-slate-400 text-center">
-                          ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)
+                          {isThai ? "ยังไม่มีหมวดหมู่ (พิมพ์เพื่อสร้างใหม่ได้เลย)" : "No categories yet (type to create)"}
                         </div>
                       )}
                     </div>
@@ -2348,7 +2364,7 @@ export default function ExpenseCalendarPage({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    เงินสด
+                    {isThai ? "เงินสด" : "Cash"}
                   </button>
                   <button
                     type="button"
@@ -2359,7 +2375,7 @@ export default function ExpenseCalendarPage({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    เงินโอน
+                    {isThai ? "เงินโอน" : "Transfer"}
                   </button>
                   <button
                     type="button"
@@ -2370,7 +2386,7 @@ export default function ExpenseCalendarPage({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    ช่องทางอื่น
+                    {isThai ? "ช่องทางอื่น" : "Other"}
                   </button>
                 </div>
               </div>
@@ -2383,10 +2399,10 @@ export default function ExpenseCalendarPage({
                     onChange={(e) => setGlobalAccountId(Number(e.target.value))}
                     className="w-full h-10 px-3.5 bg-white dark:bg-slate-800 border border-pos-border rounded-xl text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#166675]"
                   >
-                    <option value="">-- เลือกบัญชี --</option>
+                    <option value="">{isThai ? "-- เลือกบัญชี --" : "-- Select Account --"}</option>
                     {calendarData?.accounts.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.accountName} (คงเหลือ: {Number(a.balance).toLocaleString()} {currency})
+                        {a.accountName} ({isThai ? "คงเหลือ: " : "Balance: "}{Number(a.balance).toLocaleString()} {currency})
                       </option>
                     ))}
                   </select>
@@ -2399,13 +2415,11 @@ export default function ExpenseCalendarPage({
                 disabled={isSubmitting}
                 className="w-full py-3 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm cursor-pointer shadow-xs disabled:opacity-50 transition active:scale-98 mt-2"
               >
-                {isSubmitting
-                  ? "กำลังบันทึก..."
-                  : globalTab === "EXPENSE"
+                {isSubmitting ? (isThai ? "กำลังบันทึก..." : "Saving...") : globalTab === "EXPENSE"
                   ? globalExpenseSubTab === "MONTHLY"
-                    ? "บันทึกรายจ่ายรายเดือน"
-                    : "บันทึกรายจ่าย"
-                  : "บันทึกรายรับ"}
+                    ? (isThai ? "บันทึกรายจ่ายรายเดือน" : "Record Monthly Expense")
+                    : (isThai ? "บันทึกรายจ่าย" : "Record Expense")
+                  : (isThai ? "บันทึกรายรับ" : "Record Income")}
               </button>
 
               {/* Copy Day Button */}
@@ -2415,7 +2429,7 @@ export default function ExpenseCalendarPage({
                   onClick={() => setActiveModal("COPY_DAY")}
                   className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer transition active:scale-98"
                 >
-                  คัดลอกจากวันอื่น
+                  {isThai ? "คัดลอกจากวันอื่น" : "Copy from another day"}
                 </button>
               )}
             </form>
@@ -2437,7 +2451,7 @@ export default function ExpenseCalendarPage({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                เลือกวันที่
+                {isThai ? "เลือกวันที่" : "Select Date"}
               </h3>
               <button
                 onClick={() => setActiveModal("GLOBAL_ADD")}
@@ -2457,7 +2471,7 @@ export default function ExpenseCalendarPage({
                 &lt;
               </button>
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                {THAI_MONTH_NAMES[pickerMonth - 1]} {pickerYear + 543}
+                {monthNames[pickerMonth - 1]} {isThai ? pickerYear + 543 : pickerYear}
               </span>
               <button
                 type="button"
@@ -2470,13 +2484,13 @@ export default function ExpenseCalendarPage({
 
             {/* Weekdays Row */}
             <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold mb-3 select-none">
-              <div className="text-rose-500">อา</div>
-              <div className="text-slate-500">จ</div>
-              <div className="text-slate-500">อ</div>
-              <div className="text-slate-500">พ</div>
-              <div className="text-slate-500">พฤ</div>
-              <div className="text-slate-500">ศ</div>
-              <div className="text-slate-500">ส</div>
+              <div className="text-rose-500">{isThai ? "อา" : "Sun"}</div>
+              <div className="text-slate-500">{isThai ? "จ" : "Mon"}</div>
+              <div className="text-slate-500">{isThai ? "อ" : "Tue"}</div>
+              <div className="text-slate-500">{isThai ? "พ" : "Wed"}</div>
+              <div className="text-slate-500">{isThai ? "พฤ" : "Thu"}</div>
+              <div className="text-slate-500">{isThai ? "ศ" : "Fri"}</div>
+              <div className="text-slate-500">{isThai ? "ส" : "Sat"}</div>
             </div>
 
             {/* Date Grid */}
@@ -2553,7 +2567,7 @@ export default function ExpenseCalendarPage({
               onClick={handlePickerSelectToday}
               className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer transition active:scale-98"
             >
-              วันนี้
+              {isThai ? "วันนี้" : "Today"}
             </button>
           </div>
         </div>
@@ -2571,7 +2585,7 @@ export default function ExpenseCalendarPage({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border shrink-0">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>📅</span>
-                <span>รายรับ-รายจ่ายปี พ.ศ. {calendarData?.thisYearModalData?.thaiYear ?? (now.getFullYear() + 543)}</span>
+                <span>{isThai ? `รายรับ-รายจ่ายปี พ.ศ. ${calendarData?.thisYearModalData?.thaiYear ?? (now.getFullYear() + 543)}` : `Income & Expenses ${calendarData?.thisYearModalData?.year ?? now.getFullYear()}`}</span>
               </h3>
               <button
                 onClick={() => setActiveModal("NONE")}
@@ -2584,21 +2598,21 @@ export default function ExpenseCalendarPage({
             {/* Top Banner (POS Theme) */}
             <div className="bg-[#166675] text-white rounded-2xl p-4 flex items-center justify-around text-center mb-4 shadow-2xs shrink-0">
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายรับ</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายรับ" : "Income"}</span>
                 <span className="text-lg font-black text-white">
                   {(calendarData?.thisYearModalData?.income ?? calendarData?.thisYearIncome ?? calendarData?.yearIncome ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">รายจ่าย</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "รายจ่าย" : "Expenses"}</span>
                 <span className="text-lg font-black text-[#ffb8b1]">
                   {(calendarData?.thisYearModalData?.expense ?? calendarData?.thisYearExpense ?? calendarData?.yearExpense ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
-                <span className="text-xs text-white/80 block mb-0.5 font-medium">สุทธิ</span>
+                <span className="text-xs text-white/80 block mb-0.5 font-medium">{isThai ? "สุทธิ" : "Net"}</span>
                 {(() => {
                   const netVal = calendarData?.thisYearModalData?.net ?? calendarData?.thisYearNet ?? calendarData?.yearNet ?? 0;
                   return (
@@ -2681,7 +2695,7 @@ export default function ExpenseCalendarPage({
             {/* Footer */}
             <div className="pt-3 mt-2 border-t border-pos-border text-center shrink-0">
               <span className="text-[11px] text-slate-400">
-                ยอดต่อเดือน = รายวันของเดือนนั้น + รายเดือนที่มีผล แตะเดือนเพื่อเปิดปฏิทิน
+                {isThai ? "ยอดต่อเดือน = รายวันของเดือนนั้น + รายเดือนที่มีผล แตะเดือนเพื่อเปิดปฏิทิน" : "Monthly total = daily expenses + effective monthly expenses. Tap month to open calendar."}
               </span>
             </div>
           </div>
@@ -2700,7 +2714,7 @@ export default function ExpenseCalendarPage({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-pos-border">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>⎘</span>
-                <span>คัดลอกจากวันอื่น</span>
+                <span>{isThai ? "คัดลอกจากวันอื่น" : "Copy from other day"}</span>
               </h3>
               <button
                 onClick={() => setActiveModal("DAY_VIEW")}
@@ -2711,7 +2725,7 @@ export default function ExpenseCalendarPage({
             </div>
 
             <p className="text-sm text-slate-500 mb-4">
-              เลือกวันที่ต้องการคัดลอกรายจ่ายมายังวันที่ <strong>{selectedDayThaiDate}</strong>
+              {isThai ? <>เลือกวันที่ต้องการคัดลอกรายจ่ายมายังวันที่ <strong>{selectedDayThaiDate}</strong></> : <>Select date to copy expenses from to <strong>{selectedDayThaiDate}</strong></>}
             </p>
 
             <div className="space-y-2.5 max-h-[45vh] overflow-y-auto pr-2 mb-5 custom-scroll">
@@ -2735,7 +2749,7 @@ export default function ExpenseCalendarPage({
                         {d.thaiDate}
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-[11px] text-slate-600 dark:text-slate-300 font-bold">
-                        {d.itemCount} รายการ
+                        {d.itemCount} {isThai ? "รายการ" : "items"}
                       </span>
                     </div>
                     <span className="font-bold text-rose-600 text-sm flex items-center gap-1">
@@ -2746,7 +2760,7 @@ export default function ExpenseCalendarPage({
               })}
               {previousDaysWithExpenses.length === 0 && (
                 <p className="text-center py-6 text-sm text-slate-400">
-                  ไม่พบประวัติรายจ่ายในวันก่อนหน้าสำหรับคัดลอก
+                  {isThai ? "ไม่พบประวัติรายจ่ายในวันก่อนหน้าสำหรับคัดลอก" : "No expense history found in previous days to copy"}
                 </p>
               )}
             </div>
@@ -2757,7 +2771,7 @@ export default function ExpenseCalendarPage({
                 onClick={() => setActiveModal("DAY_VIEW")}
                 className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm cursor-pointer"
               >
-                ย้อนกลับ
+                {isThai ? "ย้อนกลับ" : "Back"}
               </button>
               <button
                 type="button"
@@ -2765,9 +2779,7 @@ export default function ExpenseCalendarPage({
                 disabled={isSubmitting || !selectedCopyDate}
                 className="flex-1 py-3 bg-[#166675] hover:bg-[#125a67] text-white rounded-xl font-bold text-sm transition cursor-pointer disabled:opacity-40"
               >
-                {isSubmitting
-                  ? "กำลังคัดลอก..."
-                  : `คัดลอก ${copyItemCount} รายการ`}
+                {isSubmitting ? (isThai ? "กำลังคัดลอก..." : "Copying...") : (isThai ? `คัดลอก ${copyItemCount} รายการ` : `Copy ${copyItemCount} items`)}
               </button>
             </div>
           </div>

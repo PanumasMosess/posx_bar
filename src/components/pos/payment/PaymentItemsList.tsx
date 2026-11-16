@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { PaymentItemsListProps } from "@/lib/interface";
-import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; // 🌟 1. นำเข้า useOrgSettings
+import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function PaymentItemsList({
   items,
@@ -11,8 +12,8 @@ export default function PaymentItemsList({
   netTotal,
   renderOptionsText,
 }: PaymentItemsListProps) {
-  // 🌟 2. ดึงค่า settings และ formatCurrency จาก OrganizationSettingsContext
-  const { settings, formatCurrency } = useOrgSettings();
+  const { t } = useTranslation();
+  const { settings } = useOrgSettings();
   const currencyCode = settings?.currencyCode || "LAK";
 
   // 🌟 ฟังก์ชันดึง ID ตัวเลือกเพื่อใช้จัดกลุ่ม
@@ -59,19 +60,16 @@ export default function PaymentItemsList({
       const optionKey = getNormalizedOptionKey(
         item.options || item.selectedOptions,
       );
-      const uniqueKey = `${productId}_${optionKey}`;
+      const groupKey = `${productId}__${optionKey}`;
 
-      const qty = Number(item.quantity || 1);
-      const price = Number(item.priceAtTime || item.product?.price || 0);
-
-      if (itemMap.has(uniqueKey)) {
-        const existing = itemMap.get(uniqueKey);
-        existing.quantity += qty;
+      if (itemMap.has(groupKey)) {
+        const existing = itemMap.get(groupKey);
+        existing.quantity =
+          (Number(existing.quantity) || 1) + (Number(item.quantity) || 1);
       } else {
-        itemMap.set(uniqueKey, {
+        itemMap.set(groupKey, {
           ...item,
-          quantity: qty,
-          priceAtTime: price,
+          quantity: Number(item.quantity) || 1,
         });
       }
     });
@@ -79,42 +77,42 @@ export default function PaymentItemsList({
     return Array.from(itemMap.values());
   };
 
-  const displayItems = aggregateItems(items);
+  const aggregatedList = aggregateItems(items);
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0">
-      {/* 🌟 รายการสินค้า (เลื่อนดูได้ สวยงาม แสดงรูปภาพ พร้อม Option ตามธีม POS) */}
-      <div className="p-3 overflow-y-auto custom-scroll space-y-2.5 flex-1 bg-pos-bg/40 max-h-[340px] sm:max-h-[380px]">
-        {displayItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-pos-text/40">
-            <p className="text-xs font-medium">ไม่มีรายการสินค้า</p>
+    <div className="flex-1 flex flex-col min-h-0 bg-pos-surface">
+      {/* 🌟 รายการสินค้าที่รวมแล้ว Scrollable */}
+      <div className="flex-1 overflow-y-auto custom-scroll p-3 sm:p-4 space-y-2.5 min-h-0">
+        {aggregatedList.length === 0 ? (
+          <div className="text-center py-12 text-pos-text/40 text-xs">
+            {t("cart.empty_cart")}
           </div>
         ) : (
-          displayItems.map((subItem: any, idx: number) => {
+          aggregatedList.map((item, index) => {
             const subTitle =
-              subItem.product?.name ||
-              subItem.product?.title ||
-              subItem.name ||
-              "สินค้า";
-            const subQty = subItem.quantity || 1;
-            const subPrice = subItem.priceAtTime || subItem.product?.price || 0;
+              item.product?.name ||
+              item.product?.title ||
+              item.name ||
+              item.title ||
+              t("pos.items_unit");
             const subImage =
-              subItem.product?.image ||
-              subItem.product?.img ||
-              subItem.image ||
-              "";
+              item.product?.image || item.product?.img || item.image || "";
+            const subPrice = Number(
+              item.priceAtTime || item.product?.price || item.price || 0,
+            );
+            const subQty = Number(item.quantity || 1);
 
             const optionsDisplay = renderOptionsText(
-              subItem.options || subItem.selectedOptions,
+              item.options || item.selectedOptions,
             );
 
             return (
               <div
-                key={idx}
-                className="p-2.5 rounded-2xl bg-pos-card border border-pos-border/80 flex items-center gap-3 shadow-2xs hover:border-pos-border transition-all shrink-0"
+                key={item.id ? `item-${item.id}` : `agg-${index}`}
+                className="flex items-center gap-3 p-2.5 rounded-2xl bg-pos-bg/80 hover:bg-pos-bg border border-pos-border/70 hover:border-pos-border transition-all duration-200"
               >
-                {/* 📸 รูปภาพสินค้า */}
-                <div className="relative w-12 h-12 rounded-xl bg-pos-surface border border-pos-border overflow-hidden shrink-0 flex items-center justify-center shadow-inner">
+                {/* 🌟 รูปภาพสินค้าขอบมนสวยงาม */}
+                <div className="relative w-12 h-12 rounded-xl bg-pos-surface border border-pos-border/50 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
                   {subImage ? (
                     <Image
                       src={subImage}
@@ -135,7 +133,7 @@ export default function PaymentItemsList({
                     {subTitle}
                   </h5>
 
-                  {/* 🌟 Option Badge โทนสีตามธีม POS */}
+                  {/* 🌟 Option Badge */}
                   {optionsDisplay && (
                     <div className="mt-0.5">
                       <span className="inline-block text-[10px] font-medium text-pos-text/70 bg-pos-surface border border-pos-border px-2 py-0.5 rounded-md truncate max-w-full">
@@ -159,7 +157,7 @@ export default function PaymentItemsList({
                     {(subPrice * subQty).toLocaleString()}
                   </span>
                   <span className="text-[9px] font-bold text-pos-text/60 bg-pos-surface px-1.5 py-0.2 rounded-full border border-pos-border">
-                    x{subQty} ชิ้น
+                    x{subQty} {t("pos.piece_unit")}
                   </span>
                 </div>
               </div>
@@ -172,7 +170,7 @@ export default function PaymentItemsList({
       <div className="p-3.5 bg-pos-surface border-t border-pos-border/80 space-y-2 shrink-0 mt-auto shadow-lg">
         {discountAmount > 0 && (
           <div className="flex justify-between items-center text-xs text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/30 p-2 rounded-xl border border-rose-200/50 dark:border-rose-900/30">
-            <span>ส่วนลดสมาชิก ({discountPercent}%):</span>
+            <span>{t("cart.discount")} ({discountPercent}%):</span>
             <span className="font-mono">
               -{discountAmount.toLocaleString()} {currencyCode}
             </span>
@@ -181,10 +179,10 @@ export default function PaymentItemsList({
         <div className="flex justify-between items-center">
           <div>
             <span className="text-xs font-bold text-pos-text/70 block">
-              ยอดรวมสุทธิ
+              {t("cart.total")}
             </span>
             <span className="text-[10px] text-pos-text/40 font-medium">
-              รวมภาษีมูลค่าเพิ่มแล้ว
+              {t("cart.vat")}
             </span>
           </div>
           <div className="text-right">

@@ -1,10 +1,12 @@
-"use client"; // 🌟 ต้องเติมคำนี้เพราะมีการเรียกใช้ Hook (Context)
+"use client";
 
 import { ReceiptSlipProps } from "@/lib/types";
 import { renderOptionsText } from "./renderOptionsText";
 import { useOrgSettings } from "@/components/providers/OrganizationSettingsContext"; 
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
+  const { t, isEnglish } = useTranslation();
   const { settings } = useOrgSettings();
   const currency = settings?.currencyCode || "LAK";
 
@@ -19,30 +21,30 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
             POSX
           </h1>
           <p className="text-slate-500 text-xs font-semibold">
-            ใบเสร็จรับเงินออนไลน์ / Receipt
+            {t("receipt.title")}
           </p>
         </div>
 
         <div className="space-y-3 border-b border-dashed border-slate-300 pb-4 mb-4">
           <div className="flex justify-between text-xs">
-            <span className="text-slate-500">หมายเลขบิล</span>
+            <span className="text-slate-500">{t("receipt.bill_no")}</span>
             <span className="font-bold text-slate-800">
               {order.orderNumber}
             </span>
           </div>
 
           <div className="flex justify-between text-xs">
-            <span className="text-slate-500">โต๊ะ/ลูกค้า</span>
+            <span className="text-slate-500">{t("receipt.table_customer")}</span>
             <span className="font-bold text-slate-800">
-              {order.qrcode?.tableName || order.customerName || "ทั่วไป"}
+              {order.qrcode?.tableName || order.customerName || t("receipt.general")}
             </span>
           </div>
 
           <div className="flex justify-between text-xs">
-            <span className="text-slate-500">วันที่ทำรายการ</span>
+            <span className="text-slate-500">{t("receipt.date")}</span>
             <span className="font-bold text-slate-800 text-right">
-              {new Date(order.createdAt).toLocaleDateString("th-TH")} <br />
-              {new Date(order.createdAt).toLocaleTimeString("th-TH", {
+              {new Date(order.createdAt).toLocaleDateString(isEnglish ? "en-US" : "th-TH")} <br />
+              {new Date(order.createdAt).toLocaleTimeString(isEnglish ? "en-US" : "th-TH", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -52,7 +54,7 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
 
         <div className="pt-2 mb-4">
           <h3 className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-wider">
-            รายการสินค้า
+            {t("receipt.items")}
           </h3>
           <div className="space-y-3">
             {order.items.map((item: any) => {
@@ -84,7 +86,7 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
 
         <div className="mt-4 pt-4 border-t border-dashed border-slate-300 space-y-2 text-xs">
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">ยอดรวม</span>
+            <span className="text-slate-500">{t("receipt.subtotal")}</span>
             <span className="font-bold text-slate-800">
               {order.totalAmount.toLocaleString()} {currency}{" "}
             </span>
@@ -92,7 +94,7 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
 
           {order.discount > 0 && (
             <div className="flex justify-between items-center text-slate-600">
-              <span>ส่วนลด</span>
+              <span>{t("receipt.discount")}</span>
               <span>
                 -{order.discount.toLocaleString()} {currency}{" "}
               </span>
@@ -100,29 +102,27 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
           )}
 
           <div className="flex justify-between items-center font-black text-[15px] text-slate-900 pt-2">
-            <span>ยอดชำระสุทธิ</span>
+            <span>{t("receipt.net_total")}</span>
             <span>
               {order.netAmount.toLocaleString()} {currency}
             </span>{" "}
-            {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
           </div>
         </div>
 
         {payment && (
           <div className="mt-4 pt-4 border-t border-dashed border-slate-300 space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-600">
-              <span>รับชำระ ({payment.method})</span>
+              <span>{t("receipt.paid")} ({payment.method})</span>
               <span>
                 {(payment.receivedAmount || payment.amount).toLocaleString()}{" "}
-                {currency} {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
+                {currency}
               </span>
             </div>
             <div className="flex justify-between font-bold text-slate-900">
-              <span>เงินทอน</span>
+              <span>{t("receipt.change")}</span>
               <span>
                 {(payment.changeAmount || 0).toLocaleString()} {currency}
               </span>{" "}
-              {/* 🌟 เปลี่ยนสกุลเงินตรงนี้ */}
             </div>
           </div>
         )}
@@ -144,10 +144,10 @@ export default function ReceiptSlip({ order, payment }: ReceiptSlipProps) {
             </svg>
           </div>
           <p className="text-xs text-slate-400 font-bold">
-            ชำระเงินเรียบร้อยแล้ว
+            {t("receipt.payment_success")}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
-            ขอบคุณที่ใช้บริการครับ/ค่ะ
+            {t("receipt.thank_you")}
           </p>
         </div>
       </div>

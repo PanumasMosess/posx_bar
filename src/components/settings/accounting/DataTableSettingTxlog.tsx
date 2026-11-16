@@ -1,56 +1,57 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { DataTableSettingTxlogProps } from "@/lib/types";
 
 type DataTableProps = DataTableSettingTxlogProps;
 
-// แปลง Enum ประเภทให้เป็นภาษาไทย และสี matching theme
-const getTypeBadge = (type: string) => {
+// แปลง Enum ประเภทให้เป็นภาษาไทย/อังกฤษ และสี matching theme
+const getTypeBadge = (type: string, isThai: boolean = true) => {
   switch (type) {
     case "INCOME":
       return {
-        label: "เงินเข้า",
+        label: isThai ? "เงินเข้า" : "Income In",
         color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
       };
     case "EXPENSE":
       return {
-        label: "เงินออก",
+        label: isThai ? "เงินออก" : "Expense Out",
         color: "bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
       };
     case "SALES":
       return {
-        label: "ขาย",
+        label: isThai ? "ขาย" : "Sales",
         color: "bg-sky-50 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
       };
     case "ADJUSTMENT_UP":
       return {
-        label: "เติมเงินเข้า",
+        label: isThai ? "เติมเงินเข้า" : "Deposit",
         color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
       };
     case "ADJUSTMENT_DOWN":
       return {
-        label: "เบิกเงินออก",
+        label: isThai ? "เบิกเงินออก" : "Withdrawal",
         color: "bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
       };
     case "OVERRIDE_BALANCE":
       return {
-        label: "ปรับยอดคงเหลือ",
+        label: isThai ? "ปรับยอดคงเหลือ" : "Override Balance",
         color: "bg-sky-50 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
       };
     case "TRANSFER_IN":
       return {
-        label: "รับโอนเข้า",
+        label: isThai ? "รับโอนเข้า" : "Transfer In",
         color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
       };
     case "TRANSFER_OUT":
       return {
-        label: "โอนเงินออก",
+        label: isThai ? "โอนเงินออก" : "Transfer Out",
         color: "bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
       };
     case "AR_PAYMENT":
       return {
-        label: "รับชำระหนี้",
+        label: isThai ? "รับชำระหนี้" : "AR Payment",
         color: "bg-teal-50 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300 border border-teal-200 dark:border-teal-800",
       };
     default:
@@ -66,6 +67,7 @@ export default function DataTableSettingTxlog({
   title,
   subtitle,
 }: DataTableProps) {
+  const { isThai } = useTranslation();
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [pageSize, setPageSize] = useState(10);
@@ -108,10 +110,10 @@ export default function DataTableSettingTxlog({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-3">
         <div className="flex flex-col">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">
-            {title || "ประวัติจัดการเงินในบัญชี"}
+            {title || (isThai ? "ประวัติจัดการเงินในบัญชี" : "Account Transaction History")}
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {subtitle || "ประวัติการปรับเพิ่ม ลด และโอนเงินจากเมนูตั้งค่า"}
+            {subtitle || (isThai ? "ประวัติการปรับเพิ่ม ลด และโอนเงินจากเมนูตั้งค่า" : "History of adjustments, deposits, withdrawals, and transfers from settings")}
           </p>
         </div>
 
@@ -121,7 +123,7 @@ export default function DataTableSettingTxlog({
           </svg>
           <input
             type="text"
-            placeholder="ค้นหารายการ, ชื่อบัญชี..."
+            placeholder={isThai ? "ค้นหารายการ, ชื่อบัญชี..." : "Search transactions, accounts..."}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -142,34 +144,34 @@ export default function DataTableSettingTxlog({
                 className="py-3 px-3 cursor-pointer hover:text-slate-800 text-center whitespace-nowrap"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <span>วันที่ / เวลา</span>
+                  <span>{isThai ? "วันที่ / เวลา" : "Date / Time"}</span>
                   <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
                   </svg>
                 </div>
               </th>
-              <th className="py-3 px-3 font-semibold whitespace-nowrap">ชื่อบัญชี</th>
-              <th className="py-3 px-3 font-semibold whitespace-nowrap">รายการ</th>
-              <th className="py-3 px-3 text-center font-semibold whitespace-nowrap">ประเภท</th>
-              <th className="py-3 px-3 text-right font-semibold whitespace-nowrap">จำนวนเงิน</th>
+              <th className="py-3 px-3 font-semibold whitespace-nowrap">{isThai ? "ชื่อบัญชี" : "Account Name"}</th>
+              <th className="py-3 px-3 font-semibold whitespace-nowrap">{isThai ? "รายการ" : "Transaction"}</th>
+              <th className="py-3 px-3 text-center font-semibold whitespace-nowrap">{isThai ? "ประเภท" : "Type"}</th>
+              <th className="py-3 px-3 text-right font-semibold whitespace-nowrap">{isThai ? "จำนวนเงิน" : "Amount"}</th>
               <th className="py-3 px-3 text-right pr-4 font-semibold text-slate-400 whitespace-nowrap">
-                คงเหลือหลังทำรายการ
+                {isThai ? "คงเหลือหลังทำรายการ" : "Balance After Transaction"}
               </th>
-              <th className="py-3 px-3 text-center font-semibold whitespace-nowrap">ผู้ทำรายการ</th>
+              <th className="py-3 px-3 text-center font-semibold whitespace-nowrap">{isThai ? "ผู้ทำรายการ" : "Performed By"}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:border-slate-800">
             {paginatedData.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
-                  ไม่พบประวัติการทำรายการ
+                  {isThai ? "ไม่พบประวัติการทำรายการ" : "No transaction history found"}
                 </td>
               </tr>
             ) : (
               paginatedData.map((log) => {
                 const dateVal = log.date || log.createdAt;
                 const formattedDate = dateVal
-                  ? new Date(dateVal).toLocaleString("th-TH", {
+                  ? new Date(dateVal).toLocaleString(isThai ? "th-TH" : "en-US", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
@@ -178,7 +180,7 @@ export default function DataTableSettingTxlog({
                     })
                   : "-";
 
-                const badge = getTypeBadge(log.type);
+                const badge = getTypeBadge(log.type, isThai);
                 const rawAmount = parseFloat(String(log.amount)) || 0;
                 const isNegative =
                   log.type === "ADJUSTMENT_DOWN" ||

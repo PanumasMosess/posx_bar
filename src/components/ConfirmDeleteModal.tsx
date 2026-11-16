@@ -1,6 +1,7 @@
 "use client";
 
 import { ConfirmDeleteModalProps } from "@/lib/interface";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function ConfirmDeleteModal({
   isOpen,
@@ -9,9 +10,12 @@ export default function ConfirmDeleteModal({
   onConfirm,
   onClose,
   isPending = false,
-  confirmText = "ยืนยันลบข้อมูล",
+  confirmText,
 }: ConfirmDeleteModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
+
+  const resolvedConfirmText = confirmText || t("common.delete");
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -46,7 +50,7 @@ export default function ConfirmDeleteModal({
               disabled={isPending}
               className="flex-1 py-3 bg-pos-bg text-pos-text rounded-2xl font-bold hover:bg-pos-hover border border-pos-border transition-colors disabled:opacity-50"
             >
-              ยกเลิก
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -75,10 +79,10 @@ export default function ConfirmDeleteModal({
                       className="opacity-75"
                     ></path>
                   </svg>
-                  กำลังดำเนินการ...
+                  {t("common.saving")}
                 </>
               ) : (
-                confirmText
+                resolvedConfirmText
               )}
             </button>
           </div>

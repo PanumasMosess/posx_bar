@@ -2,7 +2,7 @@ import InventoryClient from "@/components/inventory/InventoryClient";
 import prisma from "@/lib/prisma";
 
 export const metadata = {
-  title: "คลังสินค้า | ระบบ POS",
+  title: "Inventory | POS System",
 };
 
 export default async function InventoryPage({

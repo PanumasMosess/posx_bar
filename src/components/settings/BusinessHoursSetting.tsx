@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { updateBusinessHoursAction, getShopProfileSettings } from '@/lib/actions/actionsSettings';
 import { useEmployee } from '@/components/providers/EmployeeContext';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 function ToggleSwitch({
   checked,
@@ -42,9 +43,12 @@ interface BusinessHoursSettingProps {
 
 export default function BusinessHoursSetting({
   organizationId: propOrgId,
-  currentHoursText = 'ตัดยอดตามเที่ยงคืน',
+  currentHoursText,
   onUpdateHours,
 }: BusinessHoursSettingProps) {
+  const { t, isThai } = useTranslation();
+  const defaultHoursText = t('settings.business_hours_default');
+  const activeHoursText = currentHoursText || defaultHoursText;
   const { organizationId: contextOrgId } = useEmployee();
   const orgId = propOrgId || contextOrgId || 0;
 
@@ -58,58 +62,62 @@ export default function BusinessHoursSetting({
   const [tempHour, setTempHour] = useState('08');
   const [tempMinute, setTempMinute] = useState('00');
 
-  // Toast Notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const hoursList = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-  const minutesList = ['00', '15', '30', '45'];
+  const hoursList = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const minutesList = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
-  // ดึงข้อมูลเวลาทำการจาก DB เมื่อเปิดหน้า
   useEffect(() => {
-    const fetchSettings = async () => {
-      if (!orgId) {
-        setIsLoading(false);
-        return;
-      }
+    if (!orgId) return;
 
+    const fetchCurrentHours = async () => {
       try {
+        setIsLoading(true);
         const data = await getShopProfileSettings(orgId);
         if (data) {
           setOpenTime(data.openTime || '');
           setCloseTime(data.closeTime || '');
-          setIsAutoModeEnabled(data.isManualOpenClose || false);
+          setIsAutoModeEnabled(Boolean(data.isManualOpenClose));
         }
       } catch (error) {
-        console.error('Error fetching business hours settings:', error);
+        console.error('Failed to load business hours:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchSettings();
+    fetchCurrentHours();
   }, [orgId]);
 
-  const saveToDatabase = async (newOpen: string | null, newClose: string | null, newMode: boolean) => {
+  const saveToDatabase = async (open: string | null, close: string | null, isManual: boolean) => {
     if (!orgId) {
-      showToast('ไม่พบข้อมูลองค์กร กรุณาลองใหม่อีกครั้ง', 'error');
+      showToast(isThai ? 'ไม่พบข้อมูลร้านค้า' : 'Store not found', 'error');
       return false;
     }
+
     setIsSaving(true);
     try {
-      await updateBusinessHoursAction(orgId, {
-        openTime: newOpen || null,
-        closeTime: newClose || null,
-        isManualOpenClose: newMode,
+      const res = await updateBusinessHoursAction(orgId, {
+        openTime: open || null,
+        closeTime: close || null,
+        isManualOpenClose: isManual,
       });
-      showToast('บันทึกเวลาทำการสำเร็จ', 'success');
-      return true;
+
+      if (res && (res as any).id) {
+        showToast(isThai ? 'บันทึกเวลาทำการเรียบร้อย' : 'Business hours saved successfully', 'success');
+        return true;
+      } else {
+        showToast(isThai ? 'บันทึกข้อมูลไม่สำเร็จ' : 'Failed to save', 'error');
+        return false;
+      }
     } catch (error) {
-      console.error('Failed to update business hours:', error);
-      showToast('เกิดข้อผิดพลาดในการบันทึกเวลาทำการ', 'error');
+      console.error('Save business hours error:', error);
+      showToast(isThai ? 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' : 'An error occurred while saving', 'error');
       return false;
     } finally {
       setIsSaving(false);
@@ -117,31 +125,31 @@ export default function BusinessHoursSetting({
   };
 
   const handleOpenPicker = (type: 'open' | 'close') => {
-    setActivePicker(type);
-    const targetVal = type === 'open' ? openTime : closeTime;
-    if (targetVal && targetVal.includes(':')) {
-      const [h, m] = targetVal.split(':');
-      setTempHour(h || '08');
-      setTempMinute(m || '00');
+    const currentVal = type === 'open' ? openTime : closeTime;
+    if (currentVal && currentVal.includes(':')) {
+      const [h, m] = currentVal.split(':');
+      setTempHour(h);
+      setTempMinute(m);
     } else {
       setTempHour(type === 'open' ? '08' : '22');
-      setTempMinute(type === 'open' ? '00' : '30');
+      setTempMinute('00');
     }
+    setActivePicker(type);
   };
 
   const handleConfirmPicker = async () => {
-    const formatted = `${tempHour}:${tempMinute}`;
+    const newTime = `${tempHour}:${tempMinute}`;
     let nextOpen = openTime;
     let nextClose = closeTime;
 
     if (activePicker === 'open') {
-      nextOpen = formatted;
-    } else if (activePicker === 'close') {
-      nextClose = formatted;
+      nextOpen = newTime;
+      setOpenTime(newTime);
+    } else {
+      nextClose = newTime;
+      setCloseTime(newTime);
     }
 
-    setOpenTime(nextOpen);
-    setCloseTime(nextClose);
     setActivePicker(null);
 
     const success = await saveToDatabase(nextOpen, nextClose, isAutoModeEnabled);
@@ -149,7 +157,7 @@ export default function BusinessHoursSetting({
       if (nextOpen && nextClose) {
         onUpdateHours(`${nextOpen} - ${nextClose}`);
       } else {
-        onUpdateHours('ตัดยอดตามเที่ยงคืน');
+        onUpdateHours(defaultHoursText);
       }
     }
   };
@@ -166,10 +174,9 @@ export default function BusinessHoursSetting({
     const success = await saveToDatabase(null, null, false);
     if (success) {
       if (onUpdateHours) {
-        onUpdateHours('ตัดยอดตามเที่ยงคืน');
+        onUpdateHours(defaultHoursText);
       }
     } else {
-      // คืนค่าเดิมกรณีบันทึกไม่สำเร็จ
       setOpenTime(previousOpen);
       setCloseTime(previousClose);
       setIsAutoModeEnabled(previousMode);
@@ -183,7 +190,7 @@ export default function BusinessHoursSetting({
       if (openTime && closeTime) {
         onUpdateHours(`${openTime} - ${closeTime}`);
       } else {
-        onUpdateHours('ตัดยอดตามเที่ยงคืน');
+        onUpdateHours(defaultHoursText);
       }
     } else if (!success) {
       setIsAutoModeEnabled(!enabled);
@@ -193,7 +200,7 @@ export default function BusinessHoursSetting({
   if (isLoading) {
     return (
       <div className="w-full py-10 text-center text-slate-400 dark:text-slate-500 bg-pos-bg rounded-2xl border border-dashed border-pos-border">
-        <p className="text-xs font-medium animate-pulse">กำลังโหลดข้อมูลเวลาเปิด-ปิดร้าน...</p>
+        <p className="text-xs font-medium animate-pulse">{t("common.loading")}</p>
       </div>
     );
   }
@@ -222,7 +229,7 @@ export default function BusinessHoursSetting({
           className="w-full px-4 py-3 rounded-2xl bg-pos-bg border border-pos-border shadow-2xs transition cursor-pointer hover:border-sky-500 group flex flex-col justify-center"
         >
           <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-sky-500 transition">
-            ร้านเปิด
+            {t("settings.open_time")}
           </span>
           <p className="text-sm font-bold text-pos-text mt-0.5">
             {openTime || <span className="text-slate-400 font-normal">--:--</span>}
@@ -235,7 +242,7 @@ export default function BusinessHoursSetting({
           className="w-full px-4 py-3 rounded-2xl bg-pos-bg border border-pos-border shadow-2xs transition cursor-pointer hover:border-sky-500 group flex flex-col justify-center"
         >
           <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-sky-500 transition">
-            ร้านปิด
+            {t("settings.close_time")}
           </span>
           <p className="text-sm font-bold text-pos-text mt-0.5">
             {closeTime || <span className="text-slate-400 font-normal">--:--</span>}
@@ -245,17 +252,17 @@ export default function BusinessHoursSetting({
 
       <div className="text-right px-1">
         <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-          ถ้าไม่ตั้งเวลาเปิด-ปิด ยอดขายจะตัดวันตอนเที่ยงคืน
+          {t("settings.business_hours_desc")}
         </p>
       </div>
 
       <div className="w-full rounded-2xl border border-pos-border p-4 sm:p-5 bg-pos-bg shadow-2xs flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-pos-text">
-            โหมดเปิด-ปิดร้าน
+            {t("settings.is_manual_mode")}
           </h3>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
-            เริ่มวันด้วยการกดเปิดร้าน และสรุปยอดให้ตอนปิดร้าน
+            {t("settings.business_hours_default")}
           </p>
         </div>
 
@@ -272,7 +279,7 @@ export default function BusinessHoursSetting({
         onClick={handleClearHours}
         className="w-full py-3 rounded-2xl bg-pos-bg hover:bg-pos-hover border border-pos-border text-pos-text font-semibold text-xs sm:text-sm transition cursor-pointer text-center shadow-2xs disabled:opacity-50"
       >
-        ล้างเวลาทำการ
+        {t("common.delete")}
       </button>
 
       {/* TIME PICKER MODAL */}
@@ -281,7 +288,7 @@ export default function BusinessHoursSetting({
           <div className="bg-pos-surface rounded-3xl shadow-2xl w-full max-w-xs border border-pos-border overflow-hidden animate-scaleUp p-5">
             <div className="flex items-center justify-between pb-3 border-b border-pos-border">
               <h3 className="font-bold text-base text-pos-text">
-                {activePicker === 'open' ? 'ร้านเปิด' : 'ร้านปิด'}
+                {activePicker === 'open' ? t("settings.open_time") : t("settings.close_time")}
               </h3>
               <button
                 type="button"
@@ -296,7 +303,7 @@ export default function BusinessHoursSetting({
               <div className="grid grid-cols-2 gap-3 bg-pos-bg p-2.5 rounded-2xl border border-pos-border">
                 {/* Column ชั่วโมง */}
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 text-center mb-2">ชั่วโมง</p>
+                  <p className="text-[11px] font-bold text-slate-400 text-center mb-2">{t("common.time")}</p>
                   <div className="max-h-48 overflow-y-auto custom-scroll space-y-1 pr-1">
                     {hoursList.map((h) => {
                       const isSelected = tempHour === h;
@@ -319,7 +326,7 @@ export default function BusinessHoursSetting({
 
                 {/* Column นาที */}
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 text-center mb-2">นาที</p>
+                  <p className="text-[11px] font-bold text-slate-400 text-center mb-2">min</p>
                   <div className="max-h-48 overflow-y-auto custom-scroll space-y-1 pr-1">
                     {minutesList.map((m) => {
                       const isSelected = tempMinute === m;
@@ -348,7 +355,7 @@ export default function BusinessHoursSetting({
               onClick={handleConfirmPicker}
               className="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-xs transition active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
-              {isSaving ? 'กำลังบันทึก...' : 'ตกลง'}
+              {isSaving ? t("common.saving") : t("common.confirm")}
             </button>
           </div>
         </div>

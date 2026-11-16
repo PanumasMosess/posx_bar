@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { holdOrderToDB } from "@/lib/actions/actionsPos";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import {
   OrganizationSettingsProvider,
   useOrgSettings,
@@ -21,6 +22,7 @@ function POSQRContent({
   tableName?: string;
 }) {
   const { settings, formatCurrency } = useOrgSettings();
+  const { t } = useTranslation();
   const currencyCode = settings?.currencyCode || "LAK";
 
   const [activeCategory, setActiveCategory] = useState<number | "ALL">("ALL");
@@ -72,7 +74,7 @@ function POSQRContent({
   const rightColumnProducts = displayedProducts.filter((_, i) => i % 2 !== 0);
 
   useEffect(() => {
-    document.title = tableName ? `สั่งอาหาร - ${tableName}` : "สั่งอาหาร";
+    document.title = tableName ? `${t("pos.qr_order_title")} - ${tableName}` : t("pos.qr_order_title");
   }, [tableName]);
 
   useEffect(() => {
@@ -180,7 +182,7 @@ function POSQRContent({
     });
 
     if (!isValid) {
-      alert("กรุณาเลือกตัวเลือกที่จำเป็นให้ครบถ้วน");
+      alert(t("pos.required"));
       return;
     }
 
@@ -277,8 +279,8 @@ function POSQRContent({
         organizationId: orgId,
         qrCodeId: tableId || null,
         customerName: tableName
-          ? `${tableName} (สแกนสั่ง)`
-          : `ทั่วไป (สแกนสั่ง)`,
+          ? `${tableName} ${t("pos.customer_scan_tag")}`
+          : `${t("receipt.general")} ${t("pos.customer_scan_tag")}`,
         createdBy: "QR_ORDER",
         kitchenStatus: "IN_KITCHEN" as const,
         totalAmount: totalPrice,
@@ -299,11 +301,11 @@ function POSQRContent({
         setCart([]);
         setIsCartOpen(false);
       } else {
-        alert("ไม่สามารถส่งออเดอร์ได้ โปรดลองอีกครั้ง");
+        alert(t("common.error"));
       }
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการสั่งอาหาร");
+      alert(t("common.error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -328,18 +330,18 @@ function POSQRContent({
           </svg>
         </div>
         <h1 className="text-2xl font-black text-slate-800 mb-2">
-          ส่งออเดอร์สำเร็จ!
+          {t("pos.qr_order_success")}
         </h1>
         <p className="text-slate-500 mb-8 font-medium">
-          รายการอาหารของคุณถูกส่งไปยังห้องครัวแล้ว
+          {t("pos.qr_order_success_desc")}
           <br />
-          กรุณารอรับอาหารที่โต๊ะ
+          {t("pos.qr_order_wait_table")}
         </p>
         <button
           onClick={() => setIsSuccess(false)}
           className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold shadow-lg shadow-slate-900/20 transition active:scale-95"
         >
-          สั่งอาหารเพิ่มเติม
+          {t("pos.qr_order_more")}
         </button>
       </div>
     );
@@ -411,7 +413,7 @@ function POSQRContent({
         {p.optionGroups && p.optionGroups.length > 0 && (
           <div
             className="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full p-1 shadow-md border border-slate-100 flex items-center justify-center text-sky-500 font-bold"
-            title="มีตัวเลือกเพิ่มเติม"
+            title={t("pos.has_more_options")}
           >
             <svg
               className="w-4 h-4 sm:w-4.5 sm:h-4.5"
@@ -494,7 +496,7 @@ function POSQRContent({
           </svg>
           <input
             type="text"
-            placeholder="ค้นหาเมนู..."
+            placeholder={t("pos.search_menu_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-10 py-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 focus:bg-white focus:border-slate-300 focus:shadow-sm rounded-full text-sm font-medium text-slate-700 transition-all outline-none placeholder:text-slate-400"
@@ -525,7 +527,7 @@ function POSQRContent({
         {tableName && (
           <div className="shrink-0 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-[11px] font-bold rounded-full shadow-sm flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] animate-pulse"></span>
-            โต๊ะ {tableName}
+            {t("pos.table_number").replace("{table}", tableName)}
           </div>
         )}
       </div>
@@ -540,7 +542,7 @@ function POSQRContent({
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           }`}
         >
-          ทั้งหมด
+          {t("pos.all_categories")}
         </button>
         {categories.map((cat) => (
           <button
@@ -573,7 +575,7 @@ function POSQRContent({
               d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p className="font-bold text-sm">ไม่พบสินค้าที่ค้นหา</p>
+          <p className="font-bold text-sm">{t("pos.no_products")}</p>
         </div>
       ) : (
         <div className="p-3.5 pt-28 pb-24 grid grid-cols-2 gap-4 sm:gap-6 transition-all duration-500">
@@ -601,7 +603,7 @@ function POSQRContent({
         >
           <div className="flex items-center gap-2 px-5 py-2.5 bg-white rounded-full shadow-sm text-slate-500 text-xs font-bold border border-slate-100/80">
             <div className="w-4 h-4 border-2 border-slate-300 border-t-sky-500 rounded-full animate-spin" />
-            กำลังโหลดเมนูเพิ่มเติม...
+            {t("pos.loading_more_menu")}
           </div>
         </div>
       )}
@@ -645,11 +647,11 @@ function POSQRContent({
                         </h4>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           {group.allowMultiple
-                            ? "เลือกได้หลายข้อ"
-                            : "เลือกได้ 1 ข้อ"}{" "}
+                            ? t("pos.choose_multiple")
+                            : t("pos.choose_single")}{" "}
                           {group.isRequired && (
                             <span className="text-rose-500 font-bold ml-1">
-                              *จำเป็น
+                              {t("pos.required_badge")}
                             </span>
                           )}
                         </p>
@@ -717,7 +719,7 @@ function POSQRContent({
             <div className="p-5 border-t border-slate-100 bg-white shrink-0 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-center mb-4 px-1">
                 <span className="font-semibold text-sm text-slate-500">
-                  ราคารวม
+                  {t("pos.total_price_label")}
                 </span>
                 <span className="text-2xl font-black text-slate-900">
                   {formatCurrency(selectedProduct.price + currentOptionPrice)}
@@ -727,7 +729,7 @@ function POSQRContent({
                 onClick={confirmOptionsAndAdd}
                 className="w-full py-4.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold text-sm shadow-xl shadow-slate-900/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
               >
-                เพิ่มลงตะกร้า
+                {t("pos.add_to_cart")}
               </button>
             </div>
           </div>
@@ -798,14 +800,11 @@ function POSQRContent({
             <div className="p-5 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
-                  ตะกร้าอาหาร
+                  {t("pos.qr_order_cart_title")}
                 </h2>
                 {tableName && (
                   <p className="text-[11px] text-slate-500 font-medium mt-1">
-                    สั่งสำหรับโต๊ะ{" "}
-                    <span className="text-slate-800 font-bold">
-                      {tableName}
-                    </span>
+                    {t("pos.qr_order_for_table").replace("{table}", tableName || "")}
                   </p>
                 )}
               </div>
@@ -836,7 +835,7 @@ function POSQRContent({
                         </p>
                       )}
                       <p className="text-xs text-slate-500 font-semibold mt-1.5">
-                        {formatCurrency(item.totalPrice / item.quantity)} / ชิ้น
+                        {formatCurrency(item.totalPrice / item.quantity)} / {t("pos.piece_unit")}
                       </p>
                     </div>
 
@@ -868,7 +867,7 @@ function POSQRContent({
             <div className="p-6 border-t border-slate-100 bg-white shrink-0 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-end mb-5 px-1">
                 <span className="font-semibold text-sm text-slate-500">
-                  ยอดรวมทั้งหมด
+                  {t("pos.qr_order_cart_total")}
                 </span>
                 <div className="text-right">
                   <span className="text-3xl font-black text-slate-900 tracking-tight">
@@ -887,10 +886,10 @@ function POSQRContent({
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    กำลังส่งออเดอร์...
+                    {t("pos.qr_order_sending")}
                   </div>
                 ) : (
-                  "ส่งออเดอร์เข้าครัว"
+                  t("pos.qr_order_send_btn")
                 )}
               </button>
             </div>

@@ -14,10 +14,12 @@ import {
 } from "@/lib/actions/actionsPos";
 import { CartContextType, CartItem, HeldBill } from "@/lib/interface";
 import { useEmployee } from "@/components/providers/EmployeeContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { isThai } = useTranslation();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [isHolding, setIsHolding] = useState(false);
@@ -131,7 +133,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           order.qrcode || order.qrcodes || order.qrCode || order.table;
         const extractedTableName =
           tableRelation?.tableName ||
-          (order.qrCodeId ? `โต๊ะ ${order.qrCodeId}` : null);
+          (order.qrCodeId ? (isThai ? `โต๊ะ ${order.qrCodeId}` : `Table ${order.qrCodeId}`) : null);
 
         return {
           id: order.id,
@@ -172,7 +174,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       customerName:
         options?.customerName ||
         activeBillInfo?.customerName ||
-        (activeBillNumber ? `บิล ${activeBillNumber}` : "บิลพักชั่วคราว"),
+        (activeBillNumber ? (isThai ? `บิล ${activeBillNumber}` : `Bill ${activeBillNumber}`) : (isThai ? "บิลพักชั่วคราว" : "Held Bill")),
       qrCodeId: options?.qrCodeId || activeBillInfo?.qrCodeId || null,
       kitchenStatus: options?.sendToKitchen
         ? ("IN_KITCHEN" as const)
@@ -291,7 +293,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setActiveBillInfo(null);
       }
     } else {
-      alert(result.message || "ไม่สามารถลบบิลได้");
+      alert(result.message ? (isThai ? result.message : "Unable to delete bill") : (isThai ? "ไม่สามารถลบบิลได้" : "Unable to delete bill"));
     }
   };
 

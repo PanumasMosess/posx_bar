@@ -3,38 +3,22 @@
 import { useState } from "react";
 
 import { PeriodType, ReportDateSelectorProps } from "@/lib/types";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 const THAI_MONTHS_FULL = [
-  "มกราคม",
-  "กุมภาพันธ์",
-  "มีนาคม",
-  "เมษายน",
-  "พฤษภาคม",
-  "มิถุนายน",
-  "กรกฎาคม",
-  "สิงหาคม",
-  "กันยายน",
-  "ตุลาคม",
-  "พฤศจิกายน",
-  "ธันวาคม",
+  "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+  "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม",
+];
+const EN_MONTHS_FULL = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
-const THAI_MONTHS_SHORT = [
-  "ม.ค.",
-  "ก.พ.",
-  "มี.ค.",
-  "เม.ย.",
-  "พ.ค.",
-  "มิ.ย.",
-  "ก.ค.",
-  "ส.ค.",
-  "ก.ย.",
-  "ต.ค.",
-  "พ.ย.",
-  "ธ.ค.",
-];
+const THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const EN_MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const THAI_DAYS_WEEK = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const EN_DAYS_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export default function ReportDateSelector({
   period,
@@ -43,6 +27,13 @@ export default function ReportDateSelector({
   customEndDate,
   onCustomDateChange,
 }: ReportDateSelectorProps) {
+  const { t, language } = useTranslation();
+  const isThai = language === "th";
+
+  const MONTHS_FULL = isThai ? THAI_MONTHS_FULL : EN_MONTHS_FULL;
+  const MONTHS_SHORT = isThai ? THAI_MONTHS_SHORT : EN_MONTHS_SHORT;
+  const DAYS_WEEK = isThai ? THAI_DAYS_WEEK : EN_DAYS_WEEK;
+
   const [showCustomModal, setShowCustomModal] = useState(false);
 
   // วันปัจจุบัน
@@ -224,15 +215,15 @@ export default function ReportDateSelector({
     ) + 1
   );
 
-  // ฟอร์แมตหัวข้อช่วงเวลา เช่น "2 ก.ย. - 17 ก.ย. 2569"
+  // ฟอร์แมตหัวข้อช่วงเวลา
   const formatRangeHeader = () => {
     const sDate = rangeStart.getDate();
-    const sMonth = THAI_MONTHS_SHORT[rangeStart.getMonth()];
-    const sYear = rangeStart.getFullYear() + 543;
+    const sMonth = MONTHS_SHORT[rangeStart.getMonth()];
+    const sYear = isThai ? rangeStart.getFullYear() + 543 : rangeStart.getFullYear();
 
     const eDate = effectiveEnd.getDate();
-    const eMonth = THAI_MONTHS_SHORT[effectiveEnd.getMonth()];
-    const eYear = effectiveEnd.getFullYear() + 543;
+    const eMonth = MONTHS_SHORT[effectiveEnd.getMonth()];
+    const eYear = isThai ? effectiveEnd.getFullYear() + 543 : effectiveEnd.getFullYear();
 
     if (
       sDate === eDate &&
@@ -240,10 +231,6 @@ export default function ReportDateSelector({
       sYear === eYear
     ) {
       return `${sDate} ${sMonth} ${sYear}`;
-    }
-
-    if (rangeStart.getMonth() === effectiveEnd.getMonth() && sYear === eYear) {
-      return `${sDate} ${sMonth} - ${eDate} ${eMonth} ${eYear}`;
     }
 
     return `${sDate} ${sMonth} - ${eDate} ${eMonth} ${eYear}`;
@@ -265,15 +252,15 @@ export default function ReportDateSelector({
   };
 
   const periodOptions: { key: PeriodType; label: string }[] = [
-    { key: "today", label: "วันนี้" },
-    { key: "week", label: "สัปดาห์นี้" },
-    { key: "month", label: "เดือนนี้" },
-    { key: "custom", label: "กำหนดเอง" },
+    { key: "today", label: t("reports.period_today") },
+    { key: "week", label: t("reports.period_this_week") },
+    { key: "month", label: t("reports.period_this_month") },
+    { key: "custom", label: t("reports.period_custom") },
   ];
 
   return (
     <>
-      {/* แท็บเลือกช่วงเวลา วันนี้ | สัปดาห์นี้ | เดือนนี้ | กำหนดเอง */}
+      {/* แท็บเลือกช่วงเวลา */}
       <div className="bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-xl flex items-center justify-between gap-1 w-full">
         {periodOptions.map((opt) => {
           const isActive = period === opt.key;
@@ -309,7 +296,7 @@ export default function ReportDateSelector({
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-1">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                เลือกช่วงเวลา
+                {t("reports.select_period")}
               </h3>
               <button
                 type="button"
@@ -320,10 +307,10 @@ export default function ReportDateSelector({
               </button>
             </div>
 
-            {/* Section 1: ช่วงด่วน (3วัน, 7วัน, 14วัน, 30วัน) */}
+            {/* Section 1: ช่วงด่วน */}
             <div className="space-y-2">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">
-                ช่วงด่วน
+                {t("reports.quick_preset")}
               </span>
               <div className="grid grid-cols-4 gap-2">
                 {[3, 7, 14, 30].map((days) => (
@@ -337,25 +324,25 @@ export default function ReportDateSelector({
                         : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {days}วัน
+                    {days}{isThai ? "วัน" : "d"}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Section 2: ปฏิทินแสดงช่วงวันที่เลือก*/}
+            {/* Section 2: ปฏิทิน */}
             <div className="space-y-2.5 pt-1">
-              {/* Header แสดงช่วงวันที่เลือก เช่น "2 ก.ย. - 17 ก.ย. 2569" และ "16 วัน" */}
+              {/* Header แสดงช่วงวันที่เลือก */}
               <div className="flex items-center justify-between px-1 py-1 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
                   {formatRangeHeader()}
                 </span>
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {daysDiff} วัน
+                  {daysDiff} {t("common.day_unit")}
                 </span>
               </div>
 
-              {/* Month Navigator Header (< เดือน ปี >) */}
+              {/* Month Navigator Header */}
               <div className="flex items-center justify-between px-2 pt-1">
                 <button
                   type="button"
@@ -366,7 +353,7 @@ export default function ReportDateSelector({
                 </button>
 
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {THAI_MONTHS_FULL[viewMonth]} {viewYear + 543}
+                  {MONTHS_FULL[viewMonth]} {isThai ? viewYear + 543 : viewYear}
                 </span>
 
                 <button
@@ -385,7 +372,7 @@ export default function ReportDateSelector({
 
               {/* Days of week header */}
               <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-slate-400">
-                {THAI_DAYS_WEEK.map((dw) => (
+                {DAYS_WEEK.map((dw) => (
                   <div key={dw} className="py-0.5">
                     {dw}
                   </div>
@@ -472,11 +459,6 @@ export default function ReportDateSelector({
               </div>
             </div>
 
-            {/* Footnote */}
-            <p className="text-[10px] text-slate-400 pt-1">
-              เลือกได้สูงสุด 90 วัน
-            </p>
-
             {/* Bottom Actions */}
             <div className="flex gap-2 pt-1">
               <button
@@ -484,14 +466,14 @@ export default function ReportDateSelector({
                 onClick={() => setShowCustomModal(false)}
                 className="flex-1 py-2.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 transition"
               >
-                ยกเลิก
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirm}
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-700 hover:to-cyan-600 text-white shadow-sm transition active:scale-95"
               >
-                ตกลง
+                {t("common.confirm")}
               </button>
             </div>
           </div>

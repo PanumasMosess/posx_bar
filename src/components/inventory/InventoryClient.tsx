@@ -10,8 +10,7 @@ import StockTable from "@/components/inventory/StockTable";
 import HistoryTable from "@/components/inventory/HistoryTable";
 import AdjustStockModal from "@/components/inventory/AdjustStockModal";
 import { useOrgSettings } from "../providers/OrganizationSettingsContext";
-
-
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function InventoryClient({
   products,
@@ -20,12 +19,12 @@ export default function InventoryClient({
   products: any[];
   movements: any[];
 }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"STOCK" | "HISTORY">("STOCK");
   const [isPending, startTransition] = useTransition();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-
 
   const { settings } = useOrgSettings();
   const currencyUnit = settings?.currencyCode || "THB";
@@ -47,7 +46,7 @@ export default function InventoryClient({
   const handleToggleTrack = (productId: number, currentStatus: boolean) => {
     startTransition(async () => {
       const res = await toggleTrackStockDB(productId, currentStatus);
-      if (!res.success) alert("เกิดข้อผิดพลาด: " + res.message);
+      if (!res.success) alert("Error: " + res.message);
     });
   };
 
@@ -65,13 +64,13 @@ export default function InventoryClient({
         quantity: data.quantity,
         type: data.type,
         note: data.note,
-        createdBy: "พนักงาน",
+        createdBy: t("header.staff"),
       });
 
       if (res.success) {
         setIsModalOpen(false);
       } else {
-        alert("บันทึกไม่สำเร็จ: " + res.message);
+        alert("Failed: " + res.message);
       }
     });
   };
@@ -82,10 +81,10 @@ export default function InventoryClient({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            ระบบคลังสินค้า (Inventory)
+            {t("inventory.title")}
           </h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            จัดการสต๊อกและดูประวัติการเข้า-ออกของสินค้า
+            {t("inventory.subtitle")}
           </p>
         </div>
       </div>
@@ -99,11 +98,13 @@ export default function InventoryClient({
           </div>
           <div className="min-w-0">
             <p className="text-sm text-slate-500 font-bold mb-0.5 truncate">
-              สินค้าในสต๊อกทั้งหมด
+              {t("inventory.total_stock_count")}
             </p>
             <h3 className="text-2xl font-black text-slate-800 truncate">
               {totalStockCount.toLocaleString()}{" "}
-              <span className="text-sm font-bold text-slate-400">ชิ้น</span>
+              <span className="text-sm font-bold text-slate-400">
+                {t("inventory.unit_pieces")}
+              </span>
             </h3>
           </div>
         </div>
@@ -115,11 +116,10 @@ export default function InventoryClient({
           </div>
           <div className="min-w-0">
             <p className="text-sm text-slate-500 font-bold mb-0.5 truncate">
-              มูลค่าคลัง (คิดจากทุน)
+              {t("inventory.total_stock_value")}
             </p>
             <h3 className="text-2xl font-black text-emerald-600 truncate">
               {totalStockValue.toLocaleString()}{" "}
-              {/* 🌟 3. นำค่าที่ดึงจาก Context มาแสดงผล */}
               <span className="text-sm font-bold text-emerald-400">
                 {currencyUnit}
               </span>
@@ -134,13 +134,13 @@ export default function InventoryClient({
           onClick={() => setActiveTab("STOCK")}
           className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab === "STOCK" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
         >
-          ยอดคงเหลือ
+          {t("inventory.tab_stock")}
         </button>
         <button
           onClick={() => setActiveTab("HISTORY")}
           className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab === "HISTORY" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
         >
-          ประวัติความเคลื่อนไหว
+          {t("inventory.tab_history")}
         </button>
       </div>
 
@@ -168,4 +168,3 @@ export default function InventoryClient({
     </div>
   );
 }
-

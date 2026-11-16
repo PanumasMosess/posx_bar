@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useEmployee } from '@/components/providers/EmployeeContext';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 function ToggleSwitch({
   checked,
@@ -34,6 +35,7 @@ function ToggleSwitch({
 
 export default function RestaurantModeSetting() {
   const { organizationId } = useEmployee();
+  const { t } = useTranslation();
   const storageKey = `posx_restaurant_mode_${organizationId || 'default'}`;
 
   const [isRestaurantMode, setIsRestaurantMode] = useState<boolean>(() => {
@@ -92,36 +94,41 @@ export default function RestaurantModeSetting() {
   const features = [
     {
       id: 'hold-bill',
-      title: 'การพักบิล',
-      desc: 'สำหรับการสั่งสินค้าแต่ไม่ได้ชำระเงินทันที เช่น การสั่งแบบนั่งโต๊ะ หรือการสั่งไว้ก่อนแล้วค่อยมารับทีหลัง',
+      title: t('settings.feature_hold_bill_title'),
+      desc: t('settings.feature_hold_bill_desc'),
     },
     {
       id: 'send-kitchen',
-      title: 'การส่งออเดอร์เข้าครัว',
-      desc: 'สำหรับร้านที่ต้องการพิมพ์ใบส่งออเดอร์หรือส่งออเดอร์ให้กับหลังร้านเพื่อทำต่อ',
+      title: t('settings.feature_kitchen_title'),
+      desc: t('settings.feature_kitchen_desc'),
     },
     {
       id: 'qr-order',
-      title: 'QR Order',
-      desc: 'การสแกนสั่งหน้าร้านหรือสแกนสั่งที่โต๊ะ',
+      title: t('settings.feature_qr_title'),
+      desc: t('settings.feature_qr_desc'),
     },
     {
       id: 'invoice',
-      title: 'ใบแจ้งหนี้',
-      desc: 'แจ้งยอดให้ลูกค้าโอนชำระก่อนออกใบเสร็จ (พิมพ์ใบแจ้งหนี้หรือแชร์)',
+      title: t('settings.feature_invoice_title'),
+      desc: t('settings.feature_invoice_desc'),
     },
   ];
 
   const handleToggleMainMode = (checked: boolean) => {
     setIsRestaurantMode(checked);
-    showToast(checked ? 'เปิดโหมดร้านอาหารแล้ว' : 'ปิดโหมดร้านอาหารแล้ว', 'success');
+    showToast(
+      checked
+        ? t('common.success')
+        : t('common.success'),
+      'success'
+    );
   };
 
   const toggleFeature = (id: string) => {
     setActiveFeatures((prev) => {
       const nextState = !prev[id];
       const updated = { ...prev, [id]: nextState };
-      showToast(nextState ? 'เปิดใช้งานฟีเจอร์แล้ว' : 'ปิดใช้งานฟีเจอร์แล้ว', 'success');
+      showToast(t('common.success'), 'success');
       return updated;
     });
   };
@@ -147,7 +154,7 @@ export default function RestaurantModeSetting() {
       {/* 1. กล่องการ์ดเปิดโหมดร้านอาหาร */}
       <div className="w-full rounded-2xl border border-pos-border dark:border-slate-500/40 p-4 sm:p-5 bg-pos-surface shadow-2xs flex items-center justify-between transition-colors duration-300">
         <span className="text-sm font-bold text-pos-text">
-          เปิดโหมดร้านอาหาร
+          {t('settings.restaurant_mode_toggle')}
         </span>
 
         <ToggleSwitch
@@ -168,7 +175,7 @@ export default function RestaurantModeSetting() {
                 onClick={() => toggleFeature(item.id)}
                 className="py-4 first:pt-2 last:pb-2 flex items-start gap-3.5 cursor-pointer group transition select-none"
               >
-                {/* Checkmark วงกลม (เปิด = ฟ้า sky-500 พร้อมเครื่องหมายถูกสีขาว / ปิด = ขอบเทา) */}
+                {/* Checkmark วงกลม */}
                 <div
                   className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-2xs transition-colors duration-200 ${
                     isActive

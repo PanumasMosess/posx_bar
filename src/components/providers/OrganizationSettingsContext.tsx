@@ -40,7 +40,7 @@ interface OrgSettingsContextType {
   formatCurrency: (amount: number) => string;
 }
 
-const OrganizationSettingsContext = createContext<
+export const OrganizationSettingsContext = createContext<
   OrgSettingsContextType | undefined
 >(undefined);
 
@@ -90,6 +90,10 @@ export function OrganizationSettingsProvider({
       {children}
     </OrganizationSettingsContext.Provider>
   );
+}
+
+export function useOptionalOrgSettings() {
+  return useContext(OrganizationSettingsContext);
 }
 
 export function useOrgSettings() {

@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import { EmployeeProvider } from "@/components/providers/EmployeeContext";
+import { LanguageProvider } from "@/lib/language/LanguageContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -11,7 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem={false}
       themes={["light", "dark", "teal"]}
     >
-      <EmployeeProvider>{children}</EmployeeProvider>
+      <LanguageProvider>
+        <EmployeeProvider>{children}</EmployeeProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

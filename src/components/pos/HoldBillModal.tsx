@@ -5,12 +5,14 @@ import { useCart } from "../providers/CartContext";
 import { getTablesFromDB, createTableInDB } from "@/lib/actions/actionsPos";
 import { HoldBillModalProps } from "@/lib/interface";
 import { useEmployee } from "../providers/EmployeeContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function HoldBillModal({
   isOpen,
   onClose,
   onSuccess,
 }: HoldBillModalProps) {
+  const { t } = useTranslation();
   const { holdBill, activeBillId, activeBillInfo, cart } = useCart();
   const { employeeId, organizationId } = useEmployee();
 
@@ -99,7 +101,7 @@ export default function HoldBillModal({
       setIsAddingTable(false);
       setNewTableName("");
     } else {
-      alert("ไม่สามารถเพิ่มโต๊ะได้ โปรดลองอีกครั้ง");
+      alert(t('common.error'));
     }
     setIsSavingTable(false);
   };
@@ -167,7 +169,7 @@ export default function HoldBillModal({
           {/* Header */}
           <div className="p-4 border-b border-pos-border flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 shrink-0">
             <h3 className="font-bold text-sm text-amber-800 dark:text-amber-500">
-              พักบิล / เลือกรายการส่งเข้าครัว
+              {t('pos.hold_bill_title')}
             </h3>
             <button
               type="button"
@@ -194,13 +196,13 @@ export default function HoldBillModal({
             {/* Input ชื่อลูกค้า */}
             <div>
               <label className="block text-xs font-semibold text-pos-text mb-1">
-                ชื่อลูกค้า / ป้ายกำกับ
+                {t('pos.customer_name_label')}
               </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="เช่น คุณเอก, สั่งกลับบ้าน..."
+                placeholder={t('pos.customer_name_placeholder')}
                 className="w-full px-3 py-2 bg-pos-bg border border-pos-border rounded-lg text-sm text-pos-text focus:outline-none focus:border-sky-500"
               />
             </div>
@@ -208,7 +210,7 @@ export default function HoldBillModal({
             {/* ส่วนเลือก/เพิ่มโต๊ะ */}
             <div>
               <label className="block text-xs font-semibold text-pos-text mb-1">
-                ระบุโต๊ะ (ถ้ามี)
+                {t('pos.table_specify')}
               </label>
 
               {!isAddingTable ? (
@@ -222,7 +224,7 @@ export default function HoldBillModal({
                     }
                     className="flex-1 px-3 py-2 bg-pos-bg border border-pos-border rounded-lg text-sm text-pos-text focus:outline-none focus:border-sky-500"
                   >
-                    <option value="">-- ไม่ระบุโต๊ะ --</option>
+                    <option value="">{t('pos.no_table')}</option>
                     {tables.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.tableName}
@@ -233,9 +235,9 @@ export default function HoldBillModal({
                     type="button"
                     onClick={() => setIsAddingTable(true)}
                     className="px-3 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-600 dark:bg-sky-900/30 dark:border-sky-800 dark:text-sky-400 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shrink-0"
-                    title="เพิ่มโต๊ะใหม่"
+                    title={t('pos.add_table_title')}
                   >
-                    + เพิ่ม
+                    {t("pos.add_table")}
                   </button>
                 </div>
               ) : (
@@ -244,7 +246,7 @@ export default function HoldBillModal({
                     type="text"
                     value={newTableName}
                     onChange={(e) => setNewTableName(e.target.value)}
-                    placeholder="ใส่ชื่อโต๊ะใหม่..."
+                    placeholder={t('pos.new_table_placeholder')}
                     autoFocus
                     className="flex-1 px-3 py-2 bg-pos-bg border border-sky-400 rounded-lg text-sm text-pos-text focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-xs"
                   />
@@ -254,7 +256,7 @@ export default function HoldBillModal({
                     disabled={isSavingTable || !newTableName.trim()}
                     className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-bold transition-colors shrink-0 disabled:opacity-50"
                   >
-                    บันทึก
+                    {t("common.save")}
                   </button>
                   <button
                     type="button"
@@ -274,8 +276,7 @@ export default function HoldBillModal({
             <div className="pt-2 border-t border-pos-border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-pos-text">
-                  เลือกรายการที่ต้องการส่งเข้าครัว ({selectedItemIds.length}/
-                  {displayCart.length})
+                  {t('pos.select_items_to_kitchen').replace('{count}', String(selectedItemIds.length)).replace('{total}', String(displayCart.length))}
                 </span>
                 <button
                   type="button"
@@ -283,8 +284,8 @@ export default function HoldBillModal({
                   className="text-[11px] font-bold text-sky-600 hover:underline"
                 >
                   {selectedItemIds.length === displayCart.length
-                    ? "ยกเลิกทั้งหมด"
-                    : "เลือกทั้งหมด"}
+                    ? t('pos.deselect_all')
+                    : t('pos.select_all')}
                 </button>
               </div>
 
@@ -292,12 +293,12 @@ export default function HoldBillModal({
               <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
                 {displayCart.length === 0 ? (
                   <p className="text-xs text-pos-text/50 text-center py-4">
-                    ไม่มีรายการสินค้าในตะกร้า
+                    {t('pos.empty_cart_items')}
                   </p>
                 ) : (
                   displayCart.map((item) => {
                     const title =
-                      item.product?.name || item.product?.title || "สินค้า";
+                      item.product?.name || item.product?.title || t('pos.product_default_name');
                     const isSelected = selectedItemIds.includes(item.id);
                     const isAlreadyInKitchen =
                       (item as any).status === "IN_KITCHEN";
@@ -330,7 +331,7 @@ export default function HoldBillModal({
                               </p>
                               {isAlreadyInKitchen && (
                                 <span className="text-[9px] px-1.5 py-0.2 rounded-xs bg-teal-500/10 text-teal-600 font-bold border border-teal-500/20">
-                                  ส่งแล้ว
+                                  {t('pos.sent')}
                                 </span>
                               )}
                             </div>
@@ -361,7 +362,7 @@ export default function HoldBillModal({
               }
               className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-bold text-sm shadow-md transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
-              <span>{isSubmitting ? "กำลังบันทึก..." : "ยืนยันการพักบิล"}</span>
+              <span>{isSubmitting ? t('common.saving') : t('pos.confirm_hold_bill')}</span>
             </button>
           </div>
         </form>

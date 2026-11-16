@@ -21,8 +21,10 @@ import ShiftCheckView from "./ShiftCheckView";
 import { toPng } from "html-to-image";
 import { QRCodeSVG } from "qrcode.react";
 import { useMember } from "@/components/providers/MemberContext";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
+  const { t } = useTranslation();
   // ==========================================
   // 1. เรียกใช้ Context และ State ทั้งหมด (ห้ามมี return คั่น)
   // ==========================================
@@ -221,14 +223,14 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
   const handleQuickOpenShift = async (startingCash: number) => {
     setIsOpeningShift(true);
     try {
-      const openerName = currentEmployee?.name || "พนักงาน";
+      const openerName = currentEmployee?.name || t('header.staff');
       const res = await openShift(startingCash, openerName);
       if (!res.success) {
-        alert(res.message || "ไม่สามารถเปิดกะได้");
+        alert(res.message || t('payment.shift_open_failed'));
       }
     } catch (e) {
       console.error(e);
-      alert("เกิดข้อผิดพลาดในการเปิดกะ");
+      alert(t('payment.shift_error'));
     } finally {
       setIsOpeningShift(false);
     }
@@ -241,7 +243,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
       setShowMemberInput(false);
       setMemberSearch("");
     } else {
-      alert(searchError || "ไม่พบข้อมูลสมาชิกในระบบ");
+      alert(searchError || t('payment.select_member_first'));
     }
   };
 
@@ -304,11 +306,11 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
         checkoutBill(String(billId));
         await fetchHeldBills(organizationId);
       } else {
-        alert(res.message || "ไม่สามารถชำระเงินได้");
+        alert(res.message || t("common.error"));
       }
     } catch (e) {
       console.error(e);
-      alert("เกิดข้อผิดพลาดในการชำระเงิน กรุณาลองใหม่อีกครั้ง");
+      alert(t('payment.payment_error_retry'));
     } finally {
       setIsSubmitting(false);
     }
@@ -325,7 +327,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
       return dataUrl;
     } catch (error) {
       console.error("Error generating receipt:", error);
-      alert("ไม่สามารถสร้างรูปใบเสร็จได้");
+      alert(t('payment.cannot_generate_receipt_img'));
       return null;
     } finally {
       setIsProcessingReceipt(false);
@@ -363,12 +365,12 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `ใบเสร็จออนไลน์ - บิล ${receiptData.orderNumber}`,
-          text: `สแกน QR โค้ดหรือคลิกลิ้งก์เพื่อดูใบเสร็จ: ${receiptUrl}`,
+          title: t('payment.online_receipt_title').replace('{bill}', receiptData.orderNumber),
+          text: t('payment.online_receipt_share_text').replace('{url}', receiptUrl),
           files: [file],
         });
       } else {
-        alert("อุปกรณ์ของคุณไม่รองรับการแชร์โดยตรง ระบบจะดาวน์โหลดแทน");
+        alert(t('payment.no_direct_share_alert'));
         handleSaveReceipt();
       }
     } catch (error: any) {
@@ -382,7 +384,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(receiptUrl);
-    alert("คัดลอกลิ้งก์ใบเสร็จแล้ว");
+    alert(t('payment.copied_receipt_link'));
   };
 
   const handleSavePromptPayQR = (qrUrl: string) => {
@@ -451,7 +453,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
             </svg>
           </div>
           <h2 className="text-2xl font-black text-white mb-6 drop-shadow-md">
-            ชำระเงินสำเร็จ
+            {t('payment.payment_successful')}
           </h2>
 
           <div
@@ -463,7 +465,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
               POSX
             </h3>
             <p className="text-xs font-semibold text-slate-500 mb-6">
-              บิล:{" "}
+              {t('cart.bill_prefix')}{" "}
               <span className="text-slate-800">{receiptData.orderNumber}</span>
             </p>
             <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm mb-5">
@@ -476,7 +478,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
             </div>
             <div className="w-full pt-4 border-t border-dashed border-slate-200">
               <p className="text-[15px] font-black text-slate-800 mb-1">
-                ยอดชำระ{" "}
+                {t('payment.amount_due')}{" "}
                 {receiptData.netTotal.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -484,10 +486,10 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                 {settings?.currencyCode || "LAK"}
               </p>
               <p className="text-sm font-bold text-sky-600 mb-0.5">
-                สแกนคิวอาร์โค้ด
+                {t('payment.scan_qr_code')}
               </p>
               <p className="text-[10px] text-slate-400 font-medium">
-                เพื่อดูใบเสร็จรับเงินออนไลน์
+                {t('payment.scan_to_view_receipt')}
               </p>
             </div>
           </div>
@@ -510,7 +512,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                   d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
                 />
               </svg>
-              คัดลอกลิ้งก์ (URL)
+              {t('payment.copy_receipt_url')}
             </button>
             <div className="flex gap-3">
               <button
@@ -521,7 +523,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                 {isSharing ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  "แชร์ QR"
+                  t('payment.share_qr')
                 )}
               </button>
               <button
@@ -532,7 +534,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                 {isProcessingReceipt ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  "บันทึก QR"
+                  t('payment.save_qr')
                 )}
               </button>
             </div>
@@ -540,7 +542,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
               onClick={onClose}
               className="w-full py-4 mt-2 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition active:scale-95"
             >
-              เสร็จสิ้น / ปิด
+              {t('payment.finish_close')}
             </button>
           </div>
         </div>
@@ -587,8 +589,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                   />
                   {selectedMember && earnedPoints > 0 && (
                     <div className="bg-emerald-500/10 px-4 py-2 border-b border-pos-border text-xs font-bold text-emerald-600 flex justify-between items-center">
-                      <span>✨ จะได้รับแต้มสะสมจากบิลนี้:</span>
-                      <span>+{earnedPoints} แต้ม</span>
+                      <span>✨ {t('payment.earned_points')}</span>
+                      <span>+{earnedPoints} {t('payment.points_unit')}</span>
                     </div>
                   )}
                 </>
@@ -643,7 +645,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                       <>
                         <p className="font-bold text-[13px] text-pos-text leading-tight">
                           {settings?.payments_settings?.promptPayName ||
-                            "สแกน QR เพื่อชำระเงิน"}
+                            t('payment.scan_qr_prompt')}
                         </p>
 
                         {/* 🌟 เพิ่มปุ่ม UI สวิตช์เปิด-ปิด ตรงนี้ */}
@@ -666,8 +668,8 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                           </div>
                           <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                             {isEnableWebhook
-                              ? "เช็คยอดโอนอัตโนมัติ"
-                              : "ปิดออโต้ (กดยืนยันเอง)"}
+                              ? t('payment.auto_check_qr')
+                              : t('payment.manual_confirm_qr')}
                           </span>
                         </label>
 
@@ -682,7 +684,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                           <p
                             className={`text-[12px] font-mono font-black px-3 py-1 rounded-full ${isEnableWebhook ? "text-emerald-600 bg-emerald-500/10" : "text-sky-600 bg-sky-500/10"}`}
                           >
-                            ยอดชำระ{" "}
+                            {t('payment.amount_due')}{" "}
                             {qrAmount.toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
@@ -692,7 +694,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                           {/* แสดงข้อความรอจ่าย ถ้าระบบ Auto ทำงานอยู่ */}
                           {isEnableWebhook && (
                             <p className="text-[10px] text-emerald-600 font-bold animate-pulse mt-1">
-                              กำลังรอตรวจสอบยอดเงินโอนอัตโนมัติ...
+                              {t('payment.waiting_auto_transfer')}
                             </p>
                           )}
                         </div>
@@ -716,17 +718,17 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                               d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
                             />
                           </svg>
-                          บันทึกรูป QR
+                          {t('payment.save_qr_image')}
                         </button>
                       </>
                     ) : (
                       <>
                         <span className="text-4xl mb-1">📲</span>
                         <p className="font-bold text-[13px] text-pos-text text-amber-600">
-                          ยังไม่ได้ตั้งค่าพร้อมเพย์
+                          {t('payment.promptpay_not_configured')}
                         </p>
                         <p className="text-[11px] text-pos-text/70 mt-1">
-                          กรุณาตั้งค่าเลขพร้อมเพย์ในระบบหลังบ้าน
+                          {t('payment.promptpay_config_hint')}
                         </p>
                       </>
                     )}
@@ -737,10 +739,10 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
                   <div className="flex-1 flex flex-col items-center justify-center p-4 bg-pos-bg rounded-2xl border border-pos-border text-center gap-2">
                     <span className="text-4xl mb-1">💳</span>
                     <p className="font-bold text-[13px] text-pos-text">
-                      รูด/แตะ บัตรเครดิต
+                      {t('payment.card_prompt')}
                     </p>
                     <p className="text-[12px] font-mono font-black text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full mt-1">
-                      ยอดชำระ {netTotal.toLocaleString()}{" "}
+                      {t('payment.amount_due')} {netTotal.toLocaleString()}{" "}
                       {settings?.currencyCode || "LAK"}
                     </p>
                   </div>
@@ -751,7 +753,7 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
             <div className="space-y-1 shrink-0">
               {!isCashSufficient && paymentMethod === "CASH" && activeShift && (
                 <p className="text-[10px] text-rose-500 font-bold text-center">
-                  * จำนวนเงินที่รับมายังไม่ครบถ้วน
+                  {t('payment.insufficient_amount')}
                 </p>
               )}
               <button
@@ -762,12 +764,12 @@ export default function PaymentModal({ billId, onClose }: PaymentModalProps) {
               >
                 <span>
                   {isSubmitting
-                    ? "กำลังบันทึก..."
+                    ? t('common.saving')
                     : isSearchingMember
-                      ? "กำลังค้นหา..."
+                      ? t('common.loading')
                       : isEnableWebhook && paymentMethod === "QR"
-                        ? "ข้ามระบบรอจ่าย (ยืนยันเอง)"
-                        : "ยืนยันชำระเงิน"}
+                        ? t('payment.confirm_manual_override')
+                        : t('payment.confirm_payment')}
                 </span>
               </button>
             </div>

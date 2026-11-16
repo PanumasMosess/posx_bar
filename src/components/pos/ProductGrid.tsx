@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ProductGridProps } from "@/lib/interface";
 import ProductOptionModal from "./ProductOptionModal";
 import ProductCard from "./ProductCard";
+import { useTranslation } from "@/lib/language/LanguageContext";
 
 interface ExtendedProductGridProps extends ProductGridProps {
   onAddToCart?: (item: any) => void;
@@ -16,6 +17,7 @@ export default function ProductGrid({
   onAddToCart,
   onEditProduct,
 }: ExtendedProductGridProps) {
+  const { t } = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   const handleProductClick = (product: any) => {
@@ -50,7 +52,7 @@ export default function ProductGrid({
                 d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3.75h3m-3 3h3m-6-3h.008v.008H9.75V12zm0 3h.008v.008H9.75V15zm0 3h.008v.008H9.75V18z"
               />
             </svg>
-            <p className="text-sm font-medium">ไม่พบรายการสินค้าที่จะแสดง</p>
+            <p className="text-sm font-medium">{t("pos.no_products")}</p>
           </div>
         ) : (
           initialProducts.map((product) => (

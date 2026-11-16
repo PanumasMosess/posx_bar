@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { updateMiscSettingsAction, getShopProfileSettings } from '@/lib/actions/actionsSettings';
 import { useEmployee } from '@/components/providers/EmployeeContext';
+import { useTranslation } from '@/lib/language/LanguageContext';
 
 interface MiscSettingProps {
   organizationId?: number;
@@ -11,6 +12,7 @@ interface MiscSettingProps {
 
 export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }: MiscSettingProps) {
   const { organizationId: contextOrgId } = useEmployee();
+  const { t } = useTranslation();
   const orgId = propOrgId || contextOrgId || 0;
 
   const [address, setAddress] = useState('');
@@ -55,7 +57,7 @@ export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }:
   // ฟังก์ชันบันทึกข้อมูล
   const handleSave = async () => {
     if (!orgId) {
-      showToast('ไม่พบข้อมูลองค์กร กรุณาลองใหม่อีกครั้ง', 'error');
+      showToast(t('auth.org_not_found'), 'error');
       return;
     }
     
@@ -68,14 +70,14 @@ export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }:
         receiptFooter: receiptFooter.trim(),
         taxId: taxId.trim(), // ส่งค่า Tax ID ไปบันทึก
       });
-      showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+      showToast(t('settings.settings_saved'), 'success');
       
       if (onUpdateMisc) {
         onUpdateMisc(trimmedPhone);
       }
     } catch (error) {
       console.error('Error saving misc settings:', error);
-      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+      showToast(t('settings.save_error'), 'error');
     } finally {
       setIsSaving(false);
     }
@@ -84,7 +86,7 @@ export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }:
   if (isLoading) {
     return (
       <div className="w-full py-10 text-center text-slate-400 dark:text-slate-500 bg-pos-surface rounded-2xl border border-dashed border-pos-border transition-colors duration-300">
-        <p className="text-xs font-medium animate-pulse">กำลังโหลดข้อมูล...</p>
+        <p className="text-xs font-medium animate-pulse">{t('common.loading')}</p>
       </div>
     );
   }
@@ -112,52 +114,49 @@ export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }:
         {/* เพิ่ม Input เลขผู้เสียภาษี ไว้ด้านบนสุด */}
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-            เลขประจำตัวผู้เสียภาษี
+            {t('settings.tax_id')}
           </label>
           <input
             type="text"
             value={taxId}
             onChange={(e) => setTaxId(e.target.value)}
-            placeholder="เช่น 0123456789123"
+            placeholder={t('settings.tax_id_placeholder')}
             className="w-full max-w-md px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-            เบอร์โทรศัพท์ร้านค้า
+            {t('settings.shop_phone')}
           </label>
           <input
             type="text"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="เช่น 095-XXX-X950"
             className="w-full max-w-md px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-            ที่อยู่ร้านค้า (แสดงบนใบเสร็จ)
+            {t('settings.shop_address')}
           </label>
           <textarea
             rows={3}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="เช่น 123/45 ถนนสุขุมวิท ตำบลแสนสุข อำเภอเมืองชลบุรี ชลบุรี 20130"
             className="w-full max-w-lg px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition custom-scroll"
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-            ข้อความท้ายใบเสร็จ
+            {t('settings.receipt_footer')}
           </label>
           <input
             type="text"
             value={receiptFooter}
             onChange={(e) => setReceiptFooter(e.target.value)}
-            placeholder="เช่น ขอบคุณที่ใช้บริการ / Thank you!"
             className="w-full max-w-lg px-3.5 py-2.5 rounded-xl bg-pos-bg border border-pos-border text-sm text-pos-text placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
           />
         </div>
@@ -169,7 +168,7 @@ export default function MiscSetting({ organizationId: propOrgId, onUpdateMisc }:
             disabled={isSaving}
             className="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
           >
-            {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+            {isSaving ? t('settings.saving') : t('settings.save_settings')}
           </button>
         </div>
       </div>

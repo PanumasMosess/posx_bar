@@ -13,6 +13,7 @@ import FormProduct from "./FormProduct";
 import { EditProductModalProps } from "@/lib/interface";
 import ToastAlert from "@/components/ToastAlert";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import { useTranslation } from "@/lib/language/LanguageContext";
 import { useEmployee } from "@/components/providers/EmployeeContext";
 
 export default function EditProductModal({
@@ -20,6 +21,7 @@ export default function EditProductModal({
   initialCategories = [],
   onClose,
 }: EditProductModalProps) {
+  const { t } = useTranslation();
   const { organizationId } = useEmployee();
   const [activeModal, setActiveModal] = useState<ModalView>("ADD_PRODUCT");
   const [isPending, startTransition] = useTransition();
@@ -71,7 +73,7 @@ export default function EditProductModal({
         setToast({
           isOpen: true,
           type: "success",
-          message: "อัปเดตข้อมูลสินค้าเรียบร้อยแล้ว!",
+          message: t("product_form.product_updated_success"),
         });
 
         setTimeout(() => onClose(), 1500);
@@ -79,7 +81,7 @@ export default function EditProductModal({
         setToast({
           isOpen: true,
           type: "error",
-          message: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+          message: t("product_form.product_update_failed"),
         });
       }
     });
@@ -97,7 +99,7 @@ export default function EditProductModal({
         setToast({
           isOpen: true,
           type: "success",
-          message: "ลบสินค้าออกจากระบบเรียบร้อยแล้ว!",
+          message: t("product_form.product_deleted_success"),
         });
         setTimeout(() => onClose(), 1500);
       } else {
@@ -105,7 +107,7 @@ export default function EditProductModal({
         setToast({
           isOpen: true,
           type: "error",
-          message: "ไม่สามารถลบสินค้าได้ กรุณาลองใหม่",
+          message: t("product_form.product_delete_failed"),
         });
       }
     });
@@ -182,8 +184,8 @@ export default function EditProductModal({
       </div>
       <ConfirmDeleteModal
         isOpen={isConfirmDeleteOpen}
-        title="ยืนยันการลบสินค้า"
-        message={`คุณแน่ใจหรือไม่ที่จะลบ "${product.name}"? การลบจะไม่สามารถกู้คืนข้อมูลกลับมาได้`}
+        title={t("product_form.delete_confirm_title")}
+        message={t("product_form.delete_confirm_msg").replace("{name}", product.name || "")}
         onClose={() => setIsConfirmDeleteOpen(false)}
         onConfirm={confirmDeleteAction}
         isPending={isPending}
