@@ -2,6 +2,10 @@ import prisma from "@/lib/prisma";
 import POSView from "@/components/pos/POSView";
 import { auth } from "@/lib/auth";
 
+export const metadata = {
+  title: "Main | POS System",
+};
+
 export default async function POSHomePage() {
   const session = await auth();
   const userAny = session?.user as any;

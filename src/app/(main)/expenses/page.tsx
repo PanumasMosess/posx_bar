@@ -4,6 +4,10 @@ import { getCalendarExpensesAction } from "@/lib/actions/actionAccountingRecord"
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Expense | POS System",
+};
+
 export default async function ExpensesPage() {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
