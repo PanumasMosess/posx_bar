@@ -3,6 +3,10 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth"; 
 import { redirect } from "next/navigation"; 
 
+export const metadata = {
+  title: "Kitchen | POS System",
+};
+
 export default async function KitchenHomePage() {
   // 🌟 2. ดึงข้อมูล Session และ orgId
   const session = await auth();

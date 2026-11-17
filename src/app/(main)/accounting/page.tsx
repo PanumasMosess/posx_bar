@@ -12,6 +12,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Account | POS System",
+};
+
 interface PageProps {
   searchParams?: Promise<{ tab?: string }>;
 }
@@ -20,11 +24,12 @@ export default async function AccountingPage({ searchParams }: PageProps) {
   const session = await auth();
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const organizationId = Number(
-    (session?.user as { orgId?: number })?.orgId || session?.user?.id || 1
+    (session?.user as { orgId?: number })?.orgId || session?.user?.id || 1,
   );
 
   const resolvedParams = searchParams ? await searchParams : {};
-  const defaultTab = (resolvedParams.tab as AccountingTabKey) || "member_payment";
+  const defaultTab =
+    (resolvedParams.tab as AccountingTabKey) || "member_payment";
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -36,8 +41,8 @@ export default async function AccountingPage({ searchParams }: PageProps) {
   const initialStartDate = formatDate(startOfMonth);
   const initialEndDate = formatDate(now);
 
-  const [membersRaw, accountsRaw, txLogsRaw, reportDataRes] =
-    await Promise.all([
+  const [membersRaw, accountsRaw, txLogsRaw, reportDataRes] = await Promise.all(
+    [
       prisma.member.findMany({
         where: { organizationId, status: "ACTIVE" },
         include: {
@@ -78,14 +83,16 @@ export default async function AccountingPage({ searchParams }: PageProps) {
         endDate: initialEndDate,
         organizationId,
       }),
-    ]);
+    ],
+  );
 
   const initialMembers = membersRaw as unknown as (Member & {
     transactions?: MemberTransaction[];
   })[];
   const accounts = accountsRaw as unknown as AccountItem[];
   const txLogs = txLogsRaw as unknown as AccountTransactionItem[];
-  const reportData = reportDataRes.success && reportDataRes.data ? reportDataRes.data : null;
+  const reportData =
+    reportDataRes.success && reportDataRes.data ? reportDataRes.data : null;
 
   return (
     <AccountingHubView
